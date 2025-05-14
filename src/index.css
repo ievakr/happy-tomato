@@ -1,13 +1,13 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.calendar-event-box {
+    width: 150px;
+    max-height: 100px; /* Prevents the box from expanding too much */
+    overflow-y: auto; /* Adds a scroll if content is too large */
+    color: red;
+    border: 1px solid darkred;
+    border-radius: 4px;
+    padding: 5px;
+    word-wrap: break-word;
+    font-size: 12px; /* Smaller font to fit better */
+    margin: auto;
+    margin-top: 10px;
 }
