@@ -31,7 +31,8 @@ export default function Day({ day, rowIdx }) {
         "carrot": "Carrots",
         "broccoli": "Broccoli",
         "watermelon": "Watermelon",
-        "strawberry": "Strawberries"
+        "strawberry": "Strawberries",
+        "pumpkin": "Squash"
     };
 
     return (

@@ -17,7 +17,8 @@ const labelsClasses = {
     "carrot": "Carrots",
     "broccoli": "Broccoli",
     "watermelon": "Watermelon",
-    "strawberries": "Strawberries"
+    "strawberries": "Strawberries",
+    "pumpkin": "Squash"
 };
 
 const plantActions = {
@@ -59,7 +60,7 @@ export default function EventModal() {
             labels: selectedLabels,
             toDo: selectedToDo,
             day: selectedDate.valueOf(),
-            id: selectedEvent ? selectedEvent.id : Date.now()
+            id: selectedEvent ? selectedEvent.id : String(Date.now())
         };
         if (selectedEvent) {
             dispatchCallEvent({ type: 'update', payload: calendarEvent });

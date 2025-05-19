@@ -1,25 +1,28 @@
 import React, {useEffect, useReducer, useState, useMemo} from "react";
 import GlobalContext from "./GlobalContext";
 import dayjs from "dayjs";
+import { db } from "../firebase";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 
-function savedEventsReducer(state, {type, payload}) {
+function savedEventsReducer(state, { type, payload }) {
     switch (type) {
-        case 'push':
-            return [...state, payload];
-        case "update":
-            return state.map(evt => evt.id === payload.id ? payload : evt)
+      case "push":
+        return [...state, payload];
+      case "update":
+        return state.map(evt => evt.id === payload.id ? payload : evt);
         case "delete":
-            return state.filter(evt => evt.id !== payload.id)
-            default:
-            throw new Error()
+        return state.filter(evt => evt.id !== payload.id);                    
+      case "load":
+        return payload;
+      default:
+        throw new Error();
     }
-}
+  }  
 
-function initEvents() {
-    const storageEvents = localStorage.getItem("savedEvents")
-    const parsedEvents = storageEvents ? JSON.parse(storageEvents) : []
-    return parsedEvents
-}
+async function fetchEvents() {
+    const snapshot = await getDocs(collection(db, "events"));
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }  
 
 export default function ContextWrapper(props) {
     const [monthIndex, setMonthIndex] = useState(dayjs().month())
@@ -28,14 +31,34 @@ export default function ContextWrapper(props) {
     const [showEventModal, setShowEventModal] = useState(false)
     const [selectedEvent, setSelectedEvent] = useState(null)
     const [labels, setLabels] = useState([])
-    const [savedEvents, dispatchCallEvent] = useReducer(savedEventsReducer, [], initEvents)
+    const [savedEvents, dispatchCallEvent] = useReducer(savedEventsReducer, [])
     const [dosage, setDosage] = useState("");
     const filteredEvents = useMemo(() => {
         return savedEvents.filter(evt => labels.filter(lbl => lbl.checked).map(lbl => lbl.label).includes(evt.label))
-    }, [savedEvents, labels])
+    }, [savedEvents, labels]);
+    function handleEventDispatch({type, payload}) {
+        // Firestore side effects
+        switch (type) {
+          case "push":
+            addDoc(collection(db, "events"), payload);
+            break;
+          case "update":
+            updateDoc(doc(db, "events", payload.id), payload);
+            break;
+          case "delete":
+            deleteDoc(doc(db, "events", payload.id));
+            break;
+          default:
+            break;
+        }
+        // Local state update
+        dispatchCallEvent({ type, payload });
+    }; 
     useEffect(() => {
-        localStorage.setItem("savedEvents", JSON.stringify(savedEvents))
-    }, [savedEvents])
+        fetchEvents().then(events => {
+            dispatchCallEvent({ type: "load", payload: events }); // Add a 'load' case to your reducer to initialize state
+        });
+      }, []);      
     useEffect(() => {
         setLabels((prevLabels) => {
             return [...new Set(savedEvents.map(evt => evt.label))].map(label => {
@@ -67,7 +90,7 @@ export default function ContextWrapper(props) {
       }
 
     return (
-        <GlobalContext.Provider value={{monthIndex, setMonthIndex, smallCalendarMonth, setSmallCalendarMonth, daySelected, setDaySelected, showEventModal, setShowEventModal, dispatchCallEvent, savedEvents, selectedEvent, setSelectedEvent, labels, setLabels, updateLabel, filteredEvents, dosage, setDosage}}>
+        <GlobalContext.Provider value={{monthIndex, setMonthIndex, smallCalendarMonth, setSmallCalendarMonth, daySelected, setDaySelected, showEventModal, setShowEventModal, dispatchCallEvent: handleEventDispatch, savedEvents, selectedEvent, setSelectedEvent, labels, setLabels, updateLabel, filteredEvents, dosage, setDosage}}>
             {props.children}
         </GlobalContext.Provider>
     )

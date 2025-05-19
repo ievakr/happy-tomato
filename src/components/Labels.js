@@ -12,7 +12,8 @@ const labelsClasses = {
     "carrot": "Carrot",
     "broccoli": "Broccoli",
     "watermelon": "Watermelon",
-    "strawberry": "Strawberries"
+    "strawberry": "Strawberries",
+    "pumpkin": "Squash"
 };
 
 export default function Labels() {
