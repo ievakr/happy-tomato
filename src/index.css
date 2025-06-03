@@ -1,5 +1,5 @@
 .calendar-event-box {
-    width: 150px;
+    width: 160px;
     max-height: 100px; /* Prevents the box from expanding too much */
     overflow-y: auto; /* Adds a scroll if content is too large */
     color: red;
