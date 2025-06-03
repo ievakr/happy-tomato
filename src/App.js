@@ -1,4 +1,3 @@
-import logo from './logo.svg';
 import './App.css';
 import { getMonth } from './util'
 import React, { useState, useContext, useEffect } from 'react';

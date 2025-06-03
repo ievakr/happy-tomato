@@ -10,7 +10,6 @@ export default function Day({ day, rowIdx }) {
     useEffect(() => {
         const events = filteredEvents.filter(evt => dayjs(evt.day).format("DD-MM-YY") === day.format("DD-MM-YY"));
         setDayEvents(events);
-        console.log(dayEvents)
     }, [filteredEvents, day]);
 
     function getCurrentDayClass() {
