@@ -33,9 +33,12 @@ export default function ContextWrapper(props) {
     const [labels, setLabels] = useState([])
     const [savedEvents, dispatchCallEvent] = useReducer(savedEventsReducer, [])
     const [dosage, setDosage] = useState("");
+    const [showSidebar, setShowSidebar] = useState(false)
+    
     const filteredEvents = useMemo(() => {
         return savedEvents.filter(evt => labels.filter(lbl => lbl.checked).map(lbl => lbl.label).includes(evt.label))
     }, [savedEvents, labels]);
+
     function handleEventDispatch({type, payload}) {
         // Firestore side effects
         switch (type) {
@@ -90,7 +93,7 @@ export default function ContextWrapper(props) {
       }
 
     return (
-        <GlobalContext.Provider value={{monthIndex, setMonthIndex, smallCalendarMonth, setSmallCalendarMonth, daySelected, setDaySelected, showEventModal, setShowEventModal, dispatchCallEvent: handleEventDispatch, savedEvents, selectedEvent, setSelectedEvent, labels, setLabels, updateLabel, filteredEvents, dosage, setDosage}}>
+        <GlobalContext.Provider value={{monthIndex, setMonthIndex, smallCalendarMonth, setSmallCalendarMonth, daySelected, setDaySelected, showEventModal, setShowEventModal, dispatchCallEvent: handleEventDispatch, savedEvents, selectedEvent, setSelectedEvent, labels, setLabels, updateLabel, filteredEvents, dosage, setDosage, showSidebar, setShowSidebar}}>
             {props.children}
         </GlobalContext.Provider>
     )

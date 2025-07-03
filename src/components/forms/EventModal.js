@@ -1,0 +1,184 @@
+import React, { useContext, useState, useEffect } from "react";
+import GlobalContext from "../../context/GlobalContext";
+import CustomDropdown from "../common/CustomDropdown";
+import SingleSelectDropdown from "../common/SingleSelectDropdown";
+import DatePicker from "react-widgets/DatePicker";
+import 'react-widgets/styles.css';
+import '../../styles/legacy.css';
+import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS } from "../../constants";
+
+export default function EventModal() {
+    const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage } = useContext(GlobalContext);
+    const [description, setDescription] = useState(selectedEvent ? selectedEvent.description : "");
+    const [selectedLabels, setSelectedLabels] = useState([]);
+    const [selectedDate, setSelectedDate] = useState(daySelected.toDate());
+    const [title, setTitle] = useState(selectedEvent ? selectedEvent.title : "");
+    const [selectedToDo, setSelectedToDo] = useState([]);
+
+    useEffect(() => {
+        if (selectedEvent) {
+            setSelectedLabels(selectedEvent.labels || []);
+            setTitle(selectedEvent.title || "");
+            setDescription(selectedEvent.description || "");
+            setDosage(PLANT_ACTIONS[selectedEvent.title] || "");
+            setSelectedToDo(Array.isArray(selectedEvent.toDo) ? selectedEvent.toDo : (selectedEvent.toDo ? [selectedEvent.toDo] : []));
+        }
+    }, [selectedEvent, setDosage]);
+
+    function handleActionSelect(selectedAction) {
+        setTitle(selectedAction);
+        // Clear dosage if no action is selected
+        if (selectedAction === "") {
+            setDosage("");
+        } else {
+            setDosage(PLANT_ACTIONS[selectedAction] || "");
+        }
+    }
+
+    function handleSubmit(e) {
+        e.preventDefault();
+        const calendarEvent = {
+            title,
+            description,
+            labels: selectedLabels,
+            toDo: Array.isArray(selectedToDo) ? selectedToDo.join(", ") : selectedToDo,
+            day: selectedDate.valueOf(),
+            id: selectedEvent ? selectedEvent.id : String(Date.now())
+        };
+        if (selectedEvent) {
+            dispatchCallEvent({ type: 'update', payload: calendarEvent });
+        } else {
+            dispatchCallEvent({ type: 'push', payload: calendarEvent });
+        }
+        setShowEventModal(false);
+    }
+
+    return (
+        <div className="position-fixed w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center" style={{ zIndex: 1055 }}>
+            <form className="event-modal bg-white rounded-lg shadow-lg mx-3" style={{ 
+                width: '100%', 
+                maxWidth: '400px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                overflowX: 'visible'
+            }} onSubmit={(e) => e.preventDefault()}>
+                <header className="bg-light p-2 d-flex justify-content-between align-items-center">
+                    <span className="material-icons-outlined text-muted">
+                        drag_handle
+                    </span>
+                    <div className="d-flex align-items-center">
+                        {selectedEvent && (
+                            <button
+                                type="button"
+                                className="btn btn-sm p-1 me-2"
+                                onClick={() => {
+                                    dispatchCallEvent({ type: "delete", payload: selectedEvent });
+                                    setShowEventModal(false);
+                                }}
+                            >
+                                <span className="material-icons-outlined text-muted">
+                                    delete
+                                </span>
+                            </button>
+                        )}
+                        <button type="button" className="btn btn-sm p-1" onClick={() => setShowEventModal(false)}>
+                            <span className="material-icons-outlined text-muted">
+                                close
+                            </span>
+                        </button>
+                    </div>
+                </header>
+                <div className="p-3" style={{ overflow: 'visible' }}>
+                    <div className="d-grid gap-3">
+                        {/* Action Selection */}
+                        <div className="d-flex align-items-center mb-3">
+                            <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
+                                water_drop
+                            </span>
+                            <div className="flex-grow-1 me-2">
+                                <SingleSelectDropdown
+                                    title="Select action"
+                                    options={Object.keys(PLANT_ACTIONS)}
+                                    selectedValue={title}
+                                    onSelect={handleActionSelect}
+                                />
+                            </div>
+                            {dosage && (
+                                <div className="text-muted small flex-shrink-0" style={{ fontSize: '0.75rem' }}>
+                                    {dosage}
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* To-Do Selection */}
+                        <div className="d-flex align-items-center mb-3">
+                            <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
+                                checklist
+                            </span>
+                            <div className="flex-grow-1">
+                                <CustomDropdown
+                                    title="Select to-do"
+                                    options={TODO_ITEMS}
+                                    selectedOptions={Array.isArray(selectedToDo) ? selectedToDo : (selectedToDo ? [selectedToDo] : [])}
+                                    onSelect={setSelectedToDo}
+                                />
+                            </div>
+                        </div>
+                        
+                        {/* Date Selection */}
+                        <div className="d-flex align-items-center mb-3">
+                            <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
+                                schedule
+                            </span>
+                            <div className="flex-grow-1">
+                                <DatePicker
+                                    value={selectedDate}
+                                    onChange={(date) => setSelectedDate(date)}
+                                    defaultValue={new Date()}
+                                    valueFormat={{ dateStyle: "medium" }}
+                                    className="w-100"
+                                />
+                            </div>
+                        </div>
+                        
+                        {/* Description */}
+                        <div className="d-flex align-items-center mb-3">
+                            <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
+                                segment
+                            </span>
+                            <input
+                                type="text"
+                                name="description"
+                                placeholder="Add a description"
+                                value={description}
+                                required
+                                className="form-control border-0 border-bottom border-secondary flex-grow-1"
+                                onChange={(e) => setDescription(e.target.value)}
+                            />
+                        </div>
+                        
+                        {/* Plant Selection */}
+                        <div className="d-flex align-items-center mb-3">
+                            <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
+                                yard
+                            </span>
+                            <div className="flex-grow-1">
+                                <CustomDropdown
+                                    title="Select plants"
+                                    options={Object.values(PLANT_LABELS)} 
+                                    selectedOptions={selectedLabels || []} 
+                                    onSelect={setSelectedLabels}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <footer className="d-flex justify-content-end border-top p-3 mt-3">
+                    <button type="submit" onClick={handleSubmit} className="btn btn-primary w-100 w-md-auto">
+                        Save
+                    </button>
+                </footer>
+            </form>
+        </div>
+    );
+}

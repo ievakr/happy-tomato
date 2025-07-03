@@ -1,0 +1,446 @@
+/* Mobile-first responsive styles */
+
+/* Mobile title styling */
+.mobile-title {
+  line-height: 1.1;
+  text-align: center;
+}
+
+.mobile-title-main {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #6c757d;
+  display: block;
+  letter-spacing: 0.5px;
+  margin-bottom: -2px;
+}
+
+.mobile-title-sub {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #6c757d;
+  display: block;
+  letter-spacing: 0.3px;
+}
+
+/* Fallback for browsers that don't support background-clip */
+@supports not (-webkit-background-clip: text) {
+  .mobile-title-sub {
+    color: #6c757d;
+    background: none;
+  }
+}
+
+/* Custom dropdown styles */
+.custom-dropdown {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  max-width: 200px;
+}
+
+.custom-dropdown__title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.custom-dropdown__title:hover {
+  border-color: #007bff;
+}
+
+.custom-dropdown__title:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.custom-dropdown__arrow {
+  margin-left: 10px;
+  transition: transform 0.2s ease;
+}
+
+.custom-dropdown__list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid #ccc;
+  border-top: none;
+  background-color: #fff;
+  z-index: 1000;
+  max-height: 200px;
+  overflow-y: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 0 0 4px 4px;
+}
+
+/* Overflow dropdown - appears outside parent containers */
+.custom-dropdown__list--overflow {
+  position: fixed !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  z-index: 9999 !important;
+  border: 1px solid #ccc !important;
+  border-radius: 4px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  background-color: #fff !important;
+}
+
+.custom-dropdown__list li {
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.custom-dropdown__list li:hover {
+  background-color: #f0f0f0;
+}
+
+.custom-dropdown__list li.selected {
+  background-color: #e7f3ff;
+  color: #007bff;
+  font-weight: 500;
+}
+
+/* Sidebar toggle button - always visible on mobile */
+.sidebar-toggle {
+  display: none !important;
+}
+
+/* Calendar grid base styles */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.day-cell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+/* Event interaction styles */
+.event-item:hover {
+  background-color: rgba(0,0,0,0.08) !important;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.event-item:active {
+  background-color: rgba(0,0,0,0.12) !important;
+  transform: translateY(0);
+}
+
+/* Mobile tap feedback */
+@media (max-width: 768px) {
+  .event-item:active {
+    background-color: rgba(0,123,255,0.2) !important;
+  }
+}
+
+/* Event count indicators */
+.event-count-indicator {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  color: white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: bold;
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  z-index: 10;
+}
+
+/* Truncation indicator styling */
+.truncation-indicator {
+  color: #6c757d;
+  font-weight: bold;
+  opacity: 0.7;
+}
+
+/* Modal overflow handling */
+.event-modal {
+  overflow: visible !important;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  /* Enhanced mobile title with subtle animation */
+  .mobile-title {
+    animation: fadeInUp 0.6s ease-out;
+  }
+  
+  .mobile-title-main {
+    font-size: 1.0rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  
+  .mobile-title-sub {
+    font-size: 0.8rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  
+  /* Header responsive adjustments */
+  .calendar-header {
+    flex-wrap: wrap;
+    padding: 0.5rem 1rem !important;
+  }
+  
+  .calendar-header h1 {
+    font-size: 1.2rem !important;
+  }
+  
+  .calendar-header h2 {
+    font-size: 1rem !important;
+  }
+  
+  /* Show sidebar toggle button on mobile */
+  .sidebar-toggle {
+    display: block !important;
+  }
+  
+  /* Sidebar responsive - positioned off-screen by default */
+  .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: -300px !important;
+    width: 300px !important;
+    height: 100vh !important;
+    z-index: 1050 !important;
+    background-color: white !important;
+    transition: left 0.3s ease-in-out !important;
+  }
+  
+  .sidebar.mobile-sidebar-open {
+    left: 0 !important;
+  }
+  
+  /* Calendar grid responsive */
+  .calendar-grid {
+    grid-template-columns: repeat(7, 1fr) !important;
+    grid-template-rows: repeat(5, 1fr) !important;
+    gap: 1px !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+  
+  /* Day cells responsive */
+  .day-cell {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 80px !important;
+    padding: 2px !important;
+    overflow: hidden !important;
+  }
+  
+  .day-cell header {
+    font-size: 0.75rem !important;
+  }
+  
+  .day-number {
+    width: 24px !important;
+    height: 24px !important;
+    line-height: 24px !important;
+    font-size: 0.8rem !important;
+  }
+  
+  /* Event display responsive */
+  .event-item {
+    font-size: 0.6rem !important;
+    padding: 1px 2px !important;
+    margin: 1px 0 !important;
+    border: 1px solid rgba(0,0,0,0.15) !important;
+    background-color: rgba(0,0,0,0.05) !important;
+  }
+  
+  .event-icons {
+    font-size: 10px !important;
+  }
+  
+  /* Mobile touch indicators */
+  .event-item {
+    position: relative;
+  }
+  
+  .event-item::after {
+    content: '👆';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 6px;
+    opacity: 0.4;
+  }
+  
+  /* Modal responsive */
+  .event-modal {
+    width: 90% !important;
+    max-width: 400px !important;
+    margin: 1rem !important;
+    overflow: visible !important;
+  }
+  
+  .custom-dropdown {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  
+  /* Ensure dropdown appears above everything on mobile */
+  .custom-dropdown__list--overflow {
+    z-index: 10000 !important;
+  }
+  
+  /* Calendar event box responsive */
+  .calendar-event-box {
+    width: 100% !important;
+    max-width: 120px !important;
+    font-size: 8px !important;
+    padding: 2px !important;
+    max-height: 30px !important;
+    overflow: hidden !important;
+  }
+  
+  /* Truncation indicators more visible on mobile */
+  .truncation-indicator {
+    font-size: 0.7rem !important;
+    font-weight: bold !important;
+    color: #007bff !important;
+  }
+}
+
+/* Fade in animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Tablet responsive styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar {
+    width: 250px !important;
+  }
+  
+  .calendar-header h1 {
+    font-size: 1.4rem !important;
+  }
+  
+  .day-cell {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 100px !important;
+    overflow: hidden !important;
+  }
+  
+  .event-modal {
+    width: 40% !important;
+    max-width: 500px !important;
+    overflow: visible !important;
+  }
+  
+  .calendar-event-box {
+    max-height: 50px !important;
+    overflow: hidden !important;
+  }
+}
+
+/* Desktop styles */
+@media (min-width: 1025px) {
+  .sidebar-toggle {
+    display: none !important;
+  }
+  
+  .day-cell {
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 120px !important;
+    overflow: hidden !important;
+  }
+  
+  .calendar-event-box {
+    max-height: 60px !important;
+    overflow: hidden !important;
+  }
+  
+  /* Hide mobile touch indicators on desktop */
+  .event-item::after {
+    display: none !important;
+  }
+  
+  .event-modal {
+    overflow: visible !important;
+  }
+}
+
+/* Utility classes for mobile */
+.mobile-hidden {
+  display: block;
+}
+
+.mobile-visible {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .mobile-visible {
+    display: block !important;
+  }
+}
+
+/* Touch-friendly button sizing */
+@media (max-width: 768px) {
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .btn-sm {
+    min-height: 32px;
+    min-width: 32px;
+  }
+}
+
+/* Responsive typography */
+@media (max-width: 768px) {
+  .fs-4 {
+    font-size: 1.2rem !important;
+  }
+  
+  .fs-5 {
+    font-size: 1rem !important;
+  }
+}
+
+
+

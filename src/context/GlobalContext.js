@@ -18,7 +18,9 @@ const GlobalContext = React.createContext({
     updateLabel: () => {},
     filteredEvents: [],
     dosage: "",
-    setDosage: () => {}
+    setDosage: () => {},
+    showSidebar: false,
+    setShowSidebar: () => {}
 })
 
 export default GlobalContext;

@@ -1,0 +1,38 @@
+import { useState, useEffect } from 'react';
+import { BREAKPOINTS } from '../constants';
+
+/**
+ * Custom hook for responsive design utilities
+ */
+export const useResponsive = () => {
+  const [windowSize, setWindowSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+  });
+
+  useEffect(() => {
+    function handleResize() {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
+
+  const isMobile = windowSize.width <= BREAKPOINTS.MOBILE;
+  const isTablet = windowSize.width > BREAKPOINTS.MOBILE && windowSize.width <= BREAKPOINTS.TABLET;
+  const isDesktop = windowSize.width >= BREAKPOINTS.DESKTOP;
+
+  return {
+    windowSize,
+    isMobile,
+    isTablet,
+    isDesktop,
+    breakpoints: BREAKPOINTS
+  };
+}; 

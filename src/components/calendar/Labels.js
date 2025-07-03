@@ -1,26 +1,11 @@
 import React from "react";
-
-const labelsClasses = {
-    "rose": "Roses",
-    "tomato": "Tomatoes",
-    "cucumber": "Cucumbers",
-    "radish": "Radishes",
-    "onion": "Onions",
-    "pepper-alt": "Bell Peppers",
-    "leafy-green": "Salad",
-    "garlic-alt": "Garlic",
-    "carrot": "Carrot",
-    "broccoli": "Broccoli",
-    "watermelon": "Watermelon",
-    "strawberry": "Strawberries",
-    "pumpkin": "Squash"
-};
+import { PLANT_LABELS } from "../../constants";
 
 export default function Labels() {
     return (
         <React.Fragment>
             <p className="text-secondary fw-bold mt-4">Labels</p>
-            {Object.entries(labelsClasses).map(([lblClass, plantName], idx) => (
+            {Object.entries(PLANT_LABELS).map(([lblClass, plantName], idx) => (
                 <div key={idx} className="d-flex align-items-center mb-2">
                     <span>
                         <i
