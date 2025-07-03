@@ -43,11 +43,6 @@ export default function CalendarDay({ day, rowIndex }) {
             overflow: 'hidden'
         }}>
             <header className="d-flex flex-column align-items-center flex-shrink-0" style={{ padding: '4px 0' }}>
-                {rowIndex === 0 && (
-                    <p className="text-muted small mt-1 mb-0">
-                        {day.format('ddd').toUpperCase()}
-                    </p>
-                )}
                 <div
                     className={`day-number text-center ${getCurrentDayClass()}`}
                     style={{ width: '30px', height: '30px', lineHeight: '30px' }}

@@ -5,6 +5,7 @@ import { useCalendar } from './hooks/useCalendar';
 import GlobalContext from './context/GlobalContext';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
+import CalendarHeader from './components/calendar/CalendarHeader';
 import CalendarGrid from './components/calendar/CalendarGrid';
 import EventModal from './components/forms/EventModal';
 import 'react-tooltip/dist/react-tooltip.css';
@@ -58,6 +59,7 @@ function App() {
             }}
             aria-label="Calendar view"
           >
+            <CalendarHeader />
             <CalendarGrid month={currentMonth} />
           </section>
         </main>

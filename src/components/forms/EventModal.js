@@ -8,7 +8,7 @@ import '../../styles/legacy.css';
 import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS } from "../../constants";
 
 export default function EventModal() {
-    const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage } = useContext(GlobalContext);
+    const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading } = useContext(GlobalContext);
     const [description, setDescription] = useState(selectedEvent ? selectedEvent.description : "");
     const [selectedLabels, setSelectedLabels] = useState([]);
     const [selectedDate, setSelectedDate] = useState(daySelected.toDate());
@@ -35,22 +35,31 @@ export default function EventModal() {
         }
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault();
         const calendarEvent = {
             title,
             description,
             labels: selectedLabels,
             toDo: Array.isArray(selectedToDo) ? selectedToDo.join(", ") : selectedToDo,
-            day: selectedDate.valueOf(),
-            id: selectedEvent ? selectedEvent.id : String(Date.now())
+            day: selectedDate.valueOf()
         };
+        
+        // Only add ID for existing events (updates), let Firebase generate ID for new events
         if (selectedEvent) {
-            dispatchCallEvent({ type: 'update', payload: calendarEvent });
-        } else {
-            dispatchCallEvent({ type: 'push', payload: calendarEvent });
+            calendarEvent.id = selectedEvent.id;
         }
-        setShowEventModal(false);
+        
+        try {
+            if (selectedEvent) {
+                await dispatchCallEvent({ type: 'update', payload: calendarEvent });
+            } else {
+                await dispatchCallEvent({ type: 'push', payload: calendarEvent });
+            }
+            setShowEventModal(false);
+        } catch (error) {
+            console.error('Save failed:', error);
+        }
     }
 
     return (
@@ -71,14 +80,25 @@ export default function EventModal() {
                             <button
                                 type="button"
                                 className="btn btn-sm p-1 me-2"
-                                onClick={() => {
-                                    dispatchCallEvent({ type: "delete", payload: selectedEvent });
-                                    setShowEventModal(false);
+                                disabled={isLoading}
+                                onClick={async () => {
+                                    try {
+                                        await dispatchCallEvent({ type: "delete", payload: selectedEvent });
+                                        setShowEventModal(false);
+                                    } catch (error) {
+                                        console.error('Delete failed:', error);
+                                    }
                                 }}
                             >
-                                <span className="material-icons-outlined text-muted">
-                                    delete
-                                </span>
+                                {isLoading ? (
+                                    <span className="spinner-border spinner-border-sm text-muted" role="status">
+                                        <span className="visually-hidden">Loading...</span>
+                                    </span>
+                                ) : (
+                                    <span className="material-icons-outlined text-muted">
+                                        delete
+                                    </span>
+                                )}
                             </button>
                         )}
                         <button type="button" className="btn btn-sm p-1" onClick={() => setShowEventModal(false)}>
@@ -174,8 +194,22 @@ export default function EventModal() {
                     </div>
                 </div>
                 <footer className="d-flex justify-content-end border-top p-3 mt-3">
-                    <button type="submit" onClick={handleSubmit} className="btn btn-primary w-100 w-md-auto">
-                        Save
+                    <button 
+                        type="submit" 
+                        onClick={handleSubmit} 
+                        className="btn btn-primary w-100 w-md-auto"
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <>
+                                <span className="spinner-border spinner-border-sm me-2" role="status">
+                                    <span className="visually-hidden">Loading...</span>
+                                </span>
+                                Saving...
+                            </>
+                        ) : (
+                            'Save'
+                        )}
                     </button>
                 </footer>
             </form>

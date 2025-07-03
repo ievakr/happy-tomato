@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import dayjs from "dayjs";
-import { getMonth } from "../../utils";
+import { getMonth, getDayHeaders } from "../../utils";
 import GlobalContext from "../../context/GlobalContext";
 
 export default function SmallCalendar() {
@@ -55,9 +55,9 @@ export default function SmallCalendar() {
                 </div>
             </header>
             <div className="d-grid" style={{ gridTemplateColumns: 'repeat(7, 1fr)', gridAutoRows: '40px' }}>
-                {currentMonth[0].map((day, i) => (
+                {getDayHeaders('single').map((dayHeader, i) => (
                     <span key={i} className="text-center text-muted small py-1">
-                        {day.format("dd").charAt(0)}
+                        {dayHeader}
                     </span>
                 ))}
                 {currentMonth.map((row, i) => (

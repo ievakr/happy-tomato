@@ -20,7 +20,9 @@ const GlobalContext = React.createContext({
     dosage: "",
     setDosage: () => {},
     showSidebar: false,
-    setShowSidebar: () => {}
+    setShowSidebar: () => {},
+    isLoading: false,
+    setIsLoading: () => {}
 })
 
 export default GlobalContext;

@@ -7,7 +7,9 @@ import dayjs from 'dayjs';
  */
 export function getMonth(month = dayjs().month()) {
   const year = dayjs().year();
-  const firstDayOfTheMonth = dayjs(new Date(year, month, 1)).day();
+  // Adjust to make Monday the first day of the week (0=Sunday, 1=Monday, etc.)
+  // Convert Sunday=0 to Sunday=6, Monday=1 to Monday=0, etc.
+  const firstDayOfTheMonth = (dayjs(new Date(year, month, 1)).day() + 6) % 7;
   let currentMonthCount = 0 - firstDayOfTheMonth;
 
   const daysMatrix = new Array(5).fill([]).map(() => {
@@ -113,4 +115,26 @@ export function deepClone(obj) {
     }
   }
   return cloned;
+}
+
+/**
+ * Get day headers starting from Monday
+ * @param {string} format - Format type ('short' for 3-letter, 'single' for 1-letter)
+ * @returns {Array<string>} Array of day headers
+ */
+export function getDayHeaders(format = 'short') {
+  // Create a reference Monday (January 1, 2024 was a Monday)
+  const monday = dayjs('2024-01-01');
+  
+  const headers = [];
+  for (let i = 0; i < 7; i++) {
+    const day = monday.add(i, 'day');
+    if (format === 'single') {
+      headers.push(day.format('dd').charAt(0));
+    } else {
+      headers.push(day.format('ddd').toUpperCase());
+    }
+  }
+  
+  return headers;
 } 
