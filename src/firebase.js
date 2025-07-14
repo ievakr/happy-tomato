@@ -3,14 +3,33 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyDL-fydFUwZMXXwdK-Y2q1d0mveJhRg3cQ",
-    authDomain: "happy-tomato.firebaseapp.com",
-    projectId: "happy-tomato",
-    storageBucket: "happy-tomato.firebasestorage.app",
-    messagingSenderId: "593032243471",
-    appId: "1:593032243471:web:3b7ae7d97fca09c4ebb67a",
-    measurementId: "G-76Q89B2J95"
-  };
+    apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+    authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.REACT_APP_FIREBASE_APP_ID,
+    measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
+};
+
+// Validate that all required environment variables are present
+const requiredEnvVars = [
+    'REACT_APP_FIREBASE_API_KEY',
+    'REACT_APP_FIREBASE_AUTH_DOMAIN',
+    'REACT_APP_FIREBASE_PROJECT_ID',
+    'REACT_APP_FIREBASE_STORAGE_BUCKET',
+    'REACT_APP_FIREBASE_MESSAGING_SENDER_ID',
+    'REACT_APP_FIREBASE_APP_ID'
+];
+
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+    throw new Error(
+        `Missing required environment variables: ${missingEnvVars.join(', ')}\n` +
+        'Please check your .env file and ensure all Firebase configuration variables are set.'
+    );
+}
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
