@@ -1,11 +1,13 @@
 import React, { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import GlobalContext from '../../context/GlobalContext';
-import { PLANT_LABELS } from '../../constants';
+import { PLANT_LABELS, UI_CONSTANTS } from '../../constants';
+import { useResponsive } from '../../hooks';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
     const { setDaySelected, setShowEventModal, filteredEvents, setSelectedEvent } = useContext(GlobalContext);
+    const { isMobile } = useResponsive();
     const [dayEvents, setDayEvents] = useState([]);
 
     useEffect(() => {
@@ -110,30 +112,43 @@ export default function CalendarDay({ day, rowIndex }) {
                                     </div>
                                 )}
                                 
-                                {/* Icons row */}
-                                <div className="d-flex align-items-center mt-1">
-                                    {(evt.labels || []).slice(0, 3).map((label, labelIdx) => {
-                                        const iconClass = Object.keys(PLANT_LABELS).find(key => PLANT_LABELS[key] === label) || label;
+                                {/* Icons row with responsive display */}
+                                <div className="d-flex align-items-center mt-1" style={{
+                                    flexWrap: isMobile ? 'nowrap' : 'wrap', // Allow wrapping on desktop for better display
+                                }}>
+                                    {(() => {
+                                        const labels = evt.labels || [];
+                                        const maxIcons = isMobile ? UI_CONSTANTS.MAX_ICONS_PER_EVENT : labels.length;
+                                        const visibleLabels = labels.slice(0, maxIcons);
+                                        const hasMoreLabels = labels.length > maxIcons;
+                                        
                                         return (
-                                            <i 
-                                                key={labelIdx} 
-                                                className={`event-icons fi fi-rr-${iconClass}`} 
-                                                style={{ 
-                                                    fontSize: "12px", 
-                                                    cursor: "pointer", 
-                                                    minWidth: "12px", 
-                                                    marginRight: "1px", 
-                                                    lineHeight: "1"
-                                                }}
-                                                title={label}
-                                            />
+                                            <>
+                                                {visibleLabels.map((label, labelIdx) => {
+                                                    const iconClass = Object.keys(PLANT_LABELS).find(key => PLANT_LABELS[key] === label) || label;
+                                                    return (
+                                                        <i 
+                                                            key={labelIdx} 
+                                                            className={`event-icons fi fi-rr-${iconClass}`} 
+                                                            style={{ 
+                                                                fontSize: "12px", 
+                                                                cursor: "pointer", 
+                                                                minWidth: "12px", 
+                                                                marginRight: "1px", 
+                                                                lineHeight: "1"
+                                                            }}
+                                                            title={label}
+                                                        />
+                                                    );
+                                                })}
+                                                {hasMoreLabels && (
+                                                    <span className="text-muted" style={{ fontSize: '0.5rem' }}>
+                                                        +{labels.length - maxIcons}
+                                                    </span>
+                                                )}
+                                            </>
                                         );
-                                    })}
-                                    {(evt.labels || []).length > 3 && (
-                                        <span className="text-muted" style={{ fontSize: '0.5rem' }}>
-                                            +{(evt.labels || []).length - 3}
-                                        </span>
-                                    )}
+                                    })()}
                                 </div>
                             </div>
                         </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { UI_CONSTANTS } from '../../constants';
+import { useResponsive } from '../../hooks';
 
 /**
  * Individual event item component for calendar display
@@ -98,16 +99,22 @@ const EventTitle = ({ text }) => (
 );
 
 /**
- * Event icons component
+ * Event icons component with responsive display
  */
 const EventIcons = ({ labels, labelsMapping }) => {
+  const { isMobile } = useResponsive();
+  
   if (!labels || labels.length === 0) return null;
   
-  const visibleLabels = labels.slice(0, UI_CONSTANTS.MAX_ICONS_PER_EVENT);
-  const hasMoreLabels = labels.length > UI_CONSTANTS.MAX_ICONS_PER_EVENT;
+  // On web mode (non-mobile), show all icons; on mobile, limit to MAX_ICONS_PER_EVENT
+  const maxIcons = isMobile ? UI_CONSTANTS.MAX_ICONS_PER_EVENT : labels.length;
+  const visibleLabels = labels.slice(0, maxIcons);
+  const hasMoreLabels = labels.length > maxIcons;
   
   return (
-    <div className="d-flex align-items-center mt-1">
+    <div className="d-flex align-items-center mt-1" style={{
+      flexWrap: isMobile ? 'nowrap' : 'wrap', // Allow wrapping on desktop for better display
+    }}>
       {visibleLabels.map((label, index) => {
         const iconClass = Object.keys(labelsMapping).find(
           key => labelsMapping[key] === label
@@ -130,7 +137,7 @@ const EventIcons = ({ labels, labelsMapping }) => {
       })}
       {hasMoreLabels && (
         <span className="text-muted" style={{ fontSize: '0.5rem' }}>
-          +{labels.length - UI_CONSTANTS.MAX_ICONS_PER_EVENT}
+          +{labels.length - maxIcons}
         </span>
       )}
     </div>

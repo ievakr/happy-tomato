@@ -54,7 +54,7 @@ export default function ContextWrapper(props) {
     const [isLoading, setIsLoading] = useState(false)
     const [isInitialLoading, setIsInitialLoading] = useState(true)
     const [loadingOperation, setLoadingOperation] = useState(null)
-    const [loadingTimeoutId, setLoadingTimeoutId] = useState(null)
+
     const [operationQueue, setOperationQueue] = useState([])
     const [isProcessingOperation, setIsProcessingOperation] = useState(false)
     
@@ -153,9 +153,8 @@ export default function ContextWrapper(props) {
         }
 
         setIsProcessingOperation(true);
-        // Increased timeout duration and more forgiving for different operations
-        const timeoutMs = type === 'load' ? 60000 : 45000; // 60s for load, 45s for others
-        setLoadingWithTimeout(type, timeoutMs);
+        setIsLoading(true);
+        setLoadingOperation(type);
         
         try {
             console.log(`Starting ${type} operation for event:`, payload);
@@ -245,7 +244,8 @@ export default function ContextWrapper(props) {
                 dispatchCallEvent({ type, payload });
             }
         } finally {
-            clearLoadingState();
+            setIsLoading(false);
+            setLoadingOperation(null);
             setIsProcessingOperation(false);
             
             // Process queued operations
@@ -261,9 +261,10 @@ export default function ContextWrapper(props) {
     
     useEffect(() => {
         async function loadInitialData() {
-            // Set initial loading with longer timeout for initial load
+            // Set initial loading
             setIsInitialLoading(true);
-            setLoadingWithTimeout('load', 60000); // 60 second timeout for initial load
+            setIsLoading(true);
+            setLoadingOperation('load');
             
             try {
                 console.log('Loading initial events...');
@@ -283,21 +284,15 @@ export default function ContextWrapper(props) {
                 alert('Failed to load your events. Please check your internet connection and refresh the page.');
             } finally {
                 setIsInitialLoading(false);
-                clearLoadingState();
+                setIsLoading(false);
+                setLoadingOperation(null);
             }
         }
         
         loadInitialData();
     }, []);
     
-    // Cleanup timeout on unmount
-    useEffect(() => {
-        return () => {
-            if (loadingTimeoutId) {
-                clearTimeout(loadingTimeoutId);
-            }
-        };
-    }, [loadingTimeoutId]);      
+      
     useEffect(() => {
         setLabels((prevLabels) => {
             // Collect all unique labels from all events' labels arrays
@@ -331,52 +326,7 @@ export default function ContextWrapper(props) {
         );
     }
 
-    // Function to handle loading timeouts - more user-friendly
-    function setLoadingWithTimeout(operation, timeoutMs = 45000) {
-        setIsLoading(true);
-        setLoadingOperation(operation);
-        
-        // Clear any existing timeout
-        if (loadingTimeoutId) {
-            clearTimeout(loadingTimeoutId);
-        }
-        
-        // Set new timeout
-        const timeoutId = setTimeout(() => {
-            console.warn(`Operation ${operation} timed out after ${timeoutMs}ms`);
-            setIsLoading(false);
-            setLoadingOperation(null);
-            setLoadingTimeoutId(null);
-            setIsProcessingOperation(false);
-            
-            // Log timeout error
-            errorLogger.logError(
-                new Error(`Operation timeout: ${operation}`), 
-                null, 
-                'Loading Timeout', 
-                { 
-                    operation,
-                    timeoutMs,
-                    timestamp: new Date().toISOString()
-                }
-            );
-            
-            // Show more helpful message with troubleshooting steps
-            alert(`The operation is taking longer than expected.\n\nTroubleshooting steps:\n• Check your internet connection\n• Close other browser tabs\n• Try refreshing the page\n• If problem persists, try again in a few minutes`);
-        }, timeoutMs);
-        
-        setLoadingTimeoutId(timeoutId);
-    }
 
-    // Function to clear loading state and timeout
-    function clearLoadingState() {
-        if (loadingTimeoutId) {
-            clearTimeout(loadingTimeoutId);
-            setLoadingTimeoutId(null);
-        }
-        setIsLoading(false);
-        setLoadingOperation(null);
-    }
 
     return (
         <GlobalContext.Provider value={{
