@@ -3,27 +3,43 @@ import GlobalContext from "../../context/GlobalContext";
 import CustomDropdown from "../common/CustomDropdown";
 import SingleSelectDropdown from "../common/SingleSelectDropdown";
 import DatePicker from "react-widgets/DatePicker";
+import { Localization } from "react-widgets";
+import { DateLocalizer } from "react-widgets/IntlLocalizer";
 import 'react-widgets/styles.css';
 import '../../styles/legacy.css';
 import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS } from "../../constants";
 
 export default function EventModal() {
     const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(GlobalContext);
-    const [description, setDescription] = useState(selectedEvent ? selectedEvent.description : "");
+    const [description, setDescription] = useState("");
     const [selectedLabels, setSelectedLabels] = useState([]);
-    const [selectedDate, setSelectedDate] = useState(daySelected.toDate());
-    const [title, setTitle] = useState(selectedEvent ? selectedEvent.title : "");
+    const [selectedDate, setSelectedDate] = useState(new Date());
+    const [title, setTitle] = useState("");
     const [selectedToDo, setSelectedToDo] = useState([]);
 
+    // Initialize component state when modal opens
     useEffect(() => {
+        // Set the date from daySelected
+        if (daySelected) {
+            setSelectedDate(daySelected.toDate());
+        }
+        
+        // Set other values from selectedEvent if editing
         if (selectedEvent) {
             setSelectedLabels(selectedEvent.labels || []);
             setTitle(selectedEvent.title || "");
             setDescription(selectedEvent.description || "");
             setDosage(PLANT_ACTIONS[selectedEvent.title] || "");
             setSelectedToDo(Array.isArray(selectedEvent.toDo) ? selectedEvent.toDo : (selectedEvent.toDo ? [selectedEvent.toDo] : []));
+        } else {
+            // Reset for new event
+            setSelectedLabels([]);
+            setTitle("");
+            setDescription("");
+            setDosage("");
+            setSelectedToDo([]);
         }
-    }, [selectedEvent, setDosage]);
+    }, [selectedEvent, daySelected]);
 
     function handleActionSelect(selectedAction) {
         setTitle(selectedAction);
@@ -151,13 +167,17 @@ export default function EventModal() {
                                 schedule
                             </span>
                             <div className="flex-grow-1">
-                                <DatePicker
-                                    value={selectedDate}
-                                    onChange={(date) => setSelectedDate(date)}
-                                    defaultValue={new Date()}
-                                    valueFormat={{ dateStyle: "medium" }}
-                                    className="w-100"
-                                />
+                                <Localization
+                                    date={new DateLocalizer({ firstOfWeek: 1 })}
+                                >
+                                    <DatePicker
+                                        value={selectedDate}
+                                        onChange={(date) => setSelectedDate(date)}
+                                        defaultValue={new Date()}
+                                        valueFormat={{ dateStyle: "medium" }}
+                                        className="w-100"
+                                    />
+                                </Localization>
                             </div>
                         </div>
                         
