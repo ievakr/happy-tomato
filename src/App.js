@@ -3,11 +3,14 @@ import './styles/variables.css';
 import './App.css';
 import { useCalendar } from './hooks/useCalendar';
 import GlobalContext from './context/GlobalContext';
+import { getLoadingMessage } from './utils';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import CalendarHeader from './components/calendar/CalendarHeader';
 import CalendarGrid from './components/calendar/CalendarGrid';
 import EventModal from './components/forms/EventModal';
+import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay } from './components/common';
+import errorLogger from './utils/errorLogger';
 import 'react-tooltip/dist/react-tooltip.css';
 
 /**
@@ -15,12 +18,35 @@ import 'react-tooltip/dist/react-tooltip.css';
  */
 function App() {
   const { currentMonth } = useCalendar();
-  const { showEventModal, showSidebar } = useContext(GlobalContext);
+  const { showEventModal, showSidebar, isInitialLoading, loadingOperation } = useContext(GlobalContext);
+
+  const handleError = (error, errorInfo) => {
+    errorLogger.logError(error, errorInfo, 'App Component');
+  };
 
   return (
-    <>
+    <ErrorBoundary
+      title="Application Error"
+      message="The calendar application encountered an unexpected error."
+      onError={handleError}
+    >
+      {/* Initial loading overlay */}
+      {isInitialLoading && (
+        <LoadingOverlay 
+          text={getLoadingMessage(loadingOperation || 'load')} 
+          backdrop={true}
+        />
+      )}
+
       {/* Event modal overlay */}
-      {showEventModal && <EventModal />}
+      {showEventModal && (
+        <ComponentErrorBoundary
+          componentName="EventModal"
+          onError={handleError}
+        >
+          <EventModal />
+        </ComponentErrorBoundary>
+      )}
       
       {/* Main application layout */}
       <div 
@@ -28,7 +54,12 @@ function App() {
         style={{ overflow: 'hidden' }}
       >
         {/* Application header */}
-        <Header />
+        <ComponentErrorBoundary
+          componentName="Header"
+          onError={handleError}
+        >
+          <Header />
+        </ComponentErrorBoundary>
         
         {/* Main content area */}
         <main 
@@ -40,13 +71,23 @@ function App() {
         >
           {/* Desktop sidebar */}
           <div className={`d-none d-md-block ${showSidebar ? 'd-block' : ''}`}>
-            <Sidebar />
+            <ComponentErrorBoundary
+              componentName="Sidebar"
+              onError={handleError}
+            >
+              <Sidebar />
+            </ComponentErrorBoundary>
           </div>
           
           {/* Mobile sidebar overlay */}
           {showSidebar && (
             <div className="d-md-none">
-              <Sidebar />
+              <ComponentErrorBoundary
+                componentName="Sidebar (Mobile)"
+                onError={handleError}
+              >
+                <Sidebar />
+              </ComponentErrorBoundary>
             </div>
           )}
           
@@ -59,12 +100,23 @@ function App() {
             }}
             aria-label="Calendar view"
           >
-            <CalendarHeader />
-            <CalendarGrid month={currentMonth} />
+            <ComponentErrorBoundary
+              componentName="CalendarHeader"
+              onError={handleError}
+            >
+              <CalendarHeader />
+            </ComponentErrorBoundary>
+            
+            <ComponentErrorBoundary
+              componentName="CalendarGrid"
+              onError={handleError}
+            >
+              <CalendarGrid month={currentMonth} />
+            </ComponentErrorBoundary>
           </section>
         </main>
       </div>
-    </>
+    </ErrorBoundary>
   );
 }
 

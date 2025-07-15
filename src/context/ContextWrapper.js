@@ -3,6 +3,7 @@ import GlobalContext from "./GlobalContext";
 import dayjs from "dayjs";
 import { db } from "../firebase";
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
+import errorLogger from "../utils/errorLogger";
 
 function savedEventsReducer(state, { type, payload }) {
     switch (type) {
@@ -32,6 +33,10 @@ async function fetchEvents() {
         return events;
     } catch (error) {
         console.error('Error fetching events from Firebase:', error);
+        errorLogger.logError(error, null, 'Firebase Fetch Events', { 
+            operation: 'fetch',
+            timestamp: new Date().toISOString()
+        });
         return [];
     }
 }  
@@ -47,6 +52,9 @@ export default function ContextWrapper(props) {
     const [dosage, setDosage] = useState("");
     const [showSidebar, setShowSidebar] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [isInitialLoading, setIsInitialLoading] = useState(true)
+    const [loadingOperation, setLoadingOperation] = useState(null)
+    const [loadingTimeoutId, setLoadingTimeoutId] = useState(null)
     
     const filteredEvents = useMemo(() => {
         // If no labels are set up yet, show all events
@@ -67,8 +75,55 @@ export default function ContextWrapper(props) {
         });
     }, [savedEvents, labels]);
 
+    function getErrorMessage(error, operation) {
+        // Check for specific Firebase error codes
+        if (error.code) {
+            switch (error.code) {
+                case 'permission-denied':
+                    return 'Permission denied. Please check your authentication.';
+                case 'unavailable':
+                    return 'Service temporarily unavailable. Please try again later.';
+                case 'not-found':
+                    return 'The requested data was not found.';
+                case 'already-exists':
+                    return 'This item already exists.';
+                case 'resource-exhausted':
+                    return 'Too many requests. Please wait a moment and try again.';
+                case 'failed-precondition':
+                    return 'Operation failed due to system constraints.';
+                case 'aborted':
+                    return 'Operation was aborted. Please try again.';
+                case 'out-of-range':
+                    return 'Invalid data range provided.';
+                case 'unauthenticated':
+                    return 'Authentication required. Please sign in.';
+                case 'deadline-exceeded':
+                    return 'Request timed out. Please check your connection and try again.';
+                default:
+                    break;
+            }
+        }
+
+        // Check for network errors
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+            return 'Network error. Please check your internet connection and try again.';
+        }
+
+        // Operation-specific error messages
+        switch (operation) {
+            case 'push':
+                return 'Failed to create event. Please check your internet connection and try again.';
+            case 'update':
+                return 'Failed to update event. Please check your internet connection and try again.';
+            case 'delete':
+                return 'Failed to delete event. Please check your internet connection and try again.';
+            default:
+                return 'An unexpected error occurred. Please try again.';
+        }
+    }
+
     async function handleEventDispatch({type, payload}) {
-        setIsLoading(true);
+        setLoadingWithTimeout(type, 30000); // 30 second timeout
         try {
             console.log(`Starting ${type} operation for event:`, payload);
             
@@ -87,6 +142,10 @@ export default function ContextWrapper(props) {
                     console.log('Updated payload with Firebase ID:', payload);
                 } catch (addError) {
                     console.error('❌ Firebase add error:', addError);
+                    errorLogger.logError(addError, null, 'Firebase Add Event', { 
+                        operation: 'add',
+                        payload: payload 
+                    });
                     throw addError;
                 }
                 break;
@@ -126,13 +185,25 @@ export default function ContextWrapper(props) {
                             console.log(`- Document ID: "${d.id}", Data:`, d.data());
                         });
                         
-                        throw new Error(`Document with ID "${payload.id}" does not exist in Firebase`);
+                        const notFoundError = new Error(`Document with ID "${payload.id}" does not exist in Firebase`);
+                        errorLogger.logError(notFoundError, null, 'Firebase Delete Event', { 
+                            operation: 'delete',
+                            eventId: payload.id,
+                            availableIds: snapshot.docs.map(d => d.id)
+                        });
+                        throw notFoundError;
                     }
                 } catch (deleteError) {
                     console.error('❌ Firebase delete error details:');
                     console.error('Error code:', deleteError.code);
                     console.error('Error message:', deleteError.message);
                     console.error('Full error:', deleteError);
+                    
+                    errorLogger.logError(deleteError, null, 'Firebase Delete Event', { 
+                        operation: 'delete',
+                        eventId: payload.id,
+                        errorCode: deleteError.code
+                    });
                     throw deleteError; // Re-throw to be caught by outer catch
                 }
                 break;
@@ -144,20 +215,60 @@ export default function ContextWrapper(props) {
             console.log(`${type} operation completed successfully`);
         } catch (error) {
             console.error(`Error performing ${type} operation:`, error);
-            alert(`Failed to ${type} event. Please check your internet connection and try again.`);
+            
+            // Log the error with context
+            errorLogger.logError(error, null, 'Event Operation', { 
+                operation: type,
+                payload: payload,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Show user-friendly error message
+            const errorMessage = getErrorMessage(error, type);
+            alert(errorMessage);
+            
             // Don't update local state if Firebase operation fails for deletes
             if (type !== 'delete') {
                 dispatchCallEvent({ type, payload });
             }
         } finally {
-            setIsLoading(false);
+            clearLoadingState();
         }
     }; 
     useEffect(() => {
-        fetchEvents().then(events => {
-            dispatchCallEvent({ type: "load", payload: events }); // Add a 'load' case to your reducer to initialize state
-        });
-      }, []);      
+        async function loadInitialData() {
+            // Set initial loading with timeout (longer for initial load)
+            setIsInitialLoading(true);
+            setLoadingWithTimeout('load', 45000); // 45 second timeout for initial load
+            
+            try {
+                console.log('Loading initial events...');
+                const events = await fetchEvents();
+                dispatchCallEvent({ type: "load", payload: events });
+                console.log(`Loaded ${events.length} events successfully`);
+            } catch (error) {
+                console.error('Failed to load initial events:', error);
+                errorLogger.logError(error, null, 'Initial Data Load', { 
+                    operation: 'initial_load',
+                    timestamp: new Date().toISOString()
+                });
+            } finally {
+                setIsInitialLoading(false);
+                clearLoadingState();
+            }
+        }
+        
+        loadInitialData();
+    }, []);
+    
+    // Cleanup timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (loadingTimeoutId) {
+                clearTimeout(loadingTimeoutId);
+            }
+        };
+    }, [loadingTimeoutId]);      
     useEffect(() => {
         setLabels((prevLabels) => {
             // Collect all unique labels from all events' labels arrays
@@ -189,10 +300,81 @@ export default function ContextWrapper(props) {
         setLabels(
           labels.map((lbl) => (lbl.label === label.label ? label : lbl))
         );
-      }
+    }
+
+    // Function to handle loading timeouts
+    function setLoadingWithTimeout(operation, timeoutMs = 30000) {
+        setIsLoading(true);
+        setLoadingOperation(operation);
+        
+        // Clear any existing timeout
+        if (loadingTimeoutId) {
+            clearTimeout(loadingTimeoutId);
+        }
+        
+        // Set new timeout
+        const timeoutId = setTimeout(() => {
+            console.warn(`Operation ${operation} timed out after ${timeoutMs}ms`);
+            setIsLoading(false);
+            setLoadingOperation(null);
+            setLoadingTimeoutId(null);
+            
+            // Log timeout error
+            errorLogger.logError(
+                new Error(`Operation timeout: ${operation}`), 
+                null, 
+                'Loading Timeout', 
+                { 
+                    operation,
+                    timeoutMs,
+                    timestamp: new Date().toISOString()
+                }
+            );
+            
+            // Show user-friendly message
+            alert(`The operation is taking longer than expected. Please check your internet connection and try again.`);
+        }, timeoutMs);
+        
+        setLoadingTimeoutId(timeoutId);
+    }
+
+    // Function to clear loading state and timeout
+    function clearLoadingState() {
+        if (loadingTimeoutId) {
+            clearTimeout(loadingTimeoutId);
+            setLoadingTimeoutId(null);
+        }
+        setIsLoading(false);
+        setLoadingOperation(null);
+    }
 
     return (
-        <GlobalContext.Provider value={{monthIndex, setMonthIndex, smallCalendarMonth, setSmallCalendarMonth, daySelected, setDaySelected, showEventModal, setShowEventModal, dispatchCallEvent: handleEventDispatch, savedEvents, selectedEvent, setSelectedEvent, labels, setLabels, updateLabel, filteredEvents, dosage, setDosage, showSidebar, setShowSidebar, isLoading, setIsLoading}}>
+        <GlobalContext.Provider value={{
+            monthIndex, 
+            setMonthIndex, 
+            smallCalendarMonth, 
+            setSmallCalendarMonth, 
+            daySelected, 
+            setDaySelected, 
+            showEventModal, 
+            setShowEventModal, 
+            dispatchCallEvent: handleEventDispatch, 
+            savedEvents, 
+            selectedEvent, 
+            setSelectedEvent, 
+            labels, 
+            setLabels, 
+            updateLabel, 
+            filteredEvents, 
+            dosage, 
+            setDosage, 
+            showSidebar, 
+            setShowSidebar, 
+            isLoading, 
+            setIsLoading,
+            isInitialLoading,
+            loadingOperation
+        }}>
             {props.children}
         </GlobalContext.Provider>
     )

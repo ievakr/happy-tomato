@@ -22,6 +22,26 @@ export function getMonth(month = dayjs().month()) {
   return daysMatrix;
 }
 
+
+
+/**
+ * Get user-friendly loading messages for different operations
+ * @param {string} operation - The operation being performed
+ * @returns {string} User-friendly loading message
+ */
+export function getLoadingMessage(operation) {
+  const messages = {
+    'load': 'Loading your calendar...',
+    'push': 'Creating event...',
+    'update': 'Updating event...',
+    'delete': 'Deleting event...',
+    'sync': 'Syncing with cloud...',
+    'save': 'Saving changes...'
+  };
+  
+  return messages[operation] || 'Loading...';
+}
+
 /**
  * Truncate text to specified length
  * @param {string} text - Text to truncate

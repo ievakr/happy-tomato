@@ -22,7 +22,9 @@ const GlobalContext = React.createContext({
     showSidebar: false,
     setShowSidebar: () => {},
     isLoading: false,
-    setIsLoading: () => {}
+    setIsLoading: () => {},
+    isInitialLoading: true,
+    loadingOperation: null
 })
 
 export default GlobalContext;

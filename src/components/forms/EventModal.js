@@ -8,7 +8,7 @@ import '../../styles/legacy.css';
 import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS } from "../../constants";
 
 export default function EventModal() {
-    const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading } = useContext(GlobalContext);
+    const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(GlobalContext);
     const [description, setDescription] = useState(selectedEvent ? selectedEvent.description : "");
     const [selectedLabels, setSelectedLabels] = useState([]);
     const [selectedDate, setSelectedDate] = useState(daySelected.toDate());
@@ -90,9 +90,9 @@ export default function EventModal() {
                                     }
                                 }}
                             >
-                                {isLoading ? (
+                                {isLoading && loadingOperation === 'delete' ? (
                                     <span className="spinner-border spinner-border-sm text-muted" role="status">
-                                        <span className="visually-hidden">Loading...</span>
+                                        <span className="visually-hidden">Deleting...</span>
                                     </span>
                                 ) : (
                                     <span className="material-icons-outlined text-muted">
@@ -203,12 +203,14 @@ export default function EventModal() {
                         {isLoading ? (
                             <>
                                 <span className="spinner-border spinner-border-sm me-2" role="status">
-                                    <span className="visually-hidden">Loading...</span>
+                                    <span className="visually-hidden">
+                                        {loadingOperation === 'update' ? 'Updating...' : 'Saving...'}
+                                    </span>
                                 </span>
-                                Saving...
+                                {loadingOperation === 'update' ? 'Updating...' : 'Saving...'}
                             </>
                         ) : (
-                            'Save'
+                            selectedEvent ? 'Update' : 'Save'
                         )}
                     </button>
                 </footer>
