@@ -1,5 +1,4 @@
 import React from 'react';
-import ErrorBoundary from './ErrorBoundary';
 
 /**
  * Async Error Boundary Component

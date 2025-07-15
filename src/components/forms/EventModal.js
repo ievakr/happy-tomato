@@ -39,7 +39,7 @@ export default function EventModal() {
             setDosage("");
             setSelectedToDo([]);
         }
-    }, [selectedEvent, daySelected]);
+    }, [selectedEvent, daySelected, setDosage]);
 
     function handleActionSelect(selectedAction) {
         setTitle(selectedAction);
