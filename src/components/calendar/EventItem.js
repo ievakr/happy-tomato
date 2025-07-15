@@ -47,17 +47,6 @@ const EventItem = ({ event, onClick, labelsMapping }) => {
         </div>
       </div>
       
-      {/* Special content for Mavrik events */}
-      {title === "Mavrik" && (
-        <div className="calendar-event-box" style={{ 
-          marginTop: '2px',
-          maxHeight: '40px',
-          overflow: 'hidden'
-        }}>
-          Make sure to wait at least 7 days before harvest!
-        </div>
-      )}
-      
       {/* Mobile touch indicator */}
       <div className="position-absolute top-0 end-0 d-md-none" style={{ 
         fontSize: '0.5rem',
