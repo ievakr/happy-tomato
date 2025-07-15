@@ -1,6 +1,5 @@
 import React from 'react';
 import { UI_CONSTANTS } from '../../constants';
-import { truncateText, isTextTruncated } from '../../utils';
 
 /**
  * Individual event item component for calendar display
@@ -30,7 +29,7 @@ const EventItem = ({ event, onClick, labelsMapping }) => {
       <div className="d-flex align-items-center w-100">
         <div className="d-flex flex-wrap align-items-center" style={{
           maxWidth: "100%", 
-          overflow: 'hidden'
+          wordWrap: 'break-word'
         }}>
           {/* To-do items (special styling) */}
           {toDo && !title && (
@@ -74,17 +73,11 @@ const TodoItem = ({ text }) => (
       color: "white", 
       fontSize: "0.6rem",
       marginBottom: "1px",
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
+      wordWrap: 'break-word',
+      whiteSpace: 'normal'
     }}>
-      {truncateText(text, 15)}
+      {text}
     </span>
-    {isTextTruncated(text, 15) && (
-      <span className="text-muted ms-1" style={{ fontSize: '0.5rem' }}>
-        ...
-      </span>
-    )}
   </div>
 );
 
@@ -96,17 +89,11 @@ const EventTitle = ({ text }) => (
     <span className="event-item flex-grow-1" style={{
       cursor: "pointer", 
       fontSize: "0.65rem",
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap'
+      wordWrap: 'break-word',
+      whiteSpace: 'normal'
     }}>
-      {truncateText(text, 12)}
+      {text}
     </span>
-    {isTextTruncated(text, 12) && (
-      <span className="text-muted ms-1" style={{ fontSize: '0.5rem' }}>
-        ...
-      </span>
-    )}
   </div>
 );
 

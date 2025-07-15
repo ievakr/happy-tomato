@@ -19,21 +19,10 @@ export default function CalendarDay({ day, rowIndex }) {
             : "";
     }
 
-
-
     const handleEventClick = (evt, e) => {
         e.stopPropagation();
         setSelectedEvent(evt);
         setShowEventModal(true);
-    };
-
-    const truncateText = (text, maxLength = 12) => {
-        if (!text || text.length <= maxLength) return text;
-        return text.substring(0, maxLength);
-    };
-
-    const isTextTruncated = (text, maxLength = 12) => {
-        return text && text.length > maxLength;
     };
 
     return (
@@ -88,7 +77,7 @@ export default function CalendarDay({ day, rowIndex }) {
                         <div className="d-flex align-items-center w-100">
                             <div className="d-flex flex-wrap align-items-center" style={{
                                 maxWidth: "100%", 
-                                overflow: 'hidden'
+                                wordWrap: 'break-word'
                             }}>
                                 {evt.toDo && !evt.title && (
                                     <div className="d-flex align-items-center w-100">
@@ -100,17 +89,11 @@ export default function CalendarDay({ day, rowIndex }) {
                                             color: "white", 
                                             fontSize: "0.6rem",
                                             marginBottom: "1px",
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap'
+                                            wordWrap: 'break-word',
+                                            whiteSpace: 'normal'
                                         }}>
-                                            {truncateText(evt.toDo, 15)}
+                                            {evt.toDo}
                                         </span>
-                                        {isTextTruncated(evt.toDo, 15) && (
-                                            <span className="text-muted ms-1" style={{ fontSize: '0.5rem' }}>
-                                                ...
-                                            </span>
-                                        )}
                                     </div>
                                 )}
                                 
@@ -119,17 +102,11 @@ export default function CalendarDay({ day, rowIndex }) {
                                         <span className="event-item flex-grow-1" style={{
                                             cursor: "pointer", 
                                             fontSize: "0.65rem",
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap'
+                                            wordWrap: 'break-word',
+                                            whiteSpace: 'normal'
                                         }}>
-                                            {truncateText(evt.title, 12)}
+                                            {evt.title}
                                         </span>
-                                        {isTextTruncated(evt.title, 12) && (
-                                            <span className="text-muted ms-1" style={{ fontSize: '0.5rem' }}>
-                                                ...
-                                            </span>
-                                        )}
                                     </div>
                                 )}
                                 

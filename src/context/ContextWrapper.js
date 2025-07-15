@@ -55,6 +55,8 @@ export default function ContextWrapper(props) {
     const [isInitialLoading, setIsInitialLoading] = useState(true)
     const [loadingOperation, setLoadingOperation] = useState(null)
     const [loadingTimeoutId, setLoadingTimeoutId] = useState(null)
+    const [operationQueue, setOperationQueue] = useState([])
+    const [isProcessingOperation, setIsProcessingOperation] = useState(false)
     
     const filteredEvents = useMemo(() => {
         // If no labels are set up yet, show all events
@@ -122,58 +124,80 @@ export default function ContextWrapper(props) {
         }
     }
 
+    // Enhanced retry logic with exponential backoff
+    async function retryOperation(operation, maxRetries = 2) {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                return await operation();
+            } catch (error) {
+                console.warn(`Operation attempt ${attempt} failed:`, error);
+                
+                if (attempt === maxRetries) {
+                    throw error; // Final attempt failed, throw the error
+                }
+                
+                // Exponential backoff: wait 1s, then 2s, then 4s, etc.
+                const delay = Math.pow(2, attempt - 1) * 1000;
+                console.log(`Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+
     async function handleEventDispatch({type, payload}) {
-        setLoadingWithTimeout(type, 30000); // 30 second timeout
+        // Prevent concurrent operations to avoid conflicts
+        if (isProcessingOperation) {
+            console.log('Operation already in progress, queuing new operation:', { type, payload });
+            setOperationQueue(prev => [...prev, { type, payload }]);
+            return;
+        }
+
+        setIsProcessingOperation(true);
+        // Increased timeout duration and more forgiving for different operations
+        const timeoutMs = type === 'load' ? 60000 : 45000; // 60s for load, 45s for others
+        setLoadingWithTimeout(type, timeoutMs);
+        
         try {
             console.log(`Starting ${type} operation for event:`, payload);
             
-            // Firestore side effects
-            switch (type) {
-              case "push":
-                console.log('=== ADD OPERATION DEBUG ===');
-                console.log('Event to add:', payload);
-                try {
-                    const docRef = await addDoc(collection(db, "events"), payload);
-                    console.log('✅ Event added to Firebase with ID:', docRef.id);
-                    console.log('Document path:', docRef.path);
+            // Wrap Firebase operations in retry logic
+            await retryOperation(async () => {
+                switch (type) {
+                  case "push":
+                    console.log('=== ADD OPERATION DEBUG ===');
+                    console.log('Event to add:', payload);
+                    const addDocRef = await addDoc(collection(db, "events"), payload);
+                    console.log('✅ Event added to Firebase with ID:', addDocRef.id);
+                    console.log('Document path:', addDocRef.path);
                     
                     // Update the payload with the actual Firebase-generated ID
-                    payload.id = docRef.id;
+                    payload.id = addDocRef.id;
                     console.log('Updated payload with Firebase ID:', payload);
-                } catch (addError) {
-                    console.error('❌ Firebase add error:', addError);
-                    errorLogger.logError(addError, null, 'Firebase Add Event', { 
-                        operation: 'add',
-                        payload: payload 
-                    });
-                    throw addError;
-                }
-                break;
-              case "update":
-                console.log('Updating event in Firebase...');
-                await updateDoc(doc(db, "events", payload.id), payload);
-                console.log('Event updated in Firebase successfully');
-                break;
-              case "delete":
-                console.log('=== DELETE OPERATION DEBUG ===');
-                console.log('Event to delete:', payload);
-                console.log('Event ID to delete:', payload.id);
-                console.log('Event ID type:', typeof payload.id);
-                
-                // Check if the document exists first
-                try {
-                    const docRef = doc(db, "events", payload.id);
-                    console.log('Document reference created:', docRef);
-                    console.log('Document path:', docRef.path);
+                    break;
+                  case "update":
+                    console.log('Updating event in Firebase...');
+                    await updateDoc(doc(db, "events", payload.id), payload);
+                    console.log('Event updated in Firebase successfully');
+                    break;
+                  case "delete":
+                    console.log('=== DELETE OPERATION DEBUG ===');
+                    console.log('Event to delete:', payload);
+                    console.log('Event ID to delete:', payload.id);
+                    console.log('Event ID type:', typeof payload.id);
+                    
+                    // Check if the document exists first
+                    const deleteDocRef = doc(db, "events", payload.id);
+                    console.log('Document reference created:', deleteDocRef);
+                    console.log('Document path:', deleteDocRef.path);
                     
                     // Check if document exists before deleting
                     console.log('Checking if document exists...');
-                    const docSnap = await getDoc(docRef);
+                    const docSnap = await getDoc(deleteDocRef);
                     if (docSnap.exists()) {
                         console.log('Document exists, proceeding with delete...');
                         console.log('Document data:', docSnap.data());
                         
-                        await deleteDoc(docRef);
+                        await deleteDoc(deleteDocRef);
                         console.log('✅ Event deleted from Firebase successfully');
                     } else {
                         console.error('❌ Document does not exist in Firebase!');
@@ -193,23 +217,12 @@ export default function ContextWrapper(props) {
                         });
                         throw notFoundError;
                     }
-                } catch (deleteError) {
-                    console.error('❌ Firebase delete error details:');
-                    console.error('Error code:', deleteError.code);
-                    console.error('Error message:', deleteError.message);
-                    console.error('Full error:', deleteError);
-                    
-                    errorLogger.logError(deleteError, null, 'Firebase Delete Event', { 
-                        operation: 'delete',
-                        eventId: payload.id,
-                        errorCode: deleteError.code
-                    });
-                    throw deleteError; // Re-throw to be caught by outer catch
+                    break;
+                  default:
+                    break;
                 }
-                break;
-              default:
-                break;
-            }
+            });
+            
             // Local state update only after Firebase operation completes
             dispatchCallEvent({ type, payload });
             console.log(`${type} operation completed successfully`);
@@ -223,9 +236,9 @@ export default function ContextWrapper(props) {
                 timestamp: new Date().toISOString()
             });
             
-            // Show user-friendly error message
+            // Show user-friendly error message with more context
             const errorMessage = getErrorMessage(error, type);
-            alert(errorMessage);
+            alert(`${errorMessage}\n\nIf this problem persists, try refreshing the page.`);
             
             // Don't update local state if Firebase operation fails for deletes
             if (type !== 'delete') {
@@ -233,17 +246,30 @@ export default function ContextWrapper(props) {
             }
         } finally {
             clearLoadingState();
+            setIsProcessingOperation(false);
+            
+            // Process queued operations
+            if (operationQueue.length > 0) {
+                const nextOperation = operationQueue[0];
+                setOperationQueue(prev => prev.slice(1));
+                console.log('Processing queued operation:', nextOperation);
+                // Small delay to prevent overwhelming Firebase
+                setTimeout(() => handleEventDispatch(nextOperation), 100);
+            }
         }
     }; 
+    
     useEffect(() => {
         async function loadInitialData() {
-            // Set initial loading with timeout (longer for initial load)
+            // Set initial loading with longer timeout for initial load
             setIsInitialLoading(true);
-            setLoadingWithTimeout('load', 45000); // 45 second timeout for initial load
+            setLoadingWithTimeout('load', 60000); // 60 second timeout for initial load
             
             try {
                 console.log('Loading initial events...');
-                const events = await fetchEvents();
+                
+                // Use retry logic for initial load as well
+                const events = await retryOperation(fetchEvents, 2);
                 dispatchCallEvent({ type: "load", payload: events });
                 console.log(`Loaded ${events.length} events successfully`);
             } catch (error) {
@@ -252,6 +278,9 @@ export default function ContextWrapper(props) {
                     operation: 'initial_load',
                     timestamp: new Date().toISOString()
                 });
+                
+                // Show a more helpful error message for initial load failures
+                alert('Failed to load your events. Please check your internet connection and refresh the page.');
             } finally {
                 setIsInitialLoading(false);
                 clearLoadingState();
@@ -302,8 +331,8 @@ export default function ContextWrapper(props) {
         );
     }
 
-    // Function to handle loading timeouts
-    function setLoadingWithTimeout(operation, timeoutMs = 30000) {
+    // Function to handle loading timeouts - more user-friendly
+    function setLoadingWithTimeout(operation, timeoutMs = 45000) {
         setIsLoading(true);
         setLoadingOperation(operation);
         
@@ -318,6 +347,7 @@ export default function ContextWrapper(props) {
             setIsLoading(false);
             setLoadingOperation(null);
             setLoadingTimeoutId(null);
+            setIsProcessingOperation(false);
             
             // Log timeout error
             errorLogger.logError(
@@ -331,8 +361,8 @@ export default function ContextWrapper(props) {
                 }
             );
             
-            // Show user-friendly message
-            alert(`The operation is taking longer than expected. Please check your internet connection and try again.`);
+            // Show more helpful message with troubleshooting steps
+            alert(`The operation is taking longer than expected.\n\nTroubleshooting steps:\n• Check your internet connection\n• Close other browser tabs\n• Try refreshing the page\n• If problem persists, try again in a few minutes`);
         }, timeoutMs);
         
         setLoadingTimeoutId(timeoutId);
