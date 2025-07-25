@@ -8,6 +8,7 @@ import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import CalendarHeader from './components/calendar/CalendarHeader';
 import CalendarGrid from './components/calendar/CalendarGrid';
+import WeeklyView from './components/calendar/WeeklyView';
 import EventModal from './components/forms/EventModal';
 import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay } from './components/common';
 import errorLogger from './utils/errorLogger';
@@ -18,7 +19,7 @@ import 'react-tooltip/dist/react-tooltip.css';
  */
 function App() {
   const { currentMonth } = useCalendar();
-  const { showEventModal, showSidebar, isInitialLoading, loadingOperation } = useContext(GlobalContext);
+  const { showEventModal, showSidebar, isInitialLoading, loadingOperation, currentView } = useContext(GlobalContext);
 
   const handleError = (error, errorInfo) => {
     errorLogger.logError(error, errorInfo, 'App Component');
@@ -100,19 +101,32 @@ function App() {
             }}
             aria-label="Calendar view"
           >
-            <ComponentErrorBoundary
-              componentName="CalendarHeader"
-              onError={handleError}
-            >
-              <CalendarHeader />
-            </ComponentErrorBoundary>
+            {/* Show day headers only for monthly view */}
+            {currentView === 'month' && (
+              <ComponentErrorBoundary
+                componentName="CalendarHeader"
+                onError={handleError}
+              >
+                <CalendarHeader />
+              </ComponentErrorBoundary>
+            )}
             
-            <ComponentErrorBoundary
-              componentName="CalendarGrid"
-              onError={handleError}
-            >
-              <CalendarGrid month={currentMonth} />
-            </ComponentErrorBoundary>
+            {/* Switch between month and week views */}
+            {currentView === 'month' ? (
+              <ComponentErrorBoundary
+                componentName="CalendarGrid"
+                onError={handleError}
+              >
+                <CalendarGrid month={currentMonth} />
+              </ComponentErrorBoundary>
+            ) : (
+              <ComponentErrorBoundary
+                componentName="WeeklyView"
+                onError={handleError}
+              >
+                <WeeklyView />
+              </ComponentErrorBoundary>
+            )}
           </section>
         </main>
       </div>

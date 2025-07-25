@@ -2,17 +2,78 @@ import dayjs from 'dayjs';
 import React, { useContext } from 'react';
 import logo from '../../assets/logo.png';
 import GlobalContext from '../../context/GlobalContext';
+import { getWeekByIndex, getWeekDateRange, getCurrentWeekIndex } from '../../utils';
+import { useResponsive } from '../../hooks';
 
 export default function Header() {
-    const {monthIndex, setMonthIndex, showSidebar, setShowSidebar} = useContext(GlobalContext)
+    const {
+        monthIndex, 
+        setMonthIndex, 
+        showSidebar, 
+        setShowSidebar, 
+        currentView, 
+        setCurrentView, 
+        weekIndex, 
+        setWeekIndex
+    } = useContext(GlobalContext);
+    const { isMobile } = useResponsive();
     function handlePrevMonth() {
         setMonthIndex(monthIndex - 1)
+        // Reset week index when changing months
+        if (currentView === 'week') {
+            setWeekIndex(0);
+        }
     }
     function handleNextMonth() {
         setMonthIndex(monthIndex + 1)
+        // Reset week index when changing months
+        if (currentView === 'week') {
+            setWeekIndex(0);
+        }
     }
+    
+    function handlePrevWeek() {
+        if (weekIndex > 0) {
+            setWeekIndex(weekIndex - 1);
+        } else {
+            // Go to previous month, last week
+            setMonthIndex(monthIndex - 1);
+            setWeekIndex(4); // Assume 5 weeks max
+        }
+    }
+    
+    function handleNextWeek() {
+        if (weekIndex < 4) {
+            setWeekIndex(weekIndex + 1);
+        } else {
+            // Go to next month, first week
+            setMonthIndex(monthIndex + 1);
+            setWeekIndex(0);
+        }
+    }
+    
     function toggleSidebar() {
         setShowSidebar(!showSidebar)
+    }
+    
+    function switchToMonthView() {
+        setCurrentView('month');
+    }
+    
+    function switchToWeekView() {
+        setCurrentView('week');
+        // Set current week when switching to week view
+        const currentWeekIdx = getCurrentWeekIndex(monthIndex, dayjs());
+        setWeekIndex(currentWeekIdx);
+    }
+    
+    function getCurrentDisplayTitle() {
+        if (currentView === 'month') {
+            return dayjs(new Date(dayjs().year(), monthIndex)).format(isMobile ? "MMM YYYY" : "MMMM YYYY");
+        } else {
+            const week = getWeekByIndex(monthIndex, weekIndex);
+            return getWeekDateRange(week);
+        }
     }
     return (
         <header className="calendar-header d-flex align-items-center px-2 px-md-4 py-2">
@@ -41,27 +102,58 @@ export default function Header() {
                 </div>
             </div>
             
+            {/* Navigation buttons */}
             <div className="d-flex align-items-center me-2 me-md-4">
-                <button className="btn btn-sm p-1" onClick={handlePrevMonth}>
+                <button 
+                    className="btn btn-sm p-1" 
+                    onClick={currentView === 'month' ? handlePrevMonth : handlePrevWeek}
+                >
                     <span className="material-icons-outlined text-secondary">
                         chevron_left
                     </span>
                 </button>
-                <button className="btn btn-sm p-1" onClick={handleNextMonth}>
+                <button 
+                    className="btn btn-sm p-1" 
+                    onClick={currentView === 'month' ? handleNextMonth : handleNextWeek}
+                >
                     <span className="material-icons-outlined text-secondary">
                         chevron_right
                     </span>
                 </button>
             </div>
             
-            <h2 className='mb-0 fs-5 text-secondary fw-bold'>
-                <span className="d-none d-md-inline">
-                    {dayjs(new Date(dayjs().year(), monthIndex)).format("MMMM YYYY")}
-                </span>
-                <span className="d-md-none">
-                    {dayjs(new Date(dayjs().year(), monthIndex)).format("MMM YYYY")}
-                </span>
-            </h2>
+            {/* Current period display */}
+            <div className="flex-grow-1">
+                <h2 className='mb-0 fs-5 text-secondary fw-bold'>
+                    {getCurrentDisplayTitle()}
+                </h2>
+            </div>
+            
+            {/* View switching buttons */}
+            <div className="d-flex align-items-center ms-2">
+                <div className="btn-group btn-group-sm" role="group" aria-label="Calendar view">
+                    <button 
+                        className={`btn d-flex align-items-center ${currentView === 'month' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={switchToMonthView}
+                        title="Month view"
+                    >
+                        <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                            calendar_view_month
+                        </span>
+                        {!isMobile && <span className="ms-1">Month</span>}
+                    </button>
+                    <button 
+                        className={`btn d-flex align-items-center ${currentView === 'week' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={switchToWeekView}
+                        title="Week view"
+                    >
+                        <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                            calendar_view_week
+                        </span>
+                        {!isMobile && <span className="ms-1">Week</span>}
+                    </button>
+                </div>
+            </div>
         </header>
     );
 }

@@ -54,6 +54,8 @@ export default function ContextWrapper(props) {
     const [isLoading, setIsLoading] = useState(false)
     const [isInitialLoading, setIsInitialLoading] = useState(true)
     const [loadingOperation, setLoadingOperation] = useState(null)
+    const [currentView, setCurrentView] = useState('month')
+    const [weekIndex, setWeekIndex] = useState(0)
 
     const [operationQueue, setOperationQueue] = useState([])
     const [isProcessingOperation, setIsProcessingOperation] = useState(false)
@@ -353,7 +355,11 @@ export default function ContextWrapper(props) {
             isLoading, 
             setIsLoading,
             isInitialLoading,
-            loadingOperation
+            loadingOperation,
+            currentView,
+            setCurrentView,
+            weekIndex,
+            setWeekIndex
         }}>
             {props.children}
         </GlobalContext.Provider>

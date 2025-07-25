@@ -14,6 +14,116 @@
     box-sizing: border-box;
 }
 
+/* Weekly View Styles */
+.weekly-view {
+    height: 100%;
+    overflow: hidden;
+}
+
+.week-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+
+.week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: 1fr;
+    height: 100%;
+    gap: 1px;
+    background-color: #dee2e6;
+    overflow: hidden;
+}
+
+.week-day {
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    position: relative;
+}
+
+.week-day:hover {
+    background-color: #f8f9fa;
+}
+
+.week-day.current-day {
+    background-color: #e3f2fd;
+}
+
+.week-day.other-month {
+    background-color: #fafafa;
+    color: #6c757d;
+}
+
+.day-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
+    border-bottom: 1px solid #eee;
+    flex-shrink: 0;
+    background-color: #f8f9fa;
+}
+
+.day-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+.day-number {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 50%;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.day-number.current {
+    background-color: #007bff;
+    color: white;
+}
+
+.day-events {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 4px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.events-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.event-item-weekly {
+    flex-shrink: 0;
+}
+
+.no-events {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+}
+
+
+
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
     .calendar-event-box {
@@ -25,6 +135,28 @@
         max-height: 30px !important;
         overflow: hidden !important;
     }
+
+    .week-grid {
+        gap: 0.5px;
+    }
+
+    .day-header {
+        padding: 2px;
+    }
+
+    .day-name {
+        font-size: 0.6rem;
+    }
+
+    .day-number {
+        font-size: 0.8rem;
+        min-width: 20px;
+        height: 20px;
+    }
+
+    .day-events {
+        padding: 2px;
+    }
 }
 
 /* Tablet responsive adjustments */
@@ -32,5 +164,9 @@
     .calendar-event-box {
         max-height: 50px !important;
         overflow: hidden !important;
+    }
+
+    .day-events {
+        padding: 3px;
     }
 }

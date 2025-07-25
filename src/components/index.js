@@ -8,6 +8,7 @@ export { default as CalendarGrid } from './calendar/CalendarGrid';
 export { default as CalendarDay } from './calendar/CalendarDay';
 export { default as EventItem } from './calendar/EventItem';
 export { default as Labels } from './calendar/Labels';
+export { default as WeeklyView } from './calendar/WeeklyView';
 export { default as SmallCalendar } from './calendar/SmallCalendar';
 
 // Form components

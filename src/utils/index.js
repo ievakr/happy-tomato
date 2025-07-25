@@ -157,4 +157,73 @@ export function getDayHeaders(format = 'short') {
   }
   
   return headers;
+}
+
+/**
+ * Get the current week's days starting from Monday
+ * @param {dayjs.Dayjs} date - Reference date to get the week for
+ * @returns {Array<dayjs.Dayjs>} Array of 7 days representing the week
+ */
+export function getWeek(date = dayjs()) {
+  const startOfWeek = date.startOf('week').add(1, 'day'); // Start from Monday
+  const week = [];
+  
+  for (let i = 0; i < 7; i++) {
+    week.push(startOfWeek.add(i, 'day'));
+  }
+  
+  return week;
+}
+
+/**
+ * Get the week for a specific month and week index
+ * @param {number} month - Month index (0-11)
+ * @param {number} weekIndex - Week index (0-based)
+ * @returns {Array<dayjs.Dayjs>} Array of 7 days representing the week
+ */
+export function getWeekByIndex(month = dayjs().month(), weekIndex = 0) {
+  const monthData = getMonth(month);
+  if (weekIndex >= 0 && weekIndex < monthData.length) {
+    return monthData[weekIndex];
+  }
+  return getWeek();
+}
+
+/**
+ * Get week date range for display
+ * @param {Array<dayjs.Dayjs>} week - Array of week days
+ * @returns {string} Formatted week range (e.g., "Dec 2-8, 2024")
+ */
+export function getWeekDateRange(week) {
+  if (!week || week.length === 0) return '';
+  
+  const firstDay = week[0];
+  const lastDay = week[6];
+  
+  if (firstDay.month() === lastDay.month()) {
+    return `${firstDay.format('MMM')} ${firstDay.format('D')}-${lastDay.format('D')}, ${firstDay.format('YYYY')}`;
+  } else {
+    return `${firstDay.format('MMM D')} - ${lastDay.format('MMM D')}, ${firstDay.format('YYYY')}`;
+  }
+}
+
+/**
+ * Get the current week index for a given month
+ * @param {number} month - Month index (0-11)
+ * @param {dayjs.Dayjs} date - Reference date
+ * @returns {number} Week index within the month
+ */
+export function getCurrentWeekIndex(month = dayjs().month(), date = dayjs()) {
+  const monthData = getMonth(month);
+  const currentDateStr = date.format("DD-MM-YY");
+  
+  for (let weekIndex = 0; weekIndex < monthData.length; weekIndex++) {
+    const week = monthData[weekIndex];
+    for (let day of week) {
+      if (day.format("DD-MM-YY") === currentDateStr) {
+        return weekIndex;
+      }
+    }
+  }
+  return 0;
 } 
