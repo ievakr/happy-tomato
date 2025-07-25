@@ -5,7 +5,7 @@ import { useResponsive } from '../../hooks';
 /**
  * Individual event item component for calendar display
  */
-const EventItem = ({ event, onClick, labelsMapping, compact = false, showTime = false }) => {
+const EventItem = ({ event, onClick, labelsMapping, compact = false, showTime = false, showAllIcons = false }) => {
   const { title, toDo, labels = [], description, time } = event;
   
   const displayTitle = title || toDo;
@@ -51,22 +51,11 @@ const EventItem = ({ event, onClick, labelsMapping, compact = false, showTime = 
           )}
           
           {/* Event labels/icons */}
-          <EventIcons labels={labels} labelsMapping={labelsMapping} compact={compact} />
+          <EventIcons labels={labels} labelsMapping={labelsMapping} compact={compact} showAllIcons={showAllIcons} />
         </div>
       </div>
       
-      {/* Mobile touch indicator - hide in compact mode */}
-      {!compact && (
-        <div className="position-absolute top-0 end-0 d-md-none" style={{ 
-          fontSize: '0.5rem',
-          color: 'rgba(0,0,0,0.4)',
-          padding: '2px'
-        }}>
-          <i className="material-icons-outlined" style={{ fontSize: '8px' }}>
-            touch_app
-          </i>
-        </div>
-      )}
+
     </div>
   );
 };
@@ -111,7 +100,7 @@ const EventTitle = ({ text, compact = false }) => (
 /**
  * Event icons component with responsive display
  */
-const EventIcons = ({ labels, labelsMapping, compact = false }) => {
+const EventIcons = ({ labels, labelsMapping, compact = false, showAllIcons = false }) => {
   const { isMobile } = useResponsive();
   
   if (!labels || labels.length === 0) return null;
@@ -120,6 +109,8 @@ const EventIcons = ({ labels, labelsMapping, compact = false }) => {
   let maxIcons;
   if (compact) {
     maxIcons = 2; // Very limited in compact mode
+  } else if (showAllIcons) {
+    maxIcons = labels.length; // Show all icons when requested
   } else if (isMobile) {
     maxIcons = UI_CONSTANTS.MAX_ICONS_PER_EVENT;
   } else {

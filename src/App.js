@@ -9,6 +9,7 @@ import Sidebar from './components/layout/Sidebar';
 import CalendarHeader from './components/calendar/CalendarHeader';
 import CalendarGrid from './components/calendar/CalendarGrid';
 import WeeklyView from './components/calendar/WeeklyView';
+import DailyView from './components/calendar/DailyView';
 import EventModal from './components/forms/EventModal';
 import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay } from './components/common';
 import errorLogger from './utils/errorLogger';
@@ -111,7 +112,7 @@ function App() {
               </ComponentErrorBoundary>
             )}
             
-            {/* Switch between month and week views */}
+            {/* Switch between month, week, and daily views */}
             {currentView === 'month' ? (
               <ComponentErrorBoundary
                 componentName="CalendarGrid"
@@ -119,12 +120,19 @@ function App() {
               >
                 <CalendarGrid month={currentMonth} />
               </ComponentErrorBoundary>
-            ) : (
+            ) : currentView === 'week' ? (
               <ComponentErrorBoundary
                 componentName="WeeklyView"
                 onError={handleError}
               >
                 <WeeklyView />
+              </ComponentErrorBoundary>
+            ) : (
+              <ComponentErrorBoundary
+                componentName="DailyView"
+                onError={handleError}
+              >
+                <DailyView />
               </ComponentErrorBoundary>
             )}
           </section>

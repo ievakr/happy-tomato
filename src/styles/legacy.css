@@ -285,14 +285,7 @@
     position: relative;
   }
   
-  .event-item::after {
-    content: '👆';
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    font-size: 6px;
-    opacity: 0.4;
-  }
+
   
   /* Modal responsive */
   .event-modal {
@@ -389,10 +382,7 @@
     overflow: hidden !important;
   }
   
-  /* Hide mobile touch indicators on desktop */
-  .event-item::after {
-    display: none !important;
-  }
+
   
   .event-modal {
     overflow: visible !important;

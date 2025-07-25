@@ -14,7 +14,9 @@ export default function Header() {
         currentView, 
         setCurrentView, 
         weekIndex, 
-        setWeekIndex
+        setWeekIndex,
+        daySelected,
+        setDaySelected
     } = useContext(GlobalContext);
     const { isMobile } = useResponsive();
     function handlePrevMonth() {
@@ -52,6 +54,28 @@ export default function Header() {
         }
     }
     
+    function handlePrevDay() {
+        const currentDay = daySelected || dayjs();
+        const prevDay = currentDay.subtract(1, 'day');
+        setDaySelected(prevDay);
+        
+        // Update month if we went to previous month
+        if (prevDay.month() !== currentDay.month()) {
+            setMonthIndex(prevDay.month());
+        }
+    }
+    
+    function handleNextDay() {
+        const currentDay = daySelected || dayjs();
+        const nextDay = currentDay.add(1, 'day');
+        setDaySelected(nextDay);
+        
+        // Update month if we went to next month
+        if (nextDay.month() !== currentDay.month()) {
+            setMonthIndex(nextDay.month());
+        }
+    }
+    
     function toggleSidebar() {
         setShowSidebar(!showSidebar)
     }
@@ -67,12 +91,33 @@ export default function Header() {
         setWeekIndex(currentWeekIdx);
     }
     
+    function switchToDailyView() {
+        setCurrentView('daily');
+        // Set current day when switching to daily view
+        if (!daySelected) {
+            setDaySelected(dayjs());
+        }
+    }
+    
     function getCurrentDisplayTitle() {
         if (currentView === 'month') {
             return dayjs(new Date(dayjs().year(), monthIndex)).format(isMobile ? "MMM YYYY" : "MMMM YYYY");
-        } else {
+        } else if (currentView === 'week') {
             const week = getWeekByIndex(monthIndex, weekIndex);
             return getWeekDateRange(week);
+        } else if (currentView === 'daily') {
+            const currentDay = daySelected || dayjs();
+            return currentDay.format(isMobile ? "MMM D, YYYY" : "MMMM D, YYYY");
+        }
+    }
+    
+    function getNavigationHandler(direction) {
+        if (currentView === 'month') {
+            return direction === 'prev' ? handlePrevMonth : handleNextMonth;
+        } else if (currentView === 'week') {
+            return direction === 'prev' ? handlePrevWeek : handleNextWeek;
+        } else if (currentView === 'daily') {
+            return direction === 'prev' ? handlePrevDay : handleNextDay;
         }
     }
     return (
@@ -103,56 +148,70 @@ export default function Header() {
             </div>
             
             {/* Navigation buttons */}
-            <div className="d-flex align-items-center me-2 me-md-4">
+            <button 
+                className="btn btn-sm me-1" 
+                onClick={getNavigationHandler('prev')}
+            >
+                <span className="material-icons-outlined text-secondary">
+                    chevron_left
+                </span>
+            </button>
+            <button 
+                className="btn btn-sm me-2" 
+                onClick={getNavigationHandler('next')}
+            >
+                <span className="material-icons-outlined text-secondary">
+                    chevron_right
+                </span>
+            </button>
+            
+            {/* View switching buttons */}
+            <div className="btn-group" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
                 <button 
-                    className="btn btn-sm p-1" 
-                    onClick={currentView === 'month' ? handlePrevMonth : handlePrevWeek}
+                    className={`btn btn-sm ${currentView === 'month' ? 'btn-primary' : 'btn-outline-primary'}`}
+                    onClick={switchToMonthView}
+                    title="Month view"
+                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
                 >
-                    <span className="material-icons-outlined text-secondary">
-                        chevron_left
+                    <span className="material-icons-outlined me-1" style={{ fontSize: '0.9rem' }}>
+                        calendar_view_month
                     </span>
+                    <span>Month</span>
                 </button>
-                <button 
-                    className="btn btn-sm p-1" 
-                    onClick={currentView === 'month' ? handleNextMonth : handleNextWeek}
-                >
-                    <span className="material-icons-outlined text-secondary">
-                        chevron_right
-                    </span>
-                </button>
+                
+                {/* Mobile shows Daily view, Desktop shows Weekly view */}
+                {isMobile ? (
+                    <button 
+                        className={`btn btn-sm ${currentView === 'daily' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={switchToDailyView}
+                        title="Daily view"
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
+                    >
+                        <span className="material-icons-outlined me-1" style={{ fontSize: '0.9rem' }}>
+                            today
+                        </span>
+                        <span>Daily</span>
+                    </button>
+                ) : (
+                    <button 
+                        className={`btn btn-sm ${currentView === 'week' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={switchToWeekView}
+                        title="Week view"
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
+                    >
+                        <span className="material-icons-outlined me-1" style={{ fontSize: '0.9rem' }}>
+                            calendar_view_week
+                        </span>
+                        <span>Week</span>
+                    </button>
+                )}
             </div>
             
-            {/* Current period display */}
-            <div className="flex-grow-1">
+            {/* Current period display - hidden on mobile, pushed to right */}
+            <div className="ms-auto d-none d-md-block">
                 <h2 className='mb-0 fs-5 text-secondary fw-bold'>
                     {getCurrentDisplayTitle()}
                 </h2>
-            </div>
-            
-            {/* View switching buttons */}
-            <div className="d-flex align-items-center ms-2">
-                <div className="btn-group btn-group-sm" role="group" aria-label="Calendar view">
-                    <button 
-                        className={`btn d-flex align-items-center ${currentView === 'month' ? 'btn-primary' : 'btn-outline-primary'}`}
-                        onClick={switchToMonthView}
-                        title="Month view"
-                    >
-                        <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-                            calendar_view_month
-                        </span>
-                        {!isMobile && <span className="ms-1">Month</span>}
-                    </button>
-                    <button 
-                        className={`btn d-flex align-items-center ${currentView === 'week' ? 'btn-primary' : 'btn-outline-primary'}`}
-                        onClick={switchToWeekView}
-                        title="Week view"
-                    >
-                        <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-                            calendar_view_week
-                        </span>
-                        {!isMobile && <span className="ms-1">Week</span>}
-                    </button>
-                </div>
             </div>
         </header>
     );

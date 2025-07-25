@@ -152,17 +152,7 @@ export default function CalendarDay({ day, rowIndex }) {
                                 </div>
                             </div>
                         </div>
-                        
-                        {/* Tap indicator for mobile */}
-                        <div className="position-absolute top-0 end-0 d-md-none" style={{ 
-                            fontSize: '0.5rem',
-                            color: 'rgba(0,0,0,0.4)',
-                            padding: '2px'
-                        }}>
-                            <i className="material-icons-outlined" style={{ fontSize: '8px' }}>
-                                touch_app
-                            </i>
-                        </div>
+
                     </div>
                 ))}
                 

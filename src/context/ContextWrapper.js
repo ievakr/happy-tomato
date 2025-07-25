@@ -56,6 +56,7 @@ export default function ContextWrapper(props) {
     const [loadingOperation, setLoadingOperation] = useState(null)
     const [currentView, setCurrentView] = useState('month')
     const [weekIndex, setWeekIndex] = useState(0)
+    const [currentDayIndex, setCurrentDayIndex] = useState(0)
 
     const [operationQueue, setOperationQueue] = useState([])
     const [isProcessingOperation, setIsProcessingOperation] = useState(false)
@@ -359,7 +360,9 @@ export default function ContextWrapper(props) {
             currentView,
             setCurrentView,
             weekIndex,
-            setWeekIndex
+            setWeekIndex,
+            currentDayIndex,
+            setCurrentDayIndex
         }}>
             {props.children}
         </GlobalContext.Provider>

@@ -122,7 +122,148 @@
     opacity: 0.5;
 }
 
+/* Daily View Styles */
+.daily-view {
+    height: 100%;
+    overflow: hidden;
+}
 
+.daily-week-header {
+    flex-shrink: 0;
+}
+
+.daily-week-day {
+    background-color: white;
+    padding: 8px 4px;
+    text-align: center;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.daily-week-day:hover {
+    background-color: #f8f9fa;
+}
+
+.daily-week-day.selected {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+}
+
+.daily-week-day.today {
+    background-color: #fff3e0;
+    border-color: #ff9800;
+}
+
+.daily-week-day.selected.today {
+    background-color: #e1f5fe;
+    border-color: #0277bd;
+}
+
+.day-header-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.day-name-mini {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #6c757d;
+    line-height: 1;
+}
+
+.day-number-mini {
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1;
+    color: #495057;
+}
+
+.daily-week-day.selected .day-number-mini {
+    color: #2196f3;
+}
+
+.daily-week-day.today .day-number-mini {
+    color: #ff9800;
+}
+
+.daily-week-day.selected.today .day-number-mini {
+    color: #0277bd;
+}
+
+
+
+.selected-day-info {
+    background-color: #f8f9fa;
+}
+
+.daily-events {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.events-list-daily {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.daily-event-item {
+    transition: all 0.2s ease;
+}
+
+.daily-event-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.1) !important;
+}
+
+.no-events-container {
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.add-event-section {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+/* Material Icons Button Alignment Fix */
+.btn .material-icons-outlined {
+    line-height: 1 !important;
+    vertical-align: middle !important;
+}
+
+.btn:not(.btn-group .btn) {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Specific fix for header buttons */
+.calendar-header .btn {
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+/* Ensure btn-group doesn't break alignment */
+.btn-group {
+    vertical-align: middle;
+}
+
+.btn-group .btn {
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+/* Header bottom margin */
+.calendar-header {
+    margin-bottom: 1rem;
+}
 
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
@@ -168,5 +309,24 @@
 
     .day-events {
         padding: 3px;
+    }
+
+    /* Daily view mobile adjustments */
+    .daily-week-day {
+        padding: 6px 2px;
+    }
+
+    .day-name-mini {
+        font-size: 0.6rem;
+    }
+
+    .day-number-mini {
+        font-size: 1rem;
+    }
+
+
+
+    .selected-day-info h4 {
+        font-size: 1rem;
     }
 }
