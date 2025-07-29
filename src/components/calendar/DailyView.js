@@ -3,6 +3,7 @@ import dayjs from 'dayjs';
 import GlobalContext from '../../context/GlobalContext';
 import { PLANT_LABELS } from '../../constants';
 import { getWeek, getDayHeaders } from '../../utils';
+import { useResponsive } from '../../hooks';
 import EventItem from './EventItem';
 import '../../index.css';
 
@@ -16,6 +17,7 @@ const DailyView = () => {
     isInitialLoading 
   } = useContext(GlobalContext);
   
+  const { isMobile } = useResponsive();
 
   const currentDay = daySelected || dayjs();
   const currentWeek = getWeek(currentDay);
@@ -59,7 +61,28 @@ const DailyView = () => {
     <div className="daily-view flex-grow-1 d-flex flex-column">
       {/* Clickable week row */}
       <div className="daily-week-header bg-light border-bottom">
-        <div className="d-grid" style={{ gridTemplateColumns: 'repeat(7, 1fr)', gap: '1px' }}>
+        <div 
+          className="d-flex" 
+          style={{ 
+            width: '100%',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            gap: '1px',
+            scrollbarWidth: 'none', // Firefox
+            msOverflowStyle: 'none', // IE
+            WebkitOverflowScrolling: 'touch', // iOS smooth scrolling
+            scrollBehavior: 'smooth'
+          }}
+        >
+          {/* Hide scrollbar for webkit browsers */}
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              .daily-week-header .d-flex::-webkit-scrollbar {
+                display: none;
+              }
+            `
+          }} />
+          
           {currentWeek.map((day, index) => {
             const isSelected = day.format("DD-MM-YY") === currentDay.format("DD-MM-YY");
             const isDayToday = day.format("DD-MM-YY") === dayjs().format("DD-MM-YY");
@@ -69,7 +92,12 @@ const DailyView = () => {
                 key={day.format('YYYY-MM-DD')}
                 className={`daily-week-day ${isSelected ? 'selected' : ''} ${isDayToday ? 'today' : ''}`}
                 onClick={() => handleDayClick(day)}
-                style={{ cursor: 'pointer' }}
+                style={{ 
+                  cursor: 'pointer',
+                  minWidth: isMobile ? '45px' : '60px', // Responsive min-width for optimal experience
+                  flex: '1 0 auto', // Allow items to grow and fill space, but don't shrink below min-width
+                  maxWidth: isMobile ? 'none' : '120px' // Prevent items from getting too wide on desktop
+                }}
               >
                 <div className="day-header-mini">
                   <div className="day-name-mini">

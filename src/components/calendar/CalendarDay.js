@@ -6,7 +6,7 @@ import { useResponsive } from '../../hooks';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
-    const { setDaySelected, setShowEventModal, filteredEvents, setSelectedEvent } = useContext(GlobalContext);
+    const { setDaySelected, setShowEventModal, filteredEvents, setSelectedEvent, setCurrentView } = useContext(GlobalContext);
     const { isMobile } = useResponsive();
     const [dayEvents, setDayEvents] = useState([]);
 
@@ -23,37 +23,58 @@ export default function CalendarDay({ day, rowIndex }) {
 
     const handleEventClick = (evt, e) => {
         e.stopPropagation();
-        setSelectedEvent(evt);
-        setShowEventModal(true);
+        // Navigate to daily view instead of opening modal
+        setDaySelected(day);
+        setCurrentView('daily');
     };
 
-    return (
-        <div className="day-cell border border-secondary d-flex flex-column" style={{ 
-            height: '100%',
-            maxHeight: '100%',
-            overflow: 'hidden'
-        }}>
-            <header className="d-flex flex-column align-items-center flex-shrink-0" style={{ padding: '4px 0' }}>
-                <div
-                    className={`day-number text-center ${getCurrentDayClass()}`}
-                    style={{ width: '30px', height: '30px', lineHeight: '30px' }}
+    const handleDayClick = () => {
+        // Only open modal if clicking on empty space (no events) or if specifically needed
+        if (dayEvents.length === 0) {
+            setDaySelected(day);
+            setShowEventModal(true);
+        } else {
+            // If there are events, navigate to daily view
+            setDaySelected(day);
+            setCurrentView('daily');
+        }
+    };
+
+    // Mobile view: Show only event count
+    const renderMobileEventCount = () => {
+        if (dayEvents.length === 0) return null;
+        
+        return (
+            <div className="d-flex justify-content-center align-items-start w-100" style={{ 
+                height: '100%',
+                paddingTop: '8px',
+                paddingLeft: '4px',
+                paddingRight: '4px',
+                width: '100%' // Ensure full width
+            }}>
+                <div 
+                    className="event-count-indicator d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold"
+                    style={{ 
+                        width: '18px', 
+                        height: '18px', 
+                        fontSize: '0.65rem',
+                        cursor: 'pointer',
+                        flexShrink: 0, // Prevent shrinking
+                        marginTop: '2px', // Additional top margin
+                        position: 'relative' // Ensure proper positioning
+                    }}
+                    title={`${dayEvents.length} event${dayEvents.length !== 1 ? 's' : ''} - tap to view`}
                 >
-                    {day.format('DD')}
+                    {dayEvents.length}
                 </div>
-            </header>
-            <div 
-                className="flex-grow-1 cursor-pointer position-relative" 
-                style={{ 
-                    overflow: 'hidden',
-                    overflowY: 'auto',
-                    maxHeight: 'calc(100% - 60px)',
-                    padding: '2px'
-                }}
-                onClick={() => {
-                    setDaySelected(day);
-                    setShowEventModal(true);
-                }}
-            >
+            </div>
+        );
+    };
+
+    // Desktop view: Show detailed events (existing implementation)
+    const renderDesktopEvents = () => {
+        return (
+            <>
                 {dayEvents.length > 3 && (
                     <div className="text-muted small text-center mb-1" style={{ fontSize: '0.6rem' }}>
                         {dayEvents.length} events - tap to view all
@@ -163,6 +184,38 @@ export default function CalendarDay({ day, rowIndex }) {
                         </small>
                     </div>
                 )}
+            </>
+        );
+    };
+
+    return (
+        <div className="day-cell border border-secondary d-flex flex-column" style={{ 
+            height: '100%',
+            maxHeight: '100%',
+            overflow: 'hidden'
+        }}>
+            <header className="d-flex flex-column align-items-center flex-shrink-0" style={{ padding: '4px 0' }}>
+                <div
+                    className={`day-number text-center ${getCurrentDayClass()}`}
+                    style={{ width: '30px', height: '30px', lineHeight: '30px' }}
+                >
+                    {day.format('DD')}
+                </div>
+            </header>
+            <div 
+                className="flex-grow-1 cursor-pointer position-relative" 
+                style={{ 
+                    overflow: 'hidden',
+                    overflowY: isMobile ? 'hidden' : 'auto', // Disable scroll on mobile since we're just showing count
+                    maxHeight: 'calc(100% - 60px)',
+                    padding: isMobile ? '0' : '2px', // Remove padding on mobile to allow full width centering
+                    width: '100%', // Ensure full width
+                    display: 'flex', // Make it a flex container on mobile for better control
+                    flexDirection: 'column'
+                }}
+                onClick={handleDayClick}
+            >
+                {isMobile ? renderMobileEventCount() : renderDesktopEvents()}
             </div>
         </div>
     );
