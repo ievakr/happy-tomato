@@ -72,58 +72,91 @@ const WeeklyView = () => {
         </h3>
       </div>
 
-      {/* Weekly planner grid */}
-      <div className="week-grid flex-grow-1">
-        {currentWeek.map((day, dayIndex) => {
-          const dayEvents = getEventsForDay(day);
-          const dayHeaders = getDayHeaders('short');
-          
-          return (
-            <div 
-              key={day.format('YYYY-MM-DD')}
-              className={`week-day ${getCurrentDayClass(day)} ${!isCurrentMonth(day) ? 'other-month' : ''}`}
-              onClick={() => handleDayClick(day)}
-            >
-              {/* Day header */}
-              <div className="day-header">
-                <div className="day-name text-muted small">
-                  {dayHeaders[dayIndex]}
+      {/* Weekly planner grid container with horizontal scroll */}
+      <div 
+        className="week-grid-container flex-grow-1"
+        style={{
+          overflowX: isMobile ? 'auto' : 'hidden',
+          overflowY: 'hidden',
+          WebkitOverflowScrolling: 'touch', // iOS smooth scrolling
+          scrollBehavior: 'smooth',
+          scrollbarWidth: 'none', // Firefox
+          msOverflowStyle: 'none' // IE
+        }}
+      >
+        {/* Hide scrollbar for webkit browsers */}
+        {isMobile && (
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              .week-grid-container::-webkit-scrollbar {
+                display: none;
+              }
+            `
+          }} />
+        )}
+        
+        {/* Weekly planner grid */}
+        <div 
+          className="week-grid"
+          style={{
+            minWidth: isMobile ? '700px' : '100%', // Ensure minimum width on mobile for proper day spacing
+            height: '100%'
+          }}
+        >
+          {currentWeek.map((day, dayIndex) => {
+            const dayEvents = getEventsForDay(day);
+            const dayHeaders = getDayHeaders('short');
+            
+            return (
+              <div 
+                key={day.format('YYYY-MM-DD')}
+                className={`week-day ${getCurrentDayClass(day)} ${!isCurrentMonth(day) ? 'other-month' : ''}`}
+                onClick={() => handleDayClick(day)}
+                style={{
+                  minWidth: isMobile ? '100px' : 'auto' // Ensure minimum width for each day on mobile
+                }}
+              >
+                {/* Day header */}
+                <div className="day-header">
+                  <div className="day-name text-muted small">
+                    {dayHeaders[dayIndex]}
+                  </div>
+                  <div className={`day-number ${getCurrentDayClass(day) ? 'current' : ''}`}>
+                    {day.format('D')}
+                  </div>
                 </div>
-                <div className={`day-number ${getCurrentDayClass(day) ? 'current' : ''}`}>
-                  {day.format('D')}
+
+                {/* Events list */}
+                <div className="day-events">
+                  {dayEvents.length > 0 ? (
+                    <div className="events-list">
+                      {dayEvents.map((evt, idx) => (
+                        <div 
+                          key={evt.id || idx}
+                          className="event-item-weekly"
+                          onClick={(e) => handleEventClick(evt, e)}
+                        >
+                          <EventItem 
+                            event={evt} 
+                            compact={true}
+                            showTime={!isMobile}
+                            labelsMapping={PLANT_LABELS}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="no-events text-muted small text-center py-2">
+                      {isMobile ? '' : 'No events'}
+                    </div>
+                  )}
+
+
                 </div>
               </div>
-
-              {/* Events list */}
-              <div className="day-events">
-                {dayEvents.length > 0 ? (
-                  <div className="events-list">
-                    {dayEvents.map((evt, idx) => (
-                      <div 
-                        key={evt.id || idx}
-                        className="event-item-weekly"
-                        onClick={(e) => handleEventClick(evt, e)}
-                      >
-                        <EventItem 
-                          event={evt} 
-                          compact={true}
-                          showTime={!isMobile}
-                          labelsMapping={PLANT_LABELS}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="no-events text-muted small text-center py-2">
-                    {isMobile ? '' : 'No events'}
-                  </div>
-                )}
-
-
-              </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

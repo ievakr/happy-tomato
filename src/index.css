@@ -26,6 +26,11 @@
     flex-shrink: 0;
 }
 
+.week-grid-container {
+    height: 100%;
+    overflow: hidden;
+}
+
 .week-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
@@ -33,7 +38,6 @@
     height: 100%;
     gap: 1px;
     background-color: #dee2e6;
-    overflow: hidden;
 }
 
 .week-day {
@@ -277,8 +281,20 @@
         overflow: hidden !important;
     }
 
+    .week-grid-container {
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+
     .week-grid {
         gap: 0.5px;
+        min-width: 700px; /* Ensure minimum width for proper day spacing */
+    }
+
+    .week-day {
+        min-width: 100px; /* Ensure each day has enough space */
     }
 
     .day-header {
