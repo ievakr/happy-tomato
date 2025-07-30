@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState, useCallback } from 'react';
 import dayjs from 'dayjs';
 import GlobalContext from '../../context/GlobalContext';
 import { PLANT_LABELS } from '../../constants';
@@ -40,7 +40,7 @@ const DailyView = () => {
   const dayHeaders = getDayHeaders('short');
 
   // Function to calculate which day is currently centered in viewport
-  const updateDisplayedMonth = () => {
+  const updateDisplayedMonth = useCallback(() => {
     if (!scrollContainerRef.current || !isMobile) return;
     
     const container = scrollContainerRef.current;
@@ -59,7 +59,7 @@ const DailyView = () => {
         setDisplayedMonth(centeredDay);
       }
     }
-  };
+  }, [allDays, displayedMonth, isMobile]);
 
   // Scroll to current day when component mounts or current day changes
   useEffect(() => {
@@ -76,7 +76,7 @@ const DailyView = () => {
         });
       }
     }
-  }, [currentDay, isMobile]);
+  }, [currentDay, isMobile, allDays]);
 
   // Update displayed month when currentDay changes
   useEffect(() => {
@@ -101,7 +101,7 @@ const DailyView = () => {
       container.removeEventListener('scroll', handleScroll);
       clearTimeout(scrollTimeout);
     };
-  }, [allDays, displayedMonth, isMobile]);
+  }, [updateDisplayedMonth, isMobile]);
 
   const handleAddEvent = () => {
     setDaySelected(currentDay);
