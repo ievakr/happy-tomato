@@ -18,7 +18,10 @@ export default function Header() {
         daySelected,
         setDaySelected
     } = useContext(GlobalContext);
-    const { isMobile } = useResponsive();
+    const { isMobile, windowSize } = useResponsive();
+    
+    // Very small screen detection (iPhone 13 mini and smaller)
+    const isVerySmallScreen = windowSize.width < 390;
     
     function handlePrevMonth() {
         setMonthIndex(monthIndex - 1)
@@ -176,15 +179,15 @@ export default function Header() {
                     onClick={switchToMonthView}
                     title="Month view"
                     style={{ 
-                        padding: '0.25rem 0.5rem', 
+                        padding: isVerySmallScreen ? '0.25rem 0.4rem' : '0.25rem 0.5rem', 
                         fontSize: '0.75rem', 
                         lineHeight: '1.2' 
                     }}
                 >
-                    <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
+                    <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: isVerySmallScreen ? '0' : '0.25rem' }}>
                         calendar_view_month
                     </span>
-                    <span>Month</span>
+                    {!isVerySmallScreen && <span>Month</span>}
                 </button>
                 
                 {/* Mobile shows Daily view, Desktop shows Weekly view */}
@@ -194,15 +197,15 @@ export default function Header() {
                         onClick={switchToDailyView}
                         title="Daily view"
                         style={{ 
-                            padding: '0.25rem 0.5rem', 
+                            padding: isVerySmallScreen ? '0.25rem 0.4rem' : '0.25rem 0.5rem', 
                             fontSize: '0.75rem', 
                             lineHeight: '1.2' 
                         }}
                     >
-                        <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
+                        <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: isVerySmallScreen ? '0' : '0.25rem' }}>
                             today
                         </span>
-                        <span>Day</span>
+                        {!isVerySmallScreen && <span>Day</span>}
                     </button>
                 ) : (
                     <button 
