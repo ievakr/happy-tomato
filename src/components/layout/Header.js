@@ -19,6 +19,7 @@ export default function Header() {
         setDaySelected
     } = useContext(GlobalContext);
     const { isMobile } = useResponsive();
+    
     function handlePrevMonth() {
         setMonthIndex(monthIndex - 1)
         // Reset week index when changing months
@@ -140,40 +141,47 @@ export default function Header() {
             </h1>
             
             {/* Mobile title - styled differently */}
-            <div className="d-sm-none me-2 mobile-title">
+            <div className="d-sm-none mobile-title me-1">
                 <div className="d-flex flex-column">
-                    <span className="mobile-title-main">Happy</span>
-                    <span className="mobile-title-sub">Tomato</span>
+                    <span className="mobile-title-main">Happy Tomato</span>
                 </div>
             </div>
             
-            {/* Navigation buttons */}
-            <button 
-                className="btn btn-sm me-1" 
-                onClick={getNavigationHandler('prev')}
-            >
-                <span className="material-icons-outlined text-secondary">
-                    chevron_left
-                </span>
-            </button>
-            <button 
-                className="btn btn-sm me-2" 
-                onClick={getNavigationHandler('next')}
-            >
-                <span className="material-icons-outlined text-secondary">
-                    chevron_right
-                </span>
-            </button>
+            {/* Navigation buttons - only shown on desktop */}
+            {!isMobile && (
+                <>
+                    <button 
+                        className="btn btn-sm me-1" 
+                        onClick={getNavigationHandler('prev')}
+                    >
+                        <span className="material-icons-outlined text-secondary">
+                            chevron_left
+                        </span>
+                    </button>
+                    <button 
+                        className="btn btn-sm me-2" 
+                        onClick={getNavigationHandler('next')}
+                    >
+                        <span className="material-icons-outlined text-secondary">
+                            chevron_right
+                        </span>
+                    </button>
+                </>
+            )}
             
             {/* View switching buttons */}
-            <div className="btn-group" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
+            <div className="btn-group flex-shrink-0 ms-auto" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
                 <button 
                     className={`btn btn-sm ${currentView === 'month' ? 'btn-primary' : 'btn-outline-primary'}`}
                     onClick={switchToMonthView}
                     title="Month view"
-                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
+                    style={{ 
+                        padding: '0.25rem 0.5rem', 
+                        fontSize: '0.75rem', 
+                        lineHeight: '1.2' 
+                    }}
                 >
-                    <span className="material-icons-outlined me-1" style={{ fontSize: '0.9rem' }}>
+                    <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
                         calendar_view_month
                     </span>
                     <span>Month</span>
@@ -185,12 +193,16 @@ export default function Header() {
                         className={`btn btn-sm ${currentView === 'daily' ? 'btn-primary' : 'btn-outline-primary'}`}
                         onClick={switchToDailyView}
                         title="Daily view"
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
+                        style={{ 
+                            padding: '0.25rem 0.5rem', 
+                            fontSize: '0.75rem', 
+                            lineHeight: '1.2' 
+                        }}
                     >
-                        <span className="material-icons-outlined me-1" style={{ fontSize: '0.9rem' }}>
+                        <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
                             today
                         </span>
-                        <span>Daily</span>
+                        <span>Day</span>
                     </button>
                 ) : (
                     <button 
@@ -207,8 +219,8 @@ export default function Header() {
                 )}
             </div>
             
-            {/* Current period display - hidden on mobile, pushed to right */}
-            <div className="ms-auto d-none d-md-block">
+            {/* Current period display - hidden on mobile */}
+            <div className="d-none d-md-block ms-2">
                 <h2 className='mb-0 fs-5 text-secondary fw-bold'>
                     {getCurrentDisplayTitle()}
                 </h2>
