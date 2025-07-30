@@ -184,10 +184,10 @@ export default function Header() {
                         lineHeight: '1.2' 
                     }}
                 >
-                    <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: isVerySmallScreen ? '0' : '0.25rem' }}>
+                    <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
                         calendar_view_month
                     </span>
-                    {!isVerySmallScreen && <span>Month</span>}
+                    <span>{isVerySmallScreen ? 'M' : 'Month'}</span>
                 </button>
                 
                 {/* Mobile shows Daily view, Desktop shows Weekly view */}
@@ -202,10 +202,10 @@ export default function Header() {
                             lineHeight: '1.2' 
                         }}
                     >
-                        <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: isVerySmallScreen ? '0' : '0.25rem' }}>
+                        <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
                             today
                         </span>
-                        {!isVerySmallScreen && <span>Day</span>}
+                        <span>{isVerySmallScreen ? 'D' : 'Day'}</span>
                     </button>
                 ) : (
                     <button 
