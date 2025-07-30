@@ -94,9 +94,10 @@ const DailyView = () => {
                 onClick={() => handleDayClick(day)}
                 style={{ 
                   cursor: 'pointer',
-                  minWidth: isMobile ? '45px' : '60px', // Responsive min-width for optimal experience
-                  flex: '1 0 auto', // Allow items to grow and fill space, but don't shrink below min-width
-                  maxWidth: isMobile ? 'none' : '120px' // Prevent items from getting too wide on desktop
+                  minWidth: isMobile ? '70px' : '60px', // Increased mobile min-width for better spacing
+                  width: isMobile ? '70px' : 'auto', // Fixed width on mobile to ensure overflow
+                  flex: isMobile ? '0 0 auto' : '1 0 auto', // Don't grow on mobile, fixed size
+                  maxWidth: isMobile ? '70px' : '120px' // Fixed max width on mobile
                 }}
               >
                 <div className="day-header-mini">

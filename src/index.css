@@ -314,6 +314,20 @@
     .day-events {
         padding: 2px;
     }
+
+    /* Daily view mobile scrolling */
+    .daily-week-header .d-flex {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+
+    .daily-week-day {
+        flex: 0 0 auto !important; /* Prevent growing on mobile */
+        min-width: 70px !important;
+        width: 70px !important;
+        max-width: 70px !important;
+    }
 }
 
 /* Tablet responsive adjustments */
