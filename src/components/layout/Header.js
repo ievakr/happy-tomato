@@ -172,6 +172,13 @@ export default function Header() {
                 </>
             )}
             
+            {/* Current period display - next to chevrons on desktop */}
+            <div className="d-none d-md-block ms-2">
+                <h2 className='mb-0 fs-5 text-secondary fw-bold'>
+                    {getCurrentDisplayTitle()}
+                </h2>
+            </div>
+            
             {/* View switching buttons */}
             <div className="btn-group flex-shrink-0 ms-auto" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
                 <button 
@@ -220,13 +227,6 @@ export default function Header() {
                         <span>Week</span>
                     </button>
                 )}
-            </div>
-            
-            {/* Current period display - hidden on mobile */}
-            <div className="d-none d-md-block ms-2">
-                <h2 className='mb-0 fs-5 text-secondary fw-bold'>
-                    {getCurrentDisplayTitle()}
-                </h2>
             </div>
         </header>
     );
