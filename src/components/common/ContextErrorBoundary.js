@@ -50,7 +50,7 @@ class ContextErrorBoundary extends React.Component {
             </ul>
             
             <button 
-              className="btn btn-primary me-2"
+                              className="btn btn-danger me-2"
               onClick={() => window.location.reload()}
             >
               <i className="fas fa-sync me-1"></i>

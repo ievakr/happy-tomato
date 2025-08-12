@@ -27,9 +27,9 @@ export default function SmallCalendar() {
         const currDay = day.format(format);
         const slcDay = daySelected && daySelected.format(format);
         if (nowDay === currDay) {
-            return 'bg-primary text-white rounded-circle';
+            return 'bg-danger text-white rounded-circle';
         } else if (currDay === slcDay) {
-            return "bg-info text-primary font-weight-bold rounded-circle";
+            return "bg-warning text-danger font-weight-bold rounded-circle";
         } else {
             return '';
         }

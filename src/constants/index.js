@@ -23,14 +23,18 @@ export const PLANT_ACTIONS = {
   "Fertilized": "Use every 7 days",
   "Mavrik": "Use once",
   "NeemAzal": "Use every 7 days, 3 times max",
-  "Sodo muilas": "Use every 7-14 days"
+  "Kytos": "Use every 14 days",
+  "Copfort": "Use every 14 days",
+  "Altozan B/Zn": "Use every 7 days",
+  "TerraSorb Foliar": "Use every 7 days"
 };
 
 // To-do list items
 export const TODO_ITEMS = [
   "TO DO: Plant seeds", 
   "TO DO: Transplant", 
-  "TO DO: Fertilize"
+  "TO DO: Kytos",
+  "TO DO: Copfort"
 ];
 
 // UI Constants
@@ -72,12 +76,12 @@ export const EVENT_ACTIONS = {
 
 // Colors
 export const COLORS = {
-  PRIMARY: '#007bff',
+  PRIMARY: '#dc3545',
   SECONDARY: '#6c757d',
   SUCCESS: '#28a745',
   DANGER: '#dc3545',
   WARNING: '#ffc107',
-  INFO: '#17a2b8',
+  INFO: '#e91e63',
   LIGHT: '#f8f9fa',
   DARK: '#343a40',
   

@@ -6,7 +6,7 @@ import { useResponsive } from '../../hooks';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
-    const { setDaySelected, setShowEventModal, filteredEvents, setCurrentView } = useContext(GlobalContext);
+    const { setDaySelected, setShowEventModal, filteredEvents, setCurrentView, setSelectedEvent } = useContext(GlobalContext);
     const { isMobile } = useResponsive();
     const [dayEvents, setDayEvents] = useState([]);
 
@@ -17,27 +17,22 @@ export default function CalendarDay({ day, rowIndex }) {
 
     function getCurrentDayClass() {
         return day.format("DD-MM-YY") === dayjs().format("DD-MM-YY")
-            ? 'bg-primary text-white rounded-circle d-flex align-items-center justify-content-center'
+            ? 'bg-danger text-white rounded-circle d-flex align-items-center justify-content-center'
             : "";
     }
 
     const handleEventClick = (evt, e) => {
         e.stopPropagation();
-        // Navigate to daily view instead of opening modal
+        // Open event modal for editing - set selected event so delete button appears
+        setSelectedEvent(evt);
         setDaySelected(day);
-        setCurrentView('daily');
+        setShowEventModal(true);
     };
 
     const handleDayClick = () => {
-        // Only open modal if clicking on empty space (no events) or if specifically needed
-        if (dayEvents.length === 0) {
-            setDaySelected(day);
-            setShowEventModal(true);
-        } else {
-            // If there are events, navigate to daily view
-            setDaySelected(day);
-            setCurrentView('daily');
-        }
+        // Always open modal for creating/viewing events
+        setDaySelected(day);
+        setShowEventModal(true);
     };
 
     // Mobile view: Show only event count
@@ -53,7 +48,7 @@ export default function CalendarDay({ day, rowIndex }) {
                 width: '100%' // Ensure full width
             }}>
                 <div 
-                    className="event-count-indicator d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold"
+                    className="event-count-indicator d-flex align-items-center justify-content-center rounded-circle bg-danger text-white fw-bold"
                     style={{ 
                         width: '18px', 
                         height: '18px', 

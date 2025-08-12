@@ -65,7 +65,7 @@ class ErrorBoundary extends React.Component {
             
             {this.props.showRetry !== false && (
               <button 
-                className="btn btn-primary me-2"
+                className="btn btn-danger me-2"
                 onClick={this.handleRetry}
               >
                 <i className="fas fa-redo me-1"></i>

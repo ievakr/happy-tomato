@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import logo from '../../assets/logo.png';
 import GlobalContext from '../../context/GlobalContext';
 import { getWeekByIndex, getWeekDateRange, getCurrentWeekIndex } from '../../utils';
@@ -22,6 +22,17 @@ export default function Header() {
     
     // Very small screen detection (iPhone 13 mini and smaller)
     const isVerySmallScreen = windowSize.width < 390;
+    
+    // Auto-switch views based on screen size
+    useEffect(() => {
+        if (!isMobile && currentView === 'daily') {
+            // Switch to week view when going from mobile to desktop
+            switchToWeekView();
+        } else if (isMobile && currentView === 'week' && currentView !== 'month') {
+            // Switch to daily view when going from desktop to mobile (unless in month view)
+            switchToDailyView();
+        }
+    }, [isMobile, currentView]);
     
     function handlePrevMonth() {
         setMonthIndex(monthIndex - 1)
@@ -80,6 +91,8 @@ export default function Header() {
         }
     }
     
+
+    
     function toggleSidebar() {
         setShowSidebar(!showSidebar)
     }
@@ -102,6 +115,8 @@ export default function Header() {
             setDaySelected(dayjs());
         }
     }
+    
+
     
     function getCurrentDisplayTitle() {
         if (currentView === 'month') {
@@ -126,15 +141,21 @@ export default function Header() {
     }
     return (
         <header className="calendar-header d-flex align-items-center px-2 px-md-4 py-2">
-            {/* Mobile sidebar toggle button */}
-            <button 
-                className="sidebar-toggle btn btn-outline-secondary d-md-none me-2" 
-                onClick={toggleSidebar}
-            >
-                <span className="material-icons-outlined">
-                    menu
-                </span>
-            </button>
+            {/* Mobile-only sidebar toggle button */}
+            {isMobile && (
+                <button 
+                    className="sidebar-toggle btn btn-sm btn-outline-secondary me-2" 
+                    onClick={toggleSidebar}
+                    style={{
+                        padding: '0.25rem 0.4rem',
+                        fontSize: '0.8rem'
+                    }}
+                >
+                    <span className="material-icons-outlined" style={{ fontSize: '1.1rem' }}>
+                        menu
+                    </span>
+                </button>
+            )}
             
             <img src={logo} alt="calendar" className="me-2" style={{ width: '32px', height: '32px' }} />
             
@@ -182,7 +203,7 @@ export default function Header() {
             {/* View switching buttons */}
             <div className="btn-group flex-shrink-0 ms-auto" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
                 <button 
-                    className={`btn btn-sm ${currentView === 'month' ? 'btn-primary' : 'btn-outline-primary'}`}
+                    className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
                     onClick={switchToMonthView}
                     title="Month view"
                     style={{ 
@@ -200,7 +221,7 @@ export default function Header() {
                 {/* Mobile shows Daily view, Desktop shows Weekly view */}
                 {isMobile ? (
                     <button 
-                        className={`btn btn-sm ${currentView === 'daily' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        className={`btn btn-sm ${currentView === 'daily' ? 'btn-danger' : 'btn-outline-danger'}`}
                         onClick={switchToDailyView}
                         title="Daily view"
                         style={{ 
@@ -216,7 +237,7 @@ export default function Header() {
                     </button>
                 ) : (
                     <button 
-                        className={`btn btn-sm ${currentView === 'week' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        className={`btn btn-sm ${currentView === 'week' ? 'btn-danger' : 'btn-outline-danger'}`}
                         onClick={switchToWeekView}
                         title="Week view"
                         style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}

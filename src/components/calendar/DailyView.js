@@ -1,9 +1,9 @@
-import React, { useContext, useEffect, useRef, useState, useCallback } from 'react';
+import React, { useContext, useEffect, useState, useRef, useCallback } from 'react';
 import dayjs from 'dayjs';
 import GlobalContext from '../../context/GlobalContext';
-import { PLANT_LABELS } from '../../constants';
 import { getDayHeaders } from '../../utils';
 import { useResponsive } from '../../hooks';
+import { PLANT_LABELS } from '../../constants';
 import EventItem from './EventItem';
 import '../../index.css';
 
@@ -14,29 +14,30 @@ const DailyView = () => {
     setDaySelected, 
     setShowEventModal, 
     setSelectedEvent,
-    isInitialLoading 
+    isInitialLoading,
+    dispatchCallEvent,
+    isLoading,
+    loadingOperation,
+    monthIndex,
+    setMonthIndex
   } = useContext(GlobalContext);
   
   const { isMobile } = useResponsive();
   const scrollContainerRef = useRef(null);
-  const [displayedMonth, setDisplayedMonth] = useState(daySelected || dayjs());
+  const [displayedMonth, setDisplayedMonth] = useState(dayjs());
+  const [eventToDelete, setEventToDelete] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Get current day or fallback to today
   const currentDay = daySelected || dayjs();
-  
-  // Generate multiple weeks of days for continuous scrolling
-  const generateDaysForScrolling = () => {
-    const days = [];
-    const weeksToShow = isMobile ? 6 : 4; // Show more weeks on mobile for better scrolling
-    const startDate = currentDay.subtract(weeksToShow, 'week').startOf('week').add(1, 'day'); // Start from Monday
-    
-    for (let i = 0; i < (weeksToShow * 2 + 1) * 7; i++) {
-      days.push(startDate.add(i, 'day'));
-    }
-    
-    return days;
-  };
 
-  const allDays = generateDaysForScrolling();
+  // Generate days around the current day for mobile scrolling
+  const daysToShow = 60; // Show 30 days before and 30 days after current day
+  const startDay = currentDay.subtract(Math.floor(daysToShow / 2), 'day');
+  const allDays = Array.from({ length: daysToShow }, (_, i) => 
+    startDay.add(i, 'day')
+  );
+
   const dayHeaders = getDayHeaders('short');
 
   // Function to calculate which day is currently centered in viewport
@@ -86,25 +87,31 @@ const DailyView = () => {
   // Add scroll event listener
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container || !isMobile) return;
-
-    let scrollTimeout;
-    const handleScroll = () => {
-      // Debounce the scroll handler to avoid too many updates
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(updateDisplayedMonth, 100);
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      clearTimeout(scrollTimeout);
-    };
+    if (container && isMobile) {
+      let scrollTimeout;
+      const handleScroll = () => {
+        // Debounce scroll events
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(updateDisplayedMonth, 150);
+      };
+      
+      container.addEventListener('scroll', handleScroll);
+      return () => {
+        container.removeEventListener('scroll', handleScroll);
+        clearTimeout(scrollTimeout);
+      };
+    }
   }, [updateDisplayedMonth, isMobile]);
 
-  const handleAddEvent = () => {
-    setDaySelected(currentDay);
+  // Update month index when displayed month changes
+  useEffect(() => {
+    if (displayedMonth.month() !== monthIndex) {
+      setMonthIndex(displayedMonth.month());
+    }
+  }, [displayedMonth, monthIndex, setMonthIndex]);
+
+  const handleDayClick = (day) => {
+    setDaySelected(day);
     setShowEventModal(true);
   };
 
@@ -114,8 +121,22 @@ const DailyView = () => {
     setShowEventModal(true);
   };
 
-  const handleDayClick = (day) => {
-    setDaySelected(day);
+  const handleQuickDelete = (evt, e) => {
+    e.stopPropagation();
+    setEventToDelete(evt);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (eventToDelete) {
+      try {
+        await dispatchCallEvent({ type: "delete", payload: eventToDelete });
+        setShowDeleteConfirm(false);
+        setEventToDelete(null);
+      } catch (error) {
+        console.error('Delete failed:', error);
+      }
+    }
   };
 
   const getEventsForDay = (day) => {
@@ -124,13 +145,20 @@ const DailyView = () => {
     );
   };
 
-  const dayEvents = getEventsForDay(currentDay);
-  const isToday = currentDay.format("DD-MM-YY") === dayjs().format("DD-MM-YY");
+  const getCurrentDayClass = (day) => {
+    return day.format("DD-MM-YY") === dayjs().format("DD-MM-YY")
+      ? 'current-day'
+      : '';
+  };
+
+  const isSelectedDay = (day) => {
+    return day.format("DD-MM-YY") === currentDay.format("DD-MM-YY");
+  };
 
   if (isInitialLoading) {
     return (
       <div className="daily-view-loading d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <div className="spinner-border text-primary" role="status">
+        <div className="spinner-border text-danger" role="status">
           <span className="visually-hidden">Loading...</span>
         </div>
       </div>
@@ -139,131 +167,260 @@ const DailyView = () => {
 
   return (
     <div className="daily-view flex-grow-1 d-flex flex-column">
-      {/* Month header */}
-      <div className="month-header text-center py-2 bg-light text-dark">
-        <h3 className="mb-0 fs-5 fw-bold">
-          {displayedMonth.format('MMMM YYYY')}
-        </h3>
-      </div>
-
-      {/* Clickable week row with continuous scrolling */}
-      <div className="daily-week-header bg-light border-bottom">
-        <div 
-          ref={scrollContainerRef}
-          className="d-flex" 
-          style={{ 
-            width: '100%',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            gap: '1px',
-            scrollbarWidth: 'none', // Firefox
-            msOverflowStyle: 'none', // IE
-            WebkitOverflowScrolling: 'touch', // iOS smooth scrolling
-            scrollBehavior: 'smooth'
-          }}
-        >
-          {/* Hide scrollbar for webkit browsers */}
-          <style dangerouslySetInnerHTML={{
-            __html: `
-              .daily-week-header .d-flex::-webkit-scrollbar {
-                display: none;
-              }
-            `
-          }} />
-          
-          {allDays.map((day, index) => {
-            const isSelected = day.format("DD-MM-YY") === currentDay.format("DD-MM-YY");
-            const isDayToday = day.format("DD-MM-YY") === dayjs().format("DD-MM-YY");
-            const dayOfWeek = day.day(); // 0 = Sunday, 1 = Monday, etc.
-            const adjustedDayOfWeek = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert to Monday = 0, Sunday = 6
-            
-            return (
-              <div
-                key={day.format('YYYY-MM-DD')}
-                className={`daily-week-day ${isSelected ? 'selected' : ''} ${isDayToday ? 'today' : ''}`}
-                onClick={() => handleDayClick(day)}
-                style={{ 
-                  cursor: 'pointer',
-                  minWidth: isMobile ? '70px' : '60px',
-                  width: isMobile ? '70px' : 'auto',
-                  flex: isMobile ? '0 0 auto' : '1 0 auto',
-                  maxWidth: isMobile ? '70px' : '120px'
-                }}
-              >
-                <div className="day-header-mini">
-                  <div className="day-name-mini">
-                    {dayHeaders[adjustedDayOfWeek]}
+      {/* Mobile: Horizontal scrollable week header */}
+      {isMobile && (
+        <div className="daily-week-header bg-light py-2" style={{ minHeight: '60px' }}>
+          <div 
+            ref={scrollContainerRef}
+            className="d-flex"
+            style={{
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              WebkitOverflowScrolling: 'touch',
+              scrollBehavior: 'smooth',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}
+          >
+            <style dangerouslySetInnerHTML={{
+              __html: `
+                .daily-week-header .d-flex::-webkit-scrollbar {
+                  display: none;
+                }
+              `
+            }} />
+            {allDays.map((day, index) => {
+              const dayOfWeek = day.day();
+              const dayEvents = getEventsForDay(day);
+              
+              return (
+                <div
+                  key={day.format('YYYY-MM-DD')}
+                  className={`daily-week-day text-center ${getCurrentDayClass(day)} ${isSelectedDay(day) ? 'selected-day' : ''}`}
+                  onClick={() => {
+                    setDaySelected(day);
+                    // Center the selected day in viewport
+                    const scrollPosition = index * 70 - (window.innerWidth / 2) + 35;
+                    scrollContainerRef.current?.scrollTo({
+                      left: Math.max(0, scrollPosition),
+                      behavior: 'smooth'
+                    });
+                  }}
+                  style={{
+                    minWidth: '70px',
+                    width: '70px',
+                    maxWidth: '70px',
+                    padding: '8px 4px',
+                    cursor: 'pointer',
+                    backgroundColor: isSelectedDay(day) ? 'rgba(220, 53, 69, 0.1)' : 'transparent',
+                    border: isSelectedDay(day) ? '2px solid #dc3545' : '2px solid transparent',
+                    borderRadius: '8px',
+                    margin: '0 2px'
+                  }}
+                >
+                  <div className="day-name-mini text-muted" style={{ fontSize: '0.7rem' }}>
+                    {dayHeaders[dayOfWeek]}
                   </div>
-                  <div className="day-number-mini">
+                  <div 
+                    className={`day-number-mini fw-bold ${getCurrentDayClass(day) ? 'text-white' : ''}`}
+                    style={{ 
+                      fontSize: '1.1rem',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto',
+                      backgroundColor: getCurrentDayClass(day) ? '#dc3545' : 'transparent'
+                    }}
+                  >
                     {day.format('D')}
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Events section */}
-      <div className="daily-events flex-grow-1 p-3">
-        {dayEvents.length > 0 ? (
-          <div className="events-container">
-            <h4 className="mb-3 text-secondary">
-              Events ({dayEvents.length})
-            </h4>
-            <div className="events-list-daily">
-              {dayEvents.map((evt, idx) => (
-                <div 
-                  key={evt.id || idx}
-                  className="daily-event-item mb-3 p-3 bg-white border rounded shadow-sm"
-                  onClick={(e) => handleEventClick(evt, e)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <EventItem 
-                    event={evt} 
-                    compact={false}
-                    showTime={true}
-                    labelsMapping={PLANT_LABELS}
-                    showAllIcons={true}
-                  />
-                  {evt.description && (
-                    <div className="mt-2 text-muted small">
-                      {evt.description}
+                  {dayEvents.length > 0 && (
+                    <div className="events-indicator" style={{ fontSize: '0.6rem' }}>
+                      <span className="badge bg-secondary rounded-pill">
+                        {dayEvents.length}
+                      </span>
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        ) : (
-          <div className="no-events-container text-center py-5">
-            <div className="mb-3">
-              <span className="material-icons-outlined text-muted" style={{ fontSize: '3rem' }}>
-                event_available
-              </span>
-            </div>
-            <h4 className="text-muted mb-3">No events today</h4>
-            <p className="text-muted mb-3">
-              {isToday ? "You're all free today!" : "Nothing scheduled for this day"}
-            </p>
-          </div>
-        )}
+        </div>
+      )}
 
-        {/* Add event button */}
-        <div className="add-event-section mt-4">
-          <button 
-            className="btn btn-primary w-100 d-flex align-items-center justify-content-center"
-            onClick={handleAddEvent}
-          >
-            <span className="material-icons-outlined me-2">
-              add
-            </span>
-            Add Event
-          </button>
+      {/* Selected Day Info and Events */}
+      <div className="selected-day-info flex-grow-1 p-3">
+        <div className="row h-100">
+          <div className="col-12">
+            {/* Day title */}
+            <div className="mb-3">
+              <h4 className="mb-1">
+                {currentDay.format('dddd, MMMM D, YYYY')}
+              </h4>
+              {currentDay.format("DD-MM-YY") === dayjs().format("DD-MM-YY") && (
+                <small className="text-muted">Today</small>
+              )}
+            </div>
+
+            {/* Events for selected day */}
+            <div className="daily-events">
+              {(() => {
+                const dayEvents = getEventsForDay(currentDay);
+                
+                if (dayEvents.length === 0) {
+                  return (
+                    <div>
+                      <div className="no-events text-center py-5">
+                        <div className="text-muted mb-3">
+                          <span className="material-icons-outlined" style={{ fontSize: '3rem' }}>
+                            event_available
+                          </span>
+                        </div>
+                        <p className="text-muted">No events scheduled for this day</p>
+                      </div>
+                      
+                      {/* Add event button - separate section */}
+                      <div className="mt-4 pt-3 border-top">
+                        <button 
+                          className="btn btn-danger w-100"
+                          onClick={() => handleDayClick(currentDay)}
+                        >
+                          <span className="material-icons-outlined me-2" style={{ fontSize: '1rem' }}>
+                            add
+                          </span>
+                          Add Event
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div>
+                    <div className="events-list">
+                      <h6 className="mb-3">Events ({dayEvents.length})</h6>
+                      {dayEvents.map((evt, idx) => (
+                        <div 
+                          key={evt.id || idx}
+                          className="event-item-daily mb-2 p-2 border rounded position-relative"
+                          onClick={(e) => handleEventClick(evt, e)}
+                          style={{ 
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                            const deleteBtn = e.currentTarget.querySelector('.quick-delete-btn');
+                            if (deleteBtn) deleteBtn.style.opacity = '1';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            const deleteBtn = e.currentTarget.querySelector('.quick-delete-btn');
+                            if (deleteBtn) deleteBtn.style.opacity = '0';
+                          }}
+                        >
+                          <EventItem 
+                            event={evt} 
+                            compact={false}
+                            showTime={true}
+                            labelsMapping={PLANT_LABELS}
+                            showAllIcons={true}
+                          />
+                          {/* Quick delete button */}
+                          {!isMobile && (
+                            <button
+                              className="quick-delete-btn btn btn-sm position-absolute"
+                              style={{
+                                top: '8px',
+                                right: '8px',
+                                padding: '4px 8px',
+                                fontSize: '0.7rem',
+                                lineHeight: '1',
+                                opacity: '0',
+                                transition: 'opacity 0.2s ease',
+                                backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                                border: 'none',
+                                borderRadius: '4px',
+                                color: 'white',
+                                zIndex: 10
+                              }}
+                              onClick={(e) => handleQuickDelete(evt, e)}
+                              title="Delete event"
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Add event button - separate section */}
+                    <div className="mt-4 pt-3 border-top">
+                      <button 
+                        className="btn btn-danger w-100"
+                        onClick={() => handleDayClick(currentDay)}
+                      >
+                        <span className="material-icons-outlined me-2" style={{ fontSize: '1rem' }}>
+                          add
+                        </span>
+                        Add Event
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && eventToDelete && (
+        <div className="position-fixed w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center" style={{ zIndex: 1070, backgroundColor: 'rgba(0,0,0,0.3)' }}>
+          <div className="bg-white rounded shadow-lg p-4" style={{ maxWidth: '300px', width: '90%' }}>
+            <h6 className="mb-3">Delete Event</h6>
+            <p className="mb-3 text-muted">
+              Delete "{eventToDelete.title || eventToDelete.toDo}"?
+            </p>
+            <p className="mb-4 text-muted small">This action cannot be undone.</p>
+            <div className="d-flex justify-content-end gap-2">
+              <button 
+                type="button" 
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setEventToDelete(null);
+                }}
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-sm btn-danger"
+                onClick={confirmDelete}
+                disabled={isLoading}
+              >
+                {isLoading && loadingOperation === 'delete' ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status">
+                      <span className="visually-hidden">Deleting...</span>
+                    </span>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default DailyView; 
+export default DailyView;

@@ -55,7 +55,7 @@
 }
 
 .week-day.current-day {
-    background-color: #e3f2fd;
+    background-color: #ffebee;
 }
 
 .week-day.other-month {
@@ -94,7 +94,7 @@
 }
 
 .day-number.current {
-    background-color: #007bff;
+    background-color: #dc3545;
     color: white;
 }
 
@@ -149,8 +149,8 @@
 }
 
 .daily-week-day.selected {
-    background-color: #e3f2fd;
-    border-color: #2196f3;
+    background-color: #ffebee;
+    border-color: #f44336;
 }
 
 .daily-week-day.today {
@@ -159,8 +159,8 @@
 }
 
 .daily-week-day.selected.today {
-    background-color: #e1f5fe;
-    border-color: #0277bd;
+    background-color: #fce4ec;
+    border-color: #c62828;
 }
 
 .day-header-mini {
@@ -186,7 +186,7 @@
 }
 
 .daily-week-day.selected .day-number-mini {
-    color: #2196f3;
+    color: #f44336;
 }
 
 .daily-week-day.today .day-number-mini {
@@ -194,7 +194,7 @@
 }
 
 .daily-week-day.selected.today .day-number-mini {
-    color: #0277bd;
+    color: #c62828;
 }
 
 

@@ -42,6 +42,21 @@ async function fetchEvents() {
 }  
 
 export default function ContextWrapper(props) {
+    // Get responsive info to set initial view
+    const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
+    
+    // Update window width on resize
+    useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }
+    }, []);
+    
+    const isMobile = windowWidth <= 768;
+    const getInitialView = () => isMobile ? 'daily' : 'week';
+    
     const [monthIndex, setMonthIndex] = useState(dayjs().month())
     const [smallCalendarMonth, setSmallCalendarMonth] = useState(null)
     const [daySelected, setDaySelected] = useState(dayjs())
@@ -54,7 +69,7 @@ export default function ContextWrapper(props) {
     const [isLoading, setIsLoading] = useState(false)
     const [isInitialLoading, setIsInitialLoading] = useState(true)
     const [loadingOperation, setLoadingOperation] = useState(null)
-    const [currentView, setCurrentView] = useState('month')
+    const [currentView, setCurrentView] = useState(getInitialView())
     const [weekIndex, setWeekIndex] = useState(0)
     const [currentDayIndex, setCurrentDayIndex] = useState(0)
 

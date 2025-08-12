@@ -70,7 +70,7 @@ export function isTextTruncated(text, maxLength = 12) {
  */
 export function getCurrentDayClass(day) {
   return day.format("DD-MM-YY") === dayjs().format("DD-MM-YY")
-    ? 'bg-primary text-white rounded-circle d-flex align-items-center justify-content-center'
+    ? 'bg-danger text-white rounded-circle d-flex align-items-center justify-content-center'
     : "";
 }
 

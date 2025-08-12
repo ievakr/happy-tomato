@@ -1,7 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
 import GlobalContext from "../../context/GlobalContext";
 import CustomDropdown from "../common/CustomDropdown";
-import SingleSelectDropdown from "../common/SingleSelectDropdown";
 import DatePicker from "react-widgets/DatePicker";
 import { Localization } from "react-widgets";
 import { DateLocalizer } from "react-widgets/IntlLocalizer";
@@ -16,6 +15,8 @@ export default function EventModal() {
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [title, setTitle] = useState("");
     const [selectedToDo, setSelectedToDo] = useState([]);
+    const [selectedActions, setSelectedActions] = useState([]);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     // Initialize component state when modal opens
     useEffect(() => {
@@ -27,27 +28,56 @@ export default function EventModal() {
         // Set other values from selectedEvent if editing
         if (selectedEvent) {
             setSelectedLabels(selectedEvent.labels || []);
-            setTitle(selectedEvent.title || "");
+            
+            // Handle both old single title format and new multiple actions format
+            if (selectedEvent.actions && Array.isArray(selectedEvent.actions)) {
+                setSelectedActions(selectedEvent.actions);
+                setTitle(selectedEvent.actions.join(", "));
+            } else if (selectedEvent.title) {
+                setSelectedActions([selectedEvent.title]);
+                setTitle(selectedEvent.title);
+            } else {
+                setSelectedActions([]);
+                setTitle("");
+            }
+            
             setDescription(selectedEvent.description || "");
-            setDosage(PLANT_ACTIONS[selectedEvent.title] || "");
+            // Set dosage based on first action for now
+            const firstAction = selectedEvent.actions && selectedEvent.actions.length > 0 
+                ? selectedEvent.actions[0] 
+                : selectedEvent.title;
+            setDosage(PLANT_ACTIONS[firstAction] || "");
             setSelectedToDo(Array.isArray(selectedEvent.toDo) ? selectedEvent.toDo : (selectedEvent.toDo ? [selectedEvent.toDo] : []));
         } else {
             // Reset for new event
             setSelectedLabels([]);
+            setSelectedActions([]);
             setTitle("");
             setDescription("");
             setDosage("");
             setSelectedToDo([]);
         }
+        // Reset delete confirmation state
+        setShowDeleteConfirm(false);
     }, [selectedEvent, daySelected, setDosage]);
 
-    function handleActionSelect(selectedAction) {
-        setTitle(selectedAction);
-        // Clear dosage if no action is selected
-        if (selectedAction === "") {
+    function handleActionSelect(selectedActionsArray) {
+        setSelectedActions(selectedActionsArray);
+        setTitle(selectedActionsArray.join(", "));
+        // Set dosage based on first selected action
+        if (selectedActionsArray.length === 0) {
             setDosage("");
         } else {
-            setDosage(PLANT_ACTIONS[selectedAction] || "");
+            setDosage(PLANT_ACTIONS[selectedActionsArray[0]] || "");
+        }
+    }
+
+    async function handleDelete() {
+        try {
+            await dispatchCallEvent({ type: "delete", payload: selectedEvent });
+            setShowEventModal(false);
+        } catch (error) {
+            console.error('Delete failed:', error);
         }
     }
 
@@ -55,6 +85,7 @@ export default function EventModal() {
         e.preventDefault();
         const calendarEvent = {
             title,
+            actions: selectedActions,
             description,
             labels: selectedLabels,
             toDo: Array.isArray(selectedToDo) ? selectedToDo.join(", ") : selectedToDo,
@@ -97,24 +128,12 @@ export default function EventModal() {
                                 type="button"
                                 className="btn btn-sm p-1 me-2"
                                 disabled={isLoading}
-                                onClick={async () => {
-                                    try {
-                                        await dispatchCallEvent({ type: "delete", payload: selectedEvent });
-                                        setShowEventModal(false);
-                                    } catch (error) {
-                                        console.error('Delete failed:', error);
-                                    }
-                                }}
+                                onClick={() => setShowDeleteConfirm(true)}
+                                title="Delete event"
                             >
-                                {isLoading && loadingOperation === 'delete' ? (
-                                    <span className="spinner-border spinner-border-sm text-muted" role="status">
-                                        <span className="visually-hidden">Deleting...</span>
-                                    </span>
-                                ) : (
-                                    <span className="material-icons-outlined text-muted">
-                                        delete
-                                    </span>
-                                )}
+                                <span className="material-icons-outlined text-muted">
+                                    delete
+                                </span>
                             </button>
                         )}
                         <button type="button" className="btn btn-sm p-1" onClick={() => setShowEventModal(false)}>
@@ -132,10 +151,10 @@ export default function EventModal() {
                                 water_drop
                             </span>
                             <div className="flex-grow-1 me-2">
-                                <SingleSelectDropdown
-                                    title="Select action"
+                                <CustomDropdown
+                                    title="Select actions"
                                     options={Object.keys(PLANT_ACTIONS)}
-                                    selectedValue={title}
+                                    selectedOptions={selectedActions}
                                     onSelect={handleActionSelect}
                                 />
                             </div>
@@ -235,6 +254,43 @@ export default function EventModal() {
                     </button>
                 </footer>
             </form>
+            
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="position-fixed w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                    <div className="bg-white rounded shadow-lg p-4" style={{ maxWidth: '300px', width: '90%' }}>
+                        <h6 className="mb-3">Delete Event</h6>
+                        <p className="mb-4 text-muted">Are you sure you want to delete this event? This action cannot be undone.</p>
+                        <div className="d-flex justify-content-end gap-2">
+                            <button 
+                                type="button" 
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={isLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-sm btn-danger"
+                                onClick={handleDelete}
+                                disabled={isLoading}
+                            >
+                                {isLoading && loadingOperation === 'delete' ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-2" role="status">
+                                            <span className="visually-hidden">Deleting...</span>
+                                        </span>
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Delete'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

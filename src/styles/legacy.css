@@ -52,13 +52,13 @@
 }
 
 .custom-dropdown__title:hover {
-  border-color: #007bff;
+  border-color: #dc3545;
 }
 
 .custom-dropdown__title:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  border-color: #dc3545;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
 }
 
 .custom-dropdown__arrow {
@@ -108,8 +108,8 @@
 }
 
 .custom-dropdown__list li.selected {
-  background-color: #e7f3ff;
-  color: #007bff;
+  background-color: #ffeaea;
+  color: #dc3545;
   font-weight: 500;
 }
 
@@ -137,27 +137,44 @@
 }
 
 /* Event interaction styles */
-.event-item:hover {
+.event-item:hover:not([style*="background-color: red"]) {
   background-color: rgba(0,0,0,0.08) !important;
   transform: translateY(-1px);
   transition: all 0.2s ease;
 }
 
-.event-item:active {
+.event-item:active:not([style*="background-color: red"]) {
   background-color: rgba(0,0,0,0.12) !important;
+  transform: translateY(0);
+}
+
+/* TO DO items (red background) get darker red on hover/active */
+.event-item[style*="background-color: red"]:hover {
+  background-color: darkred !important;
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+.event-item[style*="background-color: red"]:active {
+  background-color: #8b0000 !important;
   transform: translateY(0);
 }
 
 /* Mobile tap feedback */
 @media (max-width: 768px) {
-  .event-item:active {
-    background-color: rgba(0,123,255,0.2) !important;
+  .event-item:active:not([style*="background-color: red"]) {
+    background-color: rgba(220,53,69,0.2) !important;
+  }
+  
+  /* TO DO items get darker red tap feedback on mobile */
+  .event-item[style*="background-color: red"]:active {
+    background-color: #8b0000 !important;
   }
 }
 
 /* Event count indicators */
 .event-count-indicator {
-  background: linear-gradient(135deg, #007bff, #0056b3);
+  background: linear-gradient(135deg, #dc3545, #b71c1c);
   color: white;
   border-radius: 50%;
   width: 16px;
@@ -273,6 +290,11 @@
     padding: 1px 2px !important;
     margin: 1px 0 !important;
     border: 1px solid rgba(0,0,0,0.15) !important;
+    /* Removed background-color override to allow inline styles (like red TO DO items) to work */
+  }
+  
+  /* Default background for regular events (not TO DO items) on mobile */
+  .event-item:not([style*="background-color: red"]) {
     background-color: rgba(0,0,0,0.05) !important;
   }
   
@@ -319,7 +341,7 @@
   .truncation-indicator {
     font-size: 0.7rem !important;
     font-weight: bold !important;
-    color: #007bff !important;
+    color: #dc3545 !important;
   }
 }
 

@@ -1,12 +1,12 @@
 /* CSS Custom Properties (Variables) */
 :root {
   /* Colors */
-  --color-primary: #007bff;
+  --color-primary: #dc3545;
   --color-secondary: #6c757d;
   --color-success: #28a745;
   --color-danger: #dc3545;
   --color-warning: #ffc107;
-  --color-info: #17a2b8;
+  --color-info: #e91e63;
   --color-light: #f8f9fa;
   --color-dark: #343a40;
   
