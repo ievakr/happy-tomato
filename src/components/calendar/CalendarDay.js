@@ -6,7 +6,7 @@ import { useResponsive } from '../../hooks';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
-    const { setDaySelected, setShowEventModal, filteredEvents, setCurrentView, setSelectedEvent } = useContext(GlobalContext);
+    const { setDaySelected, setShowEventModal, filteredEvents, setSelectedEvent } = useContext(GlobalContext);
     const { isMobile } = useResponsive();
     const [dayEvents, setDayEvents] = useState([]);
 

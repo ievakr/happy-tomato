@@ -32,7 +32,7 @@ export default function Header() {
             // Switch to daily view when going from desktop to mobile (unless in month view)
             switchToDailyView();
         }
-    }, [isMobile, currentView]);
+    }, [isMobile, currentView, switchToDailyView, switchToWeekView]);
     
     function handlePrevMonth() {
         setMonthIndex(monthIndex - 1)
