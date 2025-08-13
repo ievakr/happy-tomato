@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useCallback } from 'react';
 import logo from '../../assets/logo.png';
 import GlobalContext from '../../context/GlobalContext';
 import { getWeekByIndex, getWeekDateRange, getCurrentWeekIndex } from '../../utils';
@@ -22,6 +22,21 @@ export default function Header() {
     
     // Very small screen detection (iPhone 13 mini and smaller)
     const isVerySmallScreen = windowSize.width < 390;
+    
+    const switchToWeekView = useCallback(() => {
+        setCurrentView('week');
+        // Set current week when switching to week view
+        const currentWeekIdx = getCurrentWeekIndex(monthIndex, dayjs());
+        setWeekIndex(currentWeekIdx);
+    }, [monthIndex, setCurrentView, setWeekIndex]);
+    
+    const switchToDailyView = useCallback(() => {
+        setCurrentView('daily');
+        // Set current day when switching to daily view
+        if (!daySelected) {
+            setDaySelected(dayjs());
+        }
+    }, [daySelected, setCurrentView, setDaySelected]);
     
     // Auto-switch views based on screen size
     useEffect(() => {
@@ -99,21 +114,6 @@ export default function Header() {
     
     function switchToMonthView() {
         setCurrentView('month');
-    }
-    
-    function switchToWeekView() {
-        setCurrentView('week');
-        // Set current week when switching to week view
-        const currentWeekIdx = getCurrentWeekIndex(monthIndex, dayjs());
-        setWeekIndex(currentWeekIdx);
-    }
-    
-    function switchToDailyView() {
-        setCurrentView('daily');
-        // Set current day when switching to daily view
-        if (!daySelected) {
-            setDaySelected(dayjs());
-        }
     }
     
 
