@@ -55,7 +55,7 @@ export default function ContextWrapper(props) {
     }, []);
     
     const isMobile = windowWidth <= 768;
-    const getInitialView = () => isMobile ? 'daily' : 'week';
+    const getInitialView = () => isMobile ? 'daily' : 'month';
     
     const [monthIndex, setMonthIndex] = useState(dayjs().month())
     const [smallCalendarMonth, setSmallCalendarMonth] = useState(null)

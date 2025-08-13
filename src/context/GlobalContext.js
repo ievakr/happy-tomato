@@ -26,7 +26,7 @@ const GlobalContext = React.createContext({
     isInitialLoading: true,
     loadingOperation: null,
     // View management
-    currentView: 'week', // 'month', 'week', or 'daily' (daily only on mobile)
+    currentView: 'month', // 'month', 'week', or 'daily' (daily only on mobile)
     setCurrentView: () => {},
     weekIndex: 0,
     setWeekIndex: (index) => {},
