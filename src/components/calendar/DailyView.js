@@ -190,7 +190,8 @@ const DailyView = () => {
               `
             }} />
             {allDays.map((day, index) => {
-              const dayOfWeek = day.day();
+              // Convert dayjs day index (0=Sunday) to getDayHeaders index (0=Monday)
+              const dayOfWeek = (day.day() + 6) % 7;
               const dayEvents = getEventsForDay(day);
               
               return (

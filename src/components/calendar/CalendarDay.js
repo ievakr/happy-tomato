@@ -6,7 +6,7 @@ import { useResponsive } from '../../hooks';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
-    const { setDaySelected, setShowEventModal, filteredEvents, setSelectedEvent } = useContext(GlobalContext);
+    const { setDaySelected, setShowEventModal, filteredEvents, setSelectedEvent, setCurrentView } = useContext(GlobalContext);
     const { isMobile } = useResponsive();
     const [dayEvents, setDayEvents] = useState([]);
 
@@ -30,9 +30,16 @@ export default function CalendarDay({ day, rowIndex }) {
     };
 
     const handleDayClick = () => {
-        // Always open modal for creating/viewing events
+        // Set the selected day for both mobile and desktop
         setDaySelected(day);
-        setShowEventModal(true);
+        
+        if (isMobile) {
+            // On mobile: switch to daily view instead of opening modal
+            setCurrentView('daily');
+        } else {
+            // On desktop: open modal for creating/viewing events
+            setShowEventModal(true);
+        }
     };
 
     // Mobile view: Show only event count
