@@ -6,10 +6,12 @@ import { Localization } from "react-widgets";
 import { DateLocalizer } from "react-widgets/IntlLocalizer";
 import 'react-widgets/styles.css';
 import '../../styles/legacy.css';
-import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS } from "../../constants";
+import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS, TODO_ACTIONS, TODO_STATUS, EVENT_TYPES } from "../../constants";
+import { useRecurringActions } from "../../hooks";
 
 export default function EventModal() {
     const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(GlobalContext);
+    const { createActionWithRecurringTodos, completeTodo, isTodoEvent, isCompletedTodoAction, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent, nukeAllRecurringTodosFromFirebase, cancelRecurringSeries } = useRecurringActions();
     const [description, setDescription] = useState("");
     const [selectedLabels, setSelectedLabels] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -17,6 +19,7 @@ export default function EventModal() {
     const [selectedToDo, setSelectedToDo] = useState([]);
     const [selectedActions, setSelectedActions] = useState([]);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
     // Initialize component state when modal opens
     useEffect(() => {
@@ -29,25 +32,50 @@ export default function EventModal() {
         if (selectedEvent) {
             setSelectedLabels(selectedEvent.labels || []);
             
-            // Handle both old single title format and new multiple actions format
-            if (selectedEvent.actions && Array.isArray(selectedEvent.actions)) {
-                setSelectedActions(selectedEvent.actions);
-                setTitle(selectedEvent.actions.join(", "));
-            } else if (selectedEvent.title) {
-                setSelectedActions([selectedEvent.title]);
-                setTitle(selectedEvent.title);
-            } else {
+            // Check if this is a TODO event (recurring or manual)
+            const isTodoEvent = selectedEvent.isRecurringTodo || 
+                               (selectedEvent.title && selectedEvent.title.startsWith("TO DO:")) ||
+                               selectedEvent.toDo;
+            
+            if (isTodoEvent && selectedEvent.toDo) {
+                // This is a TODO event - populate TODO dropdown
+                setSelectedToDo(Array.isArray(selectedEvent.toDo) ? selectedEvent.toDo : [selectedEvent.toDo]);
                 setSelectedActions([]);
-                setTitle("");
+                setTitle(selectedEvent.title || "");
+                
+                // Set dosage from TODO_ACTIONS
+                const firstTodo = Array.isArray(selectedEvent.toDo) ? selectedEvent.toDo[0] : selectedEvent.toDo;
+                setDosage(TODO_ACTIONS[firstTodo] || "");
+            } else if (isTodoEvent && selectedEvent.title && selectedEvent.title.startsWith("TO DO:")) {
+                // This is a TODO event but might be missing toDo field - derive from title
+                setSelectedToDo([selectedEvent.title]);
+                setSelectedActions([]);
+                setTitle(selectedEvent.title);
+                
+                // Set dosage from TODO_ACTIONS
+                setDosage(TODO_ACTIONS[selectedEvent.title] || "");
+            } else {
+                // This is a plant action event - populate actions dropdown
+                if (selectedEvent.actions && Array.isArray(selectedEvent.actions)) {
+                    setSelectedActions(selectedEvent.actions);
+                    setTitle(selectedEvent.actions.join(", "));
+                } else if (selectedEvent.title) {
+                    setSelectedActions([selectedEvent.title]);
+                    setTitle(selectedEvent.title);
+                } else {
+                    setSelectedActions([]);
+                    setTitle("");
+                }
+                setSelectedToDo([]);
+                
+                // Set dosage from PLANT_ACTIONS
+                const firstAction = selectedEvent.actions && selectedEvent.actions.length > 0 
+                    ? selectedEvent.actions[0] 
+                    : selectedEvent.title;
+                setDosage(PLANT_ACTIONS[firstAction] || "");
             }
             
             setDescription(selectedEvent.description || "");
-            // Set dosage based on first action for now
-            const firstAction = selectedEvent.actions && selectedEvent.actions.length > 0 
-                ? selectedEvent.actions[0] 
-                : selectedEvent.title;
-            setDosage(PLANT_ACTIONS[firstAction] || "");
-            setSelectedToDo(Array.isArray(selectedEvent.toDo) ? selectedEvent.toDo : (selectedEvent.toDo ? [selectedEvent.toDo] : []));
         } else {
             // Reset for new event
             setSelectedLabels([]);
@@ -57,8 +85,9 @@ export default function EventModal() {
             setDosage("");
             setSelectedToDo([]);
         }
-        // Reset delete confirmation state
+        // Reset confirmation states
         setShowDeleteConfirm(false);
+        setShowCompleteConfirm(false);
     }, [selectedEvent, daySelected, setDosage]);
 
     function handleActionSelect(selectedActionsArray) {
@@ -71,13 +100,117 @@ export default function EventModal() {
             setDosage(PLANT_ACTIONS[selectedActionsArray[0]] || "");
         }
     }
+    
+    function handleTodoSelect(selectedTodoArray) {
+        setSelectedToDo(selectedTodoArray);
+        // Set dosage based on first selected todo item
+        if (Array.isArray(selectedTodoArray) && selectedTodoArray.length > 0) {
+            setDosage(TODO_ACTIONS[selectedTodoArray[0]] || "");
+        } else if (selectedTodoArray) {
+            setDosage(TODO_ACTIONS[selectedTodoArray] || "");
+        } else {
+            setDosage("");
+        }
+    }
 
     async function handleDelete() {
         try {
-            await dispatchCallEvent({ type: "delete", payload: selectedEvent });
+            // Check if this event has an old-style ID that doesn't exist in Firebase
+            if (selectedEvent.id && selectedEvent.id.includes('-') && !selectedEvent.id.match(/^[a-zA-Z0-9]{20}$/)) {
+                console.log('🔧 Detected old-style ID that might not exist in Firebase:', selectedEvent.id);
+                
+                // For events with old-style IDs, we need to use the nuclear delete approach
+                // since they likely don't exist in Firebase but are cluttering local state
+                
+                if (selectedEvent.isRecurringTodo) {
+                    console.log('🧨 Using nuclear delete for old-style recurring TODO...');
+                    try {
+                        await nukeAllRecurringTodosFromFirebase();
+                        console.log('✅ Nuclear delete completed - reloading page to sync with Firebase');
+                        window.location.reload();
+                        return;
+                    } catch (nuclearError) {
+                        console.warn('⚠️ Nuclear delete failed, trying regular delete:', nuclearError);
+                    }
+                }
+            }
+            
+            // Check if this is a recurring TODO that needs special handling
+            if (selectedEvent.isRecurringTodo) {
+                console.log('🗑️ Deleting recurring TODO:', selectedEvent.title);
+                
+                // For recurring TODOs, we need to delete this TODO and clean up related ones
+                // First, identify the action/todo that this recurring todo belongs to
+                const actionToMatch = selectedEvent.actions && selectedEvent.actions.length > 0 
+                    ? selectedEvent.actions[0] 
+                    : (selectedEvent.toDo || selectedEvent.title.replace('TO DO: ', ''));
+                
+                console.log(`🔍 Looking for related recurring TODOs for action: ${actionToMatch}`);
+                
+                // Delete this specific TODO
+                await dispatchCallEvent({ type: "delete", payload: selectedEvent });
+                console.log('✅ Deleted the specific recurring TODO');
+                
+                // Also delete any other pending recurring TODOs in the same series
+                // This prevents the series from continuing to generate
+                try {
+                    const deletedCount = await deleteRecurringTodosForEvent(
+                        selectedEvent.id, 
+                        actionToMatch, 
+                        selectedEvent.labels
+                    );
+                    if (deletedCount > 0) {
+                        console.log(`✅ Also cleaned up ${deletedCount} related recurring TODOs in the series`);
+                    }
+                    
+                    // Cancel the recurring series to prevent regeneration
+                    await cancelRecurringSeries(actionToMatch, selectedEvent.labels);
+                    console.log(`✅ Cancelled recurring series for: ${actionToMatch}`);
+                } catch (cleanupError) {
+                    console.warn('⚠️ Failed to clean up related TODOs, but main delete succeeded:', cleanupError);
+                }
+                
+            } else {
+                // Regular event deletion - but check if it's an original action that generates TODOs
+                console.log('🗑️ Deleting regular event:', selectedEvent.title);
+                
+                // If this is an original action event that might have generated recurring TODOs, clean them up
+                if (selectedEvent.actions && selectedEvent.actions.length > 0) {
+                    try {
+                        const actionToMatch = selectedEvent.actions[0];
+                        console.log(`🔍 Checking if action "${actionToMatch}" has generated recurring TODOs to clean up`);
+                        
+                        const deletedCount = await deleteRecurringTodosForEvent(
+                            selectedEvent.id, 
+                            actionToMatch, 
+                            selectedEvent.labels
+                        );
+                        if (deletedCount > 0) {
+                            console.log(`✅ Cleaned up ${deletedCount} recurring TODOs generated by this action`);
+                        }
+                    } catch (cleanupError) {
+                        console.warn('⚠️ Failed to clean up generated TODOs, but will proceed with main delete:', cleanupError);
+                    }
+                }
+                
+                await dispatchCallEvent({ type: "delete", payload: selectedEvent });
+                console.log('✅ Successfully deleted regular event');
+            }
+            
             setShowEventModal(false);
         } catch (error) {
-            console.error('Delete failed:', error);
+            console.error('❌ Delete failed:', error);
+            // Show user-friendly error message
+            alert('Failed to delete event. Please try again.');
+        }
+    }
+
+    async function handleComplete() {
+        try {
+            await completeTodo(selectedEvent);
+            setShowEventModal(false);
+        } catch (error) {
+            console.error('Complete failed:', error);
         }
     }
 
@@ -92,16 +225,34 @@ export default function EventModal() {
             day: selectedDate.valueOf()
         };
         
-        // Only add ID for existing events (updates), let Firebase generate ID for new events
+        // For updates, preserve all existing event properties and only update the changed ones
         if (selectedEvent) {
+            // Spread the original event first to preserve all properties (isRecurringTodo, completed, etc.)
+            // Then override with the updated form values
+            Object.assign(calendarEvent, {
+                ...selectedEvent,  // Preserve all original properties
+                ...calendarEvent   // Override with form updates
+            });
+            // Ensure ID is always preserved
             calendarEvent.id = selectedEvent.id;
         }
         
         try {
             if (selectedEvent) {
-                await dispatchCallEvent({ type: 'update', payload: calendarEvent });
+                // Update existing event - use recalculation function to handle recurring todos
+                await updateEventWithRecurringRecalculation(calendarEvent, selectedEvent);
             } else {
-                await dispatchCallEvent({ type: 'push', payload: calendarEvent });
+                // Create new event - check if we should generate recurring TO DOs
+                const hasActions = selectedActions.length > 0;
+                const hasTodos = selectedToDo && (Array.isArray(selectedToDo) ? selectedToDo.length > 0 : selectedToDo);
+                
+                if (hasActions || hasTodos) {
+                    // This event might have recurring patterns, use recurring action creation
+                    await createActionWithRecurringTodos(calendarEvent);
+                } else {
+                    // This is a regular event (no actions or todos)
+                    await dispatchCallEvent({ type: 'push', payload: calendarEvent });
+                }
             }
             setShowEventModal(false);
         } catch (error) {
@@ -123,13 +274,26 @@ export default function EventModal() {
                         drag_handle
                     </span>
                     <div className="d-flex align-items-center">
+                        {selectedEvent && isTodoEvent(selectedEvent) && (
+                            <button
+                                type="button"
+                                className="btn btn-sm p-1 me-2"
+                                disabled={isLoading}
+                                onClick={() => setShowCompleteConfirm(true)}
+                                title="Complete TO DO"
+                            >
+                                <span className="material-icons-outlined text-success">
+                                    check_circle
+                                </span>
+                            </button>
+                        )}
                         {selectedEvent && (
                             <button
                                 type="button"
                                 className="btn btn-sm p-1 me-2"
                                 disabled={isLoading}
                                 onClick={() => setShowDeleteConfirm(true)}
-                                title="Delete event"
+                                title={isTodoEvent(selectedEvent) ? "Delete TO DO" : "Delete event"}
                             >
                                 <span className="material-icons-outlined text-muted">
                                     delete
@@ -150,7 +314,7 @@ export default function EventModal() {
                             <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
                                 water_drop
                             </span>
-                            <div className="flex-grow-1 me-2">
+                            <div className="flex-grow-1">
                                 <CustomDropdown
                                     title="Select actions"
                                     options={Object.keys(PLANT_ACTIONS)}
@@ -158,26 +322,31 @@ export default function EventModal() {
                                     onSelect={handleActionSelect}
                                 />
                             </div>
-                            {dosage && (
-                                <div className="text-muted small flex-shrink-0" style={{ fontSize: '0.75rem' }}>
-                                    {dosage}
-                                </div>
-                            )}
                         </div>
                         
                         {/* To-Do Selection */}
-                        <div className="d-flex align-items-center mb-3">
-                            <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
-                                checklist
-                            </span>
-                            <div className="flex-grow-1">
-                                <CustomDropdown
-                                    title="Select to-do"
-                                    options={TODO_ITEMS}
-                                    selectedOptions={Array.isArray(selectedToDo) ? selectedToDo : (selectedToDo ? [selectedToDo] : [])}
-                                    onSelect={setSelectedToDo}
-                                />
+                        <div className="mb-3">
+                            <div className="d-flex align-items-center">
+                                <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
+                                    checklist
+                                </span>
+                                <div style={{ minWidth: '200px', flex: '1 1 auto' }}>
+                                    <CustomDropdown
+                                        title="Select to-do"
+                                        options={TODO_ITEMS}
+                                        selectedOptions={Array.isArray(selectedToDo) ? selectedToDo : (selectedToDo ? [selectedToDo] : [])}
+                                        onSelect={handleTodoSelect}
+                                    />
+                                </div>
                             </div>
+                            {dosage && selectedToDo && (Array.isArray(selectedToDo) ? selectedToDo.length > 0 : selectedToDo) && (
+                                <div className="text-muted small mt-1 ms-4" style={{ fontSize: '0.75rem' }}>
+                                    <span className="material-icons-outlined me-1" style={{ fontSize: '0.7rem', verticalAlign: 'middle' }}>
+                                        schedule
+                                    </span>
+                                    {dosage}
+                                </div>
+                            )}
                         </div>
                         
                         {/* Date Selection */}
@@ -285,6 +454,43 @@ export default function EventModal() {
                                     </>
                                 ) : (
                                     'Delete'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
+            {/* Complete TO DO Confirmation Modal */}
+            {showCompleteConfirm && (
+                <div className="position-fixed w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.3)' }}>
+                    <div className="bg-white rounded shadow-lg p-4" style={{ maxWidth: '350px', width: '90%' }}>
+                        <h6 className="mb-3">Complete TO DO</h6>
+                        <p className="mb-4 text-muted">Mark this TO DO as completed? This will create a completed action event and remove the TO DO from your list.</p>
+                        <div className="d-flex justify-content-end gap-2">
+                            <button 
+                                type="button" 
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={() => setShowCompleteConfirm(false)}
+                                disabled={isLoading}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-sm btn-success"
+                                onClick={handleComplete}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-2" role="status">
+                                            <span className="visually-hidden">Completing...</span>
+                                        </span>
+                                        Completing...
+                                    </>
+                                ) : (
+                                    'Complete'
                                 )}
                             </button>
                         </div>

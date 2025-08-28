@@ -140,102 +140,144 @@ export default function Header() {
         }
     }
     return (
-        <header className="calendar-header d-flex align-items-center px-2 px-md-4 py-2">
-            {/* Mobile-only sidebar toggle button */}
-            {isMobile && (
-                <button 
-                    className="sidebar-toggle btn btn-sm btn-outline-secondary me-2" 
-                    onClick={toggleSidebar}
-                    style={{
-                        padding: '0.25rem 0.4rem',
-                        fontSize: '0.8rem'
-                    }}
-                >
-                    <span className="material-icons-outlined" style={{ fontSize: '1.1rem' }}>
-                        menu
-                    </span>
-                </button>
-            )}
-            
-            <img src={logo} alt="calendar" className="me-2" style={{ width: '32px', height: '32px' }} />
-            
-            {/* Desktop title */}
-            <h1 className="d-none d-sm-block me-2 me-md-3 mb-0 fs-4 text-secondary fw-bold">
-                Happy Tomato
-            </h1>
-            
-            {/* Mobile title - styled differently */}
-            <div className="d-sm-none mobile-title me-1">
-                <div className="d-flex flex-column">
-                    <span className="mobile-title-main">Happy Tomato</span>
-                </div>
-            </div>
-            
-            {/* Navigation buttons - only shown on desktop */}
-            {!isMobile && (
+        <header className={`calendar-header px-2 px-md-4 py-2 ${isMobile ? 'd-flex flex-column' : 'd-flex align-items-center'}`}>
+            {/* Mobile: First row with basic controls */}
+            {isMobile ? (
                 <>
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                        {/* Left side: Sidebar toggle + Logo + App name */}
+                        <div className="d-flex align-items-center">
+                            <button 
+                                className="sidebar-toggle btn btn-sm btn-outline-secondary me-2" 
+                                onClick={toggleSidebar}
+                                style={{
+                                    padding: '0.25rem 0.4rem',
+                                    fontSize: '0.8rem'
+                                }}
+                            >
+                                <span className="material-icons-outlined" style={{ fontSize: '1.1rem' }}>
+                                    menu
+                                </span>
+                            </button>
+                            <img src={logo} alt="calendar" className="me-2" style={{ width: '28px', height: '28px' }} />
+                            <span className="mobile-title-main">Happy Tomato</span>
+                        </div>
+                        
+                        {/* Right side: View buttons */}
+                        <div className="btn-group flex-shrink-0" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
+                            <button 
+                                className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
+                                onClick={switchToMonthView}
+                                title="Month view"
+                                style={{ 
+                                    padding: '0.25rem 0.4rem', 
+                                    fontSize: '0.75rem', 
+                                    lineHeight: '1.2' 
+                                }}
+                            >
+                                <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
+                                    calendar_view_month
+                                </span>
+                                <span>{isVerySmallScreen ? 'M' : 'Month'}</span>
+                            </button>
+                            <button 
+                                className={`btn btn-sm ${currentView === 'daily' ? 'btn-danger' : 'btn-outline-danger'}`}
+                                onClick={switchToDailyView}
+                                title="Daily view"
+                                style={{ 
+                                    padding: '0.25rem 0.4rem', 
+                                    fontSize: '0.75rem', 
+                                    lineHeight: '1.2' 
+                                }}
+                            >
+                                <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
+                                    today
+                                </span>
+                                <span>{isVerySmallScreen ? 'D' : 'Day'}</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* Mobile: Second row with navigation and month title */}
+                    <div className="d-flex align-items-center justify-content-center">
+                        <button 
+                            className="btn btn-sm me-2" 
+                            onClick={getNavigationHandler('prev')}
+                            style={{ padding: '0.25rem 0.4rem' }}
+                        >
+                            <span className="material-icons-outlined text-secondary" style={{ fontSize: '1rem' }}>
+                                chevron_left
+                            </span>
+                        </button>
+                        
+                        <h2 className="mb-0 text-secondary fw-bold text-center fs-6 mx-3">
+                            {getCurrentDisplayTitle()}
+                        </h2>
+                        
+                        <button 
+                            className="btn btn-sm ms-2" 
+                            onClick={getNavigationHandler('next')}
+                            style={{ padding: '0.25rem 0.4rem' }}
+                        >
+                            <span className="material-icons-outlined text-secondary" style={{ fontSize: '1rem' }}>
+                                chevron_right
+                            </span>
+                        </button>
+                    </div>
+                </>
+            ) : (
+                <>
+                    {/* Desktop layout - single row */}
+                    <img src={logo} alt="calendar" className="me-2" style={{ width: '32px', height: '32px' }} />
+                    
+                    <h1 className="me-2 me-md-3 mb-0 fs-4 text-secondary fw-bold">
+                        Happy Tomato
+                    </h1>
+                    
+                    {/* Navigation buttons */}
                     <button 
                         className="btn btn-sm me-1" 
                         onClick={getNavigationHandler('prev')}
+                        style={{ padding: '0.25rem 0.5rem' }}
                     >
-                        <span className="material-icons-outlined text-secondary">
+                        <span className="material-icons-outlined text-secondary" style={{ fontSize: '1.2rem' }}>
                             chevron_left
                         </span>
                     </button>
                     <button 
                         className="btn btn-sm me-2" 
                         onClick={getNavigationHandler('next')}
+                        style={{ padding: '0.25rem 0.5rem' }}
                     >
-                        <span className="material-icons-outlined text-secondary">
+                        <span className="material-icons-outlined text-secondary" style={{ fontSize: '1.2rem' }}>
                             chevron_right
                         </span>
                     </button>
+                    
+                    {/* Current period display */}
+                    <div className="flex-grow-1 mx-2">
+                        <h2 className="mb-0 text-secondary fw-bold text-center fs-5">
+                            {getCurrentDisplayTitle()}
+                        </h2>
+                    </div>
                 </>
             )}
             
-            {/* Current period display - next to chevrons on desktop */}
-            <div className="d-none d-md-block ms-2">
-                <h2 className='mb-0 fs-5 text-secondary fw-bold'>
-                    {getCurrentDisplayTitle()}
-                </h2>
-            </div>
-            
-            {/* View switching buttons */}
-            <div className="btn-group flex-shrink-0 ms-auto" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
-                <button 
-                    className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
-                    onClick={switchToMonthView}
-                    title="Month view"
-                    style={{ 
-                        padding: isVerySmallScreen ? '0.25rem 0.4rem' : '0.25rem 0.5rem', 
-                        fontSize: '0.75rem', 
-                        lineHeight: '1.2' 
-                    }}
-                >
-                    <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
-                        calendar_view_month
-                    </span>
-                    <span>{isVerySmallScreen ? 'M' : 'Month'}</span>
-                </button>
-                
-                {/* Mobile shows Daily view, Desktop shows Weekly view */}
-                {isMobile ? (
+            {/* View switching buttons - Desktop only (mobile handled above) */}
+            {!isMobile && (
+                <div className="btn-group flex-shrink-0 ms-auto" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
                     <button 
-                        className={`btn btn-sm ${currentView === 'daily' ? 'btn-danger' : 'btn-outline-danger'}`}
-                        onClick={switchToDailyView}
-                        title="Daily view"
-                        style={{ 
-                            padding: isVerySmallScreen ? '0.25rem 0.4rem' : '0.25rem 0.5rem', 
-                            fontSize: '0.75rem', 
-                            lineHeight: '1.2' 
-                        }}
+                        className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
+                        onClick={switchToMonthView}
+                        title="Month view"
+                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
                     >
                         <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
-                            today
+                            calendar_view_month
                         </span>
-                        <span>{isVerySmallScreen ? 'D' : 'Day'}</span>
+                        <span>Month</span>
                     </button>
-                ) : (
+                    
                     <button 
                         className={`btn btn-sm ${currentView === 'week' ? 'btn-danger' : 'btn-outline-danger'}`}
                         onClick={switchToWeekView}
@@ -247,8 +289,8 @@ export default function Header() {
                         </span>
                         <span>Week</span>
                     </button>
-                )}
-            </div>
+                </div>
+            )}
         </header>
     );
 }

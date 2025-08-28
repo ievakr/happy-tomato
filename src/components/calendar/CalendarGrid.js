@@ -2,13 +2,30 @@ import React, { useContext } from 'react';
 import CalendarDay from './CalendarDay';
 import { CalendarDaySkeleton } from '../common';
 import GlobalContext from '../../context/GlobalContext';
+import { useSwipeGestures, useResponsive } from '../../hooks';
 
 /**
  * Calendar grid component that renders the monthly calendar layout
  * @param {Array<Array<dayjs.Dayjs>>} month - 2D array of days representing the calendar month
  */
 const CalendarGrid = ({ month }) => {
-  const { isInitialLoading } = useContext(GlobalContext);
+  const { isInitialLoading, monthIndex, setMonthIndex } = useContext(GlobalContext);
+  const { isMobile } = useResponsive();
+  
+  // Swipe handlers for mobile navigation
+  const handleSwipeLeft = () => {
+    if (isMobile) {
+      setMonthIndex(monthIndex + 1); // Next month
+    }
+  };
+  
+  const handleSwipeRight = () => {
+    if (isMobile) {
+      setMonthIndex(monthIndex - 1); // Previous month
+    }
+  };
+  
+  const swipeRef = useSwipeGestures(handleSwipeLeft, handleSwipeRight, 50, 0.3);
   
   if (!month || !Array.isArray(month)) {
     return <div className="calendar-grid">No calendar data available</div>;
@@ -16,13 +33,15 @@ const CalendarGrid = ({ month }) => {
 
   return (
     <div 
+      ref={swipeRef}
       className="calendar-grid flex-grow-1 d-grid" 
       style={{ 
         gridTemplateColumns: 'repeat(7, 1fr)', 
         gridTemplateRows: 'repeat(5, 1fr)',
         height: '100%',
         maxHeight: '100%',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        touchAction: isMobile ? 'pan-y' : 'auto' // Allow vertical scrolling but handle horizontal swipes
       }}
       role="grid"
       aria-label="Calendar month view"

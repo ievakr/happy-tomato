@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import GlobalContext from '../../context/GlobalContext';
 import { getWeekByIndex, getWeekDateRange, getDayHeaders } from '../../utils';
-import { useResponsive } from '../../hooks';
+import { useResponsive, useSwipeGestures } from '../../hooks';
 import { PLANT_LABELS } from '../../constants';
 import EventItem from './EventItem';
 import '../../index.css';
@@ -11,6 +11,8 @@ const WeeklyView = () => {
   const { 
     monthIndex, 
     weekIndex, 
+    setMonthIndex,
+    setWeekIndex,
     filteredEvents, 
     setDaySelected, 
     setShowEventModal, 
@@ -25,6 +27,33 @@ const WeeklyView = () => {
   const [currentWeek, setCurrentWeek] = useState([]);
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Swipe handlers for week navigation
+  const handleSwipeLeft = () => {
+    if (isMobile) {
+      if (weekIndex < 4) {
+        setWeekIndex(weekIndex + 1);
+      } else {
+        // Go to next month, first week
+        setMonthIndex(monthIndex + 1);
+        setWeekIndex(0);
+      }
+    }
+  };
+  
+  const handleSwipeRight = () => {
+    if (isMobile) {
+      if (weekIndex > 0) {
+        setWeekIndex(weekIndex - 1);
+      } else {
+        // Go to previous month, last week
+        setMonthIndex(monthIndex - 1);
+        setWeekIndex(4);
+      }
+    }
+  };
+  
+  const swipeRef = useSwipeGestures(handleSwipeLeft, handleSwipeRight, 50, 0.3);
 
   useEffect(() => {
     const week = getWeekByIndex(monthIndex, weekIndex);
@@ -87,7 +116,13 @@ const WeeklyView = () => {
   }
 
   return (
-    <div className="weekly-view flex-grow-1 d-flex flex-column">
+    <div 
+      ref={isMobile ? swipeRef : null}
+      className="weekly-view flex-grow-1 d-flex flex-column"
+      style={{ 
+        touchAction: isMobile ? 'pan-y' : 'auto' // Allow vertical scrolling but handle horizontal swipes
+      }}
+    >
       {/* Week date range header */}
       <div className="week-header text-center py-2 border-bottom bg-light">
         <h3 className="mb-0 fs-6 text-muted">

@@ -135,6 +135,7 @@ function App() {
                 <DailyView />
               </ComponentErrorBoundary>
             )}
+
           </section>
         </main>
       </div>

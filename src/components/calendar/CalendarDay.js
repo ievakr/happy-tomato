@@ -1,13 +1,14 @@
 import React, { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import GlobalContext from '../../context/GlobalContext';
-import { PLANT_LABELS, UI_CONSTANTS } from '../../constants';
-import { useResponsive } from '../../hooks';
+import { PLANT_LABELS, UI_CONSTANTS, TODO_STATUS, EVENT_TYPES } from '../../constants';
+import { useResponsive, useRecurringActions } from '../../hooks';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
     const { setDaySelected, setShowEventModal, filteredEvents, setSelectedEvent, setCurrentView } = useContext(GlobalContext);
     const { isMobile } = useResponsive();
+    const { isTodoEvent, isCompletedTodoAction } = useRecurringActions();
     const [dayEvents, setDayEvents] = useState([]);
 
     useEffect(() => {
@@ -19,6 +20,31 @@ export default function CalendarDay({ day, rowIndex }) {
         return day.format("DD-MM-YY") === dayjs().format("DD-MM-YY")
             ? 'bg-danger text-white rounded-circle d-flex align-items-center justify-content-center'
             : "";
+    }
+
+    function getEventClasses(evt) {
+        let baseClasses = "calendar-event text-xs rounded p-1 m-1 d-flex align-items-center cursor-pointer";
+        
+        if (isTodoEvent(evt)) {
+            // TO DO events - orange/amber style
+            return `${baseClasses} border border-warning bg-warning bg-opacity-10 text-warning-emphasis`;
+        } else if (isCompletedTodoAction(evt)) {
+            // Completed TO DO actions - green style
+            return `${baseClasses} border border-success bg-success bg-opacity-10 text-success-emphasis`;
+        } else {
+            // Regular events - default blue style
+            return `${baseClasses} border border-primary bg-primary bg-opacity-10 text-primary-emphasis`;
+        }
+    }
+
+    function getEventIcon(evt) {
+        if (isTodoEvent(evt)) {
+            return "radio_button_unchecked"; // Unchecked circle for TO DO
+        } else if (isCompletedTodoAction(evt)) {
+            return "check_circle"; // Checked circle for completed
+        } else {
+            return "event"; // Default event icon
+        }
     }
 
     const handleEventClick = (evt, e) => {
@@ -46,6 +72,17 @@ export default function CalendarDay({ day, rowIndex }) {
     const renderMobileEventCount = () => {
         if (dayEvents.length === 0) return null;
         
+        // Determine color based on event types
+        const hasTodos = dayEvents.some(evt => isTodoEvent(evt));
+        const hasCompleted = dayEvents.some(evt => isCompletedTodoAction(evt));
+        
+        let bgColor = 'bg-primary'; // Default for regular events
+        if (hasTodos) {
+            bgColor = 'bg-warning'; // Orange for TO DOs
+        } else if (hasCompleted) {
+            bgColor = 'bg-success'; // Green for completed actions
+        }
+        
         return (
             <div className="d-flex justify-content-center align-items-start w-100" style={{ 
                 height: '100%',
@@ -55,7 +92,7 @@ export default function CalendarDay({ day, rowIndex }) {
                 width: '100%' // Ensure full width
             }}>
                 <div 
-                    className="event-count-indicator d-flex align-items-center justify-content-center rounded-circle bg-danger text-white fw-bold"
+                    className={`event-count-indicator d-flex align-items-center justify-content-center rounded-circle ${bgColor} text-white fw-bold`}
                     style={{ 
                         width: '18px', 
                         height: '18px', 
@@ -87,33 +124,27 @@ export default function CalendarDay({ day, rowIndex }) {
                     <div
                         key={idx}
                         onClick={(e) => handleEventClick(evt, e)}
-                        className="event-item d-flex flex-column align-items-start position-relative" 
+                        className={getEventClasses(evt)}
                         style={{ 
                             gap: "2px", 
                             marginBottom: "2px",
-                            padding: '2px',
-                            cursor: 'pointer',
-                            borderRadius: '3px',
-                            backgroundColor: 'rgba(0,0,0,0.02)',
-                            border: '1px solid rgba(0,0,0,0.1)'
+                            padding: '3px 4px',
+                            fontSize: "0.65rem"
                         }}
                         title={evt.title || evt.toDo ? `${evt.title || evt.toDo}${evt.description ? ' - ' + evt.description : ''}` : ''}
                     >
                         <div className="d-flex align-items-center w-100">
-                            <div className="d-flex flex-wrap align-items-center" style={{
+                            <span className="material-icons-outlined me-1" style={{ fontSize: '12px' }}>
+                                {getEventIcon(evt)}
+                            </span>
+                            <div className="d-flex flex-wrap align-items-center flex-grow-1" style={{
                                 maxWidth: "100%", 
                                 wordWrap: 'break-word'
                             }}>
                                 {evt.toDo && !evt.title && (
                                     <div className="d-flex align-items-center w-100">
-                                        <span className="event-item flex-grow-1" style={{
-                                            cursor: "pointer", 
-                                            backgroundColor: "red", 
-                                            padding: "1px 3px", 
-                                            borderRadius: "3px", 
-                                            color: "white", 
+                                        <span className="flex-grow-1" style={{
                                             fontSize: "0.6rem",
-                                            marginBottom: "1px",
                                             wordWrap: 'break-word',
                                             whiteSpace: 'normal'
                                         }}>
@@ -124,9 +155,8 @@ export default function CalendarDay({ day, rowIndex }) {
                                 
                                 {evt.title && (
                                     <div className="d-flex align-items-center w-100">
-                                        <span className="event-item flex-grow-1" style={{
-                                            cursor: "pointer", 
-                                            fontSize: "0.65rem",
+                                        <span className="flex-grow-1" style={{
+                                            fontSize: "0.6rem",
                                             wordWrap: 'break-word',
                                             whiteSpace: 'normal'
                                         }}>

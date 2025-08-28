@@ -217,22 +217,13 @@ export default function ContextWrapper(props) {
                         await deleteDoc(deleteDocRef);
                         console.log('✅ Event deleted from Firebase successfully');
                     } else {
-                        console.error('❌ Document does not exist in Firebase!');
-                        console.log('Available documents in Firebase:');
+                        console.warn('⚠️ Document does not exist in Firebase - likely already deleted or never synced');
+                        console.log('Event ID:', payload.id);
                         
-                        // List all documents to see what IDs actually exist
-                        const snapshot = await getDocs(collection(db, "events"));
-                        snapshot.docs.forEach(d => {
-                            console.log(`- Document ID: "${d.id}", Data:`, d.data());
-                        });
-                        
-                        const notFoundError = new Error(`Document with ID "${payload.id}" does not exist in Firebase`);
-                        errorLogger.logError(notFoundError, null, 'Firebase Delete Event', { 
-                            operation: 'delete',
-                            eventId: payload.id,
-                            availableIds: snapshot.docs.map(d => d.id)
-                        });
-                        throw notFoundError;
+                        // For delete operations, if document doesn't exist in Firebase,
+                        // we should still proceed to clean up the local state
+                        // This handles cases where events exist locally but not in Firebase due to sync issues
+                        console.log('Proceeding with local cleanup since document was not found in Firebase');
                     }
                     break;
                   default:

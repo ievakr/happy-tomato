@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState, useRef, useCallback } from 'rea
 import dayjs from 'dayjs';
 import GlobalContext from '../../context/GlobalContext';
 import { getDayHeaders } from '../../utils';
-import { useResponsive } from '../../hooks';
+import { useResponsive, useSwipeGestures } from '../../hooks';
 import { PLANT_LABELS } from '../../constants';
 import EventItem from './EventItem';
 import '../../index.css';
@@ -27,6 +27,21 @@ const DailyView = () => {
   const [displayedMonth, setDisplayedMonth] = useState(dayjs());
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Swipe handlers for month navigation in selected day area
+  const handleSwipeLeft = () => {
+    if (isMobile) {
+      setMonthIndex(monthIndex + 1); // Next month
+    }
+  };
+  
+  const handleSwipeRight = () => {
+    if (isMobile) {
+      setMonthIndex(monthIndex - 1); // Previous month
+    }
+  };
+  
+  const swipeRef = useSwipeGestures(handleSwipeLeft, handleSwipeRight, 50, 0.3);
 
   // Get current day or fallback to today
   const currentDay = daySelected || dayjs();
@@ -253,7 +268,13 @@ const DailyView = () => {
       )}
 
       {/* Selected Day Info and Events */}
-      <div className="selected-day-info flex-grow-1 p-3">
+      <div 
+        ref={isMobile ? swipeRef : null} 
+        className="selected-day-info flex-grow-1 p-3"
+        style={{ 
+          touchAction: isMobile ? 'pan-y' : 'auto' // Allow vertical scrolling but handle horizontal swipes
+        }}
+      >
         <div className="row h-100">
           <div className="col-12">
             {/* Day title */}
