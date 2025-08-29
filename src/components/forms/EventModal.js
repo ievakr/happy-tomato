@@ -11,7 +11,7 @@ import { useRecurringActions } from "../../hooks";
 
 export default function EventModal() {
     const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(GlobalContext);
-    const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent, nukeAllRecurringTodosFromFirebase, cancelRecurringSeries } = useRecurringActions();
+    const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent, deleteRecurringTodosByPatternFromFirebase, nukeAllRecurringTodosFromFirebase, cancelRecurringSeries } = useRecurringActions();
     const [description, setDescription] = useState("");
     const [selectedLabels, setSelectedLabels] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -119,56 +119,21 @@ export default function EventModal() {
             if (selectedEvent.id && selectedEvent.id.includes('-') && !selectedEvent.id.match(/^[a-zA-Z0-9]{20}$/)) {
                 console.log('🔧 Detected old-style ID that might not exist in Firebase:', selectedEvent.id);
                 
-                // For events with old-style IDs, we need to use the nuclear delete approach
-                // since they likely don't exist in Firebase but are cluttering local state
-                
                 if (selectedEvent.isRecurringTodo) {
-                    console.log('🧨 Using nuclear delete for old-style recurring TODO...');
-                    try {
-                        await nukeAllRecurringTodosFromFirebase();
-                        console.log('✅ Nuclear delete completed - reloading page to sync with Firebase');
-                        window.location.reload();
-                        return;
-                    } catch (nuclearError) {
-                        console.warn('⚠️ Nuclear delete failed, trying regular delete:', nuclearError);
-                    }
+                    console.log('🎯 Old-style recurring TODO - will attempt regular deletion...');
+                    // Don't do any special handling for old-style IDs
+                    // Just let it fall through to the regular recurring TODO deletion logic
+                    // which now only deletes the single event
                 }
             }
             
             // Check if this is a recurring TODO that needs special handling
             if (selectedEvent.isRecurringTodo) {
-                console.log('🗑️ Deleting recurring TODO:', selectedEvent.title);
+                console.log('🗑️ Deleting single recurring TODO event:', selectedEvent.title);
                 
-                // For recurring TODOs, we need to delete this TODO and clean up related ones
-                // First, identify the action/todo that this recurring todo belongs to
-                const actionToMatch = selectedEvent.actions && selectedEvent.actions.length > 0 
-                    ? selectedEvent.actions[0] 
-                    : (selectedEvent.toDo || selectedEvent.title.replace('TO DO: ', ''));
-                
-                console.log(`🔍 Looking for related recurring TODOs for action: ${actionToMatch}`);
-                
-                // Delete this specific TODO
+                // Just delete this specific TODO event - don't clean up the series
                 await dispatchCallEvent({ type: "delete", payload: selectedEvent });
-                console.log('✅ Deleted the specific recurring TODO');
-                
-                // Also delete any other pending recurring TODOs in the same series
-                // This prevents the series from continuing to generate
-                try {
-                    const deletedCount = await deleteRecurringTodosForEvent(
-                        selectedEvent.id, 
-                        actionToMatch, 
-                        selectedEvent.labels
-                    );
-                    if (deletedCount > 0) {
-                        console.log(`✅ Also cleaned up ${deletedCount} related recurring TODOs in the series`);
-                    }
-                    
-                    // Cancel the recurring series to prevent regeneration
-                    await cancelRecurringSeries(actionToMatch, selectedEvent.labels);
-                    console.log(`✅ Cancelled recurring series for: ${actionToMatch}`);
-                } catch (cleanupError) {
-                    console.warn('⚠️ Failed to clean up related TODOs, but main delete succeeded:', cleanupError);
-                }
+                console.log('✅ Deleted the specific recurring TODO (series remains intact)');
                 
             } else {
                 // Regular event deletion - but check if it's an original action that generates TODOs
@@ -216,25 +181,32 @@ export default function EventModal() {
 
     async function handleSubmit(e) {
         e.preventDefault();
-        const calendarEvent = {
-            title,
-            actions: selectedActions,
-            description,
-            labels: selectedLabels,
-            toDo: Array.isArray(selectedToDo) ? selectedToDo.join(", ") : selectedToDo,
-            day: selectedDate.valueOf()
-        };
         
-        // For updates, preserve all existing event properties and only update the changed ones
+        let calendarEvent;
+        
         if (selectedEvent) {
-            // Spread the original event first to preserve all properties (isRecurringTodo, completed, etc.)
-            // Then override with the updated form values
-            Object.assign(calendarEvent, {
-                ...selectedEvent,  // Preserve all original properties
-                ...calendarEvent   // Override with form updates
-            });
-            // Ensure ID is always preserved
-            calendarEvent.id = selectedEvent.id;
+            // For updates, start with the original event to preserve all properties (isRecurringTodo, completed, etc.)
+            calendarEvent = {
+                ...selectedEvent,  // Preserve all original properties including isRecurringTodo
+                // Override with form updates
+                title,
+                actions: selectedActions,
+                description,
+                labels: selectedLabels,
+                toDo: Array.isArray(selectedToDo) ? selectedToDo.join(", ") : selectedToDo,
+                day: selectedDate.valueOf(),
+                id: selectedEvent.id  // Ensure ID is preserved
+            };
+        } else {
+            // For new events, create fresh object
+            calendarEvent = {
+                title,
+                actions: selectedActions,
+                description,
+                labels: selectedLabels,
+                toDo: Array.isArray(selectedToDo) ? selectedToDo.join(", ") : selectedToDo,
+                day: selectedDate.valueOf()
+            };
         }
         
         try {
