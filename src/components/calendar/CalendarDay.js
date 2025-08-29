@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import GlobalContext from '../../context/GlobalContext';
-import { PLANT_LABELS, UI_CONSTANTS, TODO_STATUS, EVENT_TYPES } from '../../constants';
+import { PLANT_LABELS, UI_CONSTANTS } from '../../constants';
 import { useResponsive, useRecurringActions } from '../../hooks';
 import '../../index.css'
 

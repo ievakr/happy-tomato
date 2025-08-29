@@ -6,12 +6,12 @@ import { Localization } from "react-widgets";
 import { DateLocalizer } from "react-widgets/IntlLocalizer";
 import 'react-widgets/styles.css';
 import '../../styles/legacy.css';
-import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS, TODO_ACTIONS, TODO_STATUS, EVENT_TYPES } from "../../constants";
+import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS, TODO_ACTIONS } from "../../constants";
 import { useRecurringActions } from "../../hooks";
 
 export default function EventModal() {
     const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(GlobalContext);
-    const { createActionWithRecurringTodos, completeTodo, isTodoEvent, isCompletedTodoAction, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent, nukeAllRecurringTodosFromFirebase, cancelRecurringSeries } = useRecurringActions();
+    const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent, nukeAllRecurringTodosFromFirebase, cancelRecurringSeries } = useRecurringActions();
     const [description, setDescription] = useState("");
     const [selectedLabels, setSelectedLabels] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
