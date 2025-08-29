@@ -11,7 +11,7 @@ import { useRecurringActions } from "../../hooks";
 
 export default function EventModal() {
     const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(GlobalContext);
-    const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent, deleteRecurringTodosByPatternFromFirebase, nukeAllRecurringTodosFromFirebase, cancelRecurringSeries } = useRecurringActions();
+    const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
     const [description, setDescription] = useState("");
     const [selectedLabels, setSelectedLabels] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());

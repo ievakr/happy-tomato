@@ -373,9 +373,6 @@ export const useRecurringActions = () => {
               const actionToMatch = firstAction || firstTodo;
 
               
-              // First, let's see ALL recurring todos that might match
-              const allRecurringTodos = filteredEvents.filter(evt => evt.isRecurringTodo && !evt.completed);
-              
               // Delete other recurring todos that match this action/labels but exclude this event
               const todosToDelete = filteredEvents.filter(evt => {
                 if (!evt.isRecurringTodo || evt.completed || evt.id === originalEvent.id) return false;
