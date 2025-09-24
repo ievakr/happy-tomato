@@ -324,22 +324,36 @@ const DailyView = () => {
                   <div>
                     <div className="events-list">
                       <h6 className="mb-3">Events ({dayEvents.length})</h6>
-                      {dayEvents.map((evt, idx) => (
+                      {dayEvents.map((evt, idx) => {
+                        // Check if this is a completed todo
+                        const isCompletedTodo = evt.toDo && evt.completed;
+                        
+                        return (
                         <div 
                           key={evt.id || idx}
-                          className="event-item-daily mb-2 p-2 border rounded position-relative"
+                          className={`event-item-daily mb-2 p-2 border rounded position-relative ${isCompletedTodo ? 'border-success' : ''}`}
                           onClick={(e) => handleEventClick(evt, e)}
                           style={{ 
                             cursor: 'pointer',
-                            transition: 'background-color 0.2s ease'
+                            transition: 'background-color 0.2s ease',
+                            backgroundColor: isCompletedTodo ? 'rgba(40, 167, 69, 0.05)' : 'transparent',
+                            borderColor: isCompletedTodo ? 'rgba(40, 167, 69, 0.4)' : undefined
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                            if (isCompletedTodo) {
+                              e.currentTarget.style.backgroundColor = 'rgba(40, 167, 69, 0.15)';
+                            } else {
+                              e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                            }
                             const deleteBtn = e.currentTarget.querySelector('.quick-delete-btn');
                             if (deleteBtn) deleteBtn.style.opacity = '1';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
+                            if (isCompletedTodo) {
+                              e.currentTarget.style.backgroundColor = 'rgba(40, 167, 69, 0.05)';
+                            } else {
+                              e.currentTarget.style.backgroundColor = 'transparent';
+                            }
                             const deleteBtn = e.currentTarget.querySelector('.quick-delete-btn');
                             if (deleteBtn) deleteBtn.style.opacity = '0';
                           }}
@@ -376,7 +390,8 @@ const DailyView = () => {
                             </button>
                           )}
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     
                     {/* Add event button - separate section */}

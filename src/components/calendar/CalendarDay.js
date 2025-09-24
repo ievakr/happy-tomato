@@ -26,8 +26,8 @@ export default function CalendarDay({ day, rowIndex }) {
         let baseClasses = "calendar-event text-xs rounded p-1 m-1 d-flex align-items-center cursor-pointer";
         
         if (isTodoEvent(evt)) {
-            // TO DO events - orange/amber style
-            return `${baseClasses} border border-warning bg-warning bg-opacity-10 text-warning-emphasis`;
+            // TO DO events - red style
+            return `${baseClasses} border border-danger bg-danger bg-opacity-10 text-danger-emphasis`;
         } else if (isCompletedTodoAction(evt)) {
             // Completed TO DO actions - green style
             return `${baseClasses} border border-success bg-success bg-opacity-10 text-success-emphasis`;
@@ -77,10 +77,10 @@ export default function CalendarDay({ day, rowIndex }) {
         const hasCompleted = dayEvents.some(evt => isCompletedTodoAction(evt));
         
         let bgColor = 'bg-primary'; // Default for regular events
-        if (hasTodos) {
-            bgColor = 'bg-warning'; // Orange for TO DOs
-        } else if (hasCompleted) {
-            bgColor = 'bg-success'; // Green for completed actions
+        if (hasCompleted) {
+            bgColor = 'bg-success'; // Green for completed actions (prioritize completed over pending)
+        } else if (hasTodos) {
+            bgColor = 'bg-danger'; // Red for TO DOs
         }
         
         return (

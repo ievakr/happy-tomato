@@ -12,7 +12,8 @@ export const PLANT_LABELS = {
   "broccoli": "Broccoli",
   "watermelon": "Watermelon",
   "strawberry": "Strawberries",
-  "pumpkin": "Squash"
+  "pumpkin": "Squash",
+  "flower": "Flowers"
 };
 
 // Plant action configurations

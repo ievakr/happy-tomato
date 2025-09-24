@@ -145,7 +145,8 @@ export const useRecurringActions = () => {
    * @returns {boolean}
    */
   const isTodoEvent = (event) => {
-    return event.isRecurringTodo && !event.completed;
+    // Enhanced detection: check for both isRecurringTodo and toDo property
+    return (event.isRecurringTodo && !event.completed) || (event.toDo && !event.completed && !event.title);
   };
 
   /**
@@ -154,7 +155,8 @@ export const useRecurringActions = () => {
    * @returns {boolean}
    */
   const isCompletedTodoAction = (event) => {
-    return event.createdFromAction && event.completed;
+    // Enhanced detection: check for both createdFromAction and toDo property
+    return (event.createdFromAction && event.completed) || (event.toDo && event.completed);
   };
 
   /**

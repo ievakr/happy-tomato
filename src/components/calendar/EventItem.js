@@ -11,6 +11,9 @@ const EventItem = ({ event, onClick, labelsMapping, compact = false, showTime = 
   const displayTitle = title || toDo;
   const tooltipText = displayTitle + (description ? ` - ${description}` : '');
   
+  // Check if this is a completed todo item
+  const isCompletedTodo = toDo && event.completed;
+  
   return (
     <div
       className="event-item d-flex flex-column align-items-start position-relative" 
@@ -20,8 +23,8 @@ const EventItem = ({ event, onClick, labelsMapping, compact = false, showTime = 
         padding: compact ? '1px 2px' : '2px',
         cursor: 'pointer',
         borderRadius: '3px',
-        backgroundColor: 'rgba(0,0,0,0.02)',
-        border: '1px solid rgba(0,0,0,0.1)',
+        backgroundColor: isCompletedTodo ? 'rgba(40, 167, 69, 0.1)' : 'rgba(0,0,0,0.02)',
+        border: isCompletedTodo ? '1px solid rgba(40, 167, 69, 0.3)' : '1px solid rgba(0,0,0,0.1)',
         fontSize: compact ? '0.55rem' : '0.65rem'
       }}
       onClick={onClick}
@@ -42,7 +45,7 @@ const EventItem = ({ event, onClick, labelsMapping, compact = false, showTime = 
         }}>
           {/* To-do items (special styling) */}
           {toDo && !title && (
-            <TodoItem text={toDo} compact={compact} />
+            <TodoItem text={toDo} compact={compact} isCompleted={event.completed} />
           )}
           
           {/* Regular event title */}
@@ -63,11 +66,11 @@ const EventItem = ({ event, onClick, labelsMapping, compact = false, showTime = 
 /**
  * To-do item component with special styling
  */
-const TodoItem = ({ text, compact = false }) => (
+const TodoItem = ({ text, compact = false, isCompleted = false }) => (
   <div className="d-flex align-items-center w-100">
     <span className="event-item flex-grow-1" style={{
       cursor: "pointer", 
-      backgroundColor: "red", 
+      backgroundColor: isCompleted ? "#28a745" : "red", // Green when completed, red when pending
       padding: compact ? "1px 2px" : "1px 3px", 
       borderRadius: "3px", 
       color: "white", 

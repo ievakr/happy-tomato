@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import { db } from "../firebase";
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 import errorLogger from "../utils/errorLogger";
+import { PLANT_LABELS } from "../constants";
 
 function savedEventsReducer(state, { type, payload }) {
     switch (type) {
@@ -304,9 +305,14 @@ export default function ContextWrapper(props) {
       
     useEffect(() => {
         setLabels((prevLabels) => {
-            // Collect all unique labels from all events' labels arrays
-            const allLabels = savedEvents.flatMap(evt => evt.labels || []);
-            const uniqueLabels = [...new Set(allLabels)];
+            // Include all available plant labels from constants
+            const allAvailableLabels = Object.values(PLANT_LABELS);
+            
+            // Also collect labels from existing events in case there are custom ones
+            const eventLabels = savedEvents.flatMap(evt => evt.labels || []);
+            
+            // Combine both and get unique labels
+            const uniqueLabels = [...new Set([...allAvailableLabels, ...eventLabels])];
             
             return uniqueLabels.map(label => {
                 const currentLabel = prevLabels.find(lbl => lbl.label === label)

@@ -1,9 +1,12 @@
 import dayjs from 'dayjs';
-import React, { useContext, useEffect, useCallback } from 'react';
+import React, { useContext, useEffect, useCallback, useState } from 'react';
 import logo from '../../assets/logo.png';
 import GlobalContext from '../../context/GlobalContext';
 import { getWeekByIndex, getWeekDateRange, getCurrentWeekIndex } from '../../utils';
 import { useResponsive } from '../../hooks';
+import { useEmailNotifications } from '../../hooks/useEmailNotifications';
+import EmailNotificationSettings from '../settings/EmailNotificationSettings';
+import notificationService from '../../services/notificationService';
 
 export default function Header() {
     const {
@@ -19,9 +22,25 @@ export default function Header() {
         setDaySelected
     } = useContext(GlobalContext);
     const { isMobile, windowSize } = useResponsive();
+    const emailNotifications = useEmailNotifications();
+    const [showEmailSettings, setShowEmailSettings] = useState(false);
     
     // Very small screen detection (iPhone 13 mini and smaller)
     const isVerySmallScreen = windowSize.width < 390;
+    
+    // Initialize notification service
+    useEffect(() => {
+        if (emailNotifications.emailPreferences.enabled) {
+            notificationService.start(emailNotifications);
+        } else {
+            notificationService.stop();
+        }
+        
+        // Cleanup on unmount
+        return () => {
+            notificationService.stop();
+        };
+    }, [emailNotifications.emailPreferences.enabled]);
     
     const switchToWeekView = useCallback(() => {
         setCurrentView('week');
@@ -163,38 +182,55 @@ export default function Header() {
                             <span className="mobile-title-main">Happy Tomato</span>
                         </div>
                         
-                        {/* Right side: View buttons */}
-                        <div className="btn-group flex-shrink-0" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
+                        {/* Right side: View buttons and settings */}
+                        <div className="d-flex align-items-center">
+                            {/* Email notification settings button */}
                             <button 
-                                className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
-                                onClick={switchToMonthView}
-                                title="Month view"
-                                style={{ 
-                                    padding: '0.25rem 0.4rem', 
-                                    fontSize: '0.75rem', 
-                                    lineHeight: '1.2' 
+                                className="btn btn-sm btn-outline-secondary me-2"
+                                onClick={() => setShowEmailSettings(true)}
+                                title="Email notification settings"
+                                style={{
+                                    padding: '0.25rem 0.4rem',
+                                    fontSize: '0.8rem'
                                 }}
                             >
-                                <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
-                                    calendar_view_month
+                                <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                                    {emailNotifications.emailPreferences.enabled ? 'mail' : 'mail_outline'}
                                 </span>
-                                <span>{isVerySmallScreen ? 'M' : 'Month'}</span>
                             </button>
-                            <button 
-                                className={`btn btn-sm ${currentView === 'daily' ? 'btn-danger' : 'btn-outline-danger'}`}
-                                onClick={switchToDailyView}
-                                title="Daily view"
-                                style={{ 
-                                    padding: '0.25rem 0.4rem', 
-                                    fontSize: '0.75rem', 
-                                    lineHeight: '1.2' 
-                                }}
-                            >
-                                <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
-                                    today
-                                </span>
-                                <span>{isVerySmallScreen ? 'D' : 'Day'}</span>
-                            </button>
+                            
+                            <div className="btn-group flex-shrink-0" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
+                                <button 
+                                    className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
+                                    onClick={switchToMonthView}
+                                    title="Month view"
+                                    style={{ 
+                                        padding: '0.25rem 0.4rem', 
+                                        fontSize: '0.75rem', 
+                                        lineHeight: '1.2' 
+                                    }}
+                                >
+                                    <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
+                                        calendar_view_month
+                                    </span>
+                                    <span>{isVerySmallScreen ? 'M' : 'Month'}</span>
+                                </button>
+                                <button 
+                                    className={`btn btn-sm ${currentView === 'daily' ? 'btn-danger' : 'btn-outline-danger'}`}
+                                    onClick={switchToDailyView}
+                                    title="Daily view"
+                                    style={{ 
+                                        padding: '0.25rem 0.4rem', 
+                                        fontSize: '0.75rem', 
+                                        lineHeight: '1.2' 
+                                    }}
+                                >
+                                    <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
+                                        today
+                                    </span>
+                                    <span>{isVerySmallScreen ? 'D' : 'Day'}</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -263,34 +299,59 @@ export default function Header() {
                 </>
             )}
             
-            {/* View switching buttons - Desktop only (mobile handled above) */}
+            {/* Desktop controls */}
             {!isMobile && (
-                <div className="btn-group flex-shrink-0 ms-auto" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
+                <div className="d-flex align-items-center ms-auto">
+                    {/* Email notification settings button */}
                     <button 
-                        className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
-                        onClick={switchToMonthView}
-                        title="Month view"
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
+                        className="btn btn-sm btn-outline-secondary me-2"
+                        onClick={() => setShowEmailSettings(true)}
+                        title="Email notification settings"
+                        style={{
+                            padding: '0.25rem 0.5rem',
+                            fontSize: '0.8rem'
+                        }}
                     >
-                        <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
-                            calendar_view_month
+                        <span className="material-icons-outlined me-1" style={{ fontSize: '1rem' }}>
+                            {emailNotifications.emailPreferences.enabled ? 'mail' : 'mail_outline'}
                         </span>
-                        <span>Month</span>
+                        <span>Email</span>
                     </button>
                     
-                    <button 
-                        className={`btn btn-sm ${currentView === 'week' ? 'btn-danger' : 'btn-outline-danger'}`}
-                        onClick={switchToWeekView}
-                        title="Week view"
-                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
-                    >
-                        <span className="material-icons-outlined me-1" style={{ fontSize: '0.9rem' }}>
-                            calendar_view_week
-                        </span>
-                        <span>Week</span>
-                    </button>
+                    {/* View switching buttons */}
+                    <div className="btn-group flex-shrink-0" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
+                        <button 
+                            className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
+                            onClick={switchToMonthView}
+                            title="Month view"
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
+                        >
+                            <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
+                                calendar_view_month
+                            </span>
+                            <span>Month</span>
+                        </button>
+                        
+                        <button 
+                            className={`btn btn-sm ${currentView === 'week' ? 'btn-danger' : 'btn-outline-danger'}`}
+                            onClick={switchToWeekView}
+                            title="Week view"
+                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
+                        >
+                            <span className="material-icons-outlined me-1" style={{ fontSize: '0.9rem' }}>
+                                calendar_view_week
+                            </span>
+                            <span>Week</span>
+                        </button>
+                    </div>
                 </div>
             )}
+            
+            {/* Email Notification Settings Modal */}
+            <EmailNotificationSettings 
+                show={showEmailSettings} 
+                onHide={() => setShowEmailSettings(false)} 
+            />
         </header>
     );
 }
