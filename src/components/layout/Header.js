@@ -40,7 +40,7 @@ export default function Header() {
         return () => {
             notificationService.stop();
         };
-    }, [emailNotifications.emailPreferences.enabled]);
+    }, [emailNotifications]);
     
     const switchToWeekView = useCallback(() => {
         setCurrentView('week');

@@ -3,8 +3,6 @@
  * Handles scheduled checks and automatic email sending
  */
 
-import { useEmailNotifications } from '../hooks/useEmailNotifications';
-
 class NotificationService {
   constructor() {
     this.checkInterval = null;
