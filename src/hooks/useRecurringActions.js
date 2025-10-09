@@ -120,8 +120,10 @@ export const useRecurringActions = () => {
    */
   const getPendingTodosForDay = (day) => {
     return filteredEvents.filter(evt => {
-      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
-      const isTodoEvent = evt.isRecurringTodo || (evt.title && typeof evt.title === 'string' && evt.title.startsWith("TO DO:"));
+      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
+      const isTodoEvent = evt.isRecurringTodo || 
+                         (evt.title && typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
+                         (typeof evt.toDo === 'string' && evt.toDo.startsWith("TO DO:"));
       return dayjs(evt.day).format("DD-MM-YY") === day.format("DD-MM-YY") &&
              isTodoEvent &&
              !evt.completed;
@@ -147,8 +149,10 @@ export const useRecurringActions = () => {
    * @returns {boolean}
    */
   const isTodoEvent = (event) => {
-    // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
-    const isTodoEvent = event.isRecurringTodo || (event.title && typeof event.title === 'string' && event.title.startsWith("TO DO:")) || (event.toDo && !event.title);
+    // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
+    const isTodoEvent = event.isRecurringTodo || 
+                       (event.title && typeof event.title === 'string' && event.title.startsWith("TO DO:")) ||
+                       (typeof event.toDo === 'string' && event.toDo.startsWith("TO DO:"));
     return isTodoEvent && !event.completed;
   };
 
@@ -174,8 +178,10 @@ export const useRecurringActions = () => {
     const futureDate = today.add(daysAhead, 'days');
     
     return filteredEvents.filter(evt => {
-      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
-      const isTodoEvent = evt.isRecurringTodo || (evt.title && typeof evt.title === 'string' && evt.title.startsWith("TO DO:"));
+      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
+      const isTodoEvent = evt.isRecurringTodo || 
+                         (evt.title && typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
+                         (typeof evt.toDo === 'string' && evt.toDo.startsWith("TO DO:"));
       const eventDate = dayjs(evt.day);
       return isTodoEvent &&
              !evt.completed &&
@@ -192,8 +198,10 @@ export const useRecurringActions = () => {
    */
   const getAllPendingTodos = () => {
     const pendingTodos = filteredEvents.filter(evt => {
-      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
-      const isTodoEvent = evt.isRecurringTodo || (evt.title && typeof evt.title === 'string' && evt.title.startsWith("TO DO:"));
+      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
+      const isTodoEvent = evt.isRecurringTodo || 
+                         (evt.title && typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
+                         (typeof evt.toDo === 'string' && evt.toDo.startsWith("TO DO:"));
       return isTodoEvent && !evt.completed;
     });
     console.log(`📊 getAllPendingTodos: Found ${pendingTodos.length} pending todos out of ${filteredEvents.length} total events`);

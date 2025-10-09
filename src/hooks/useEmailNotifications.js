@@ -12,7 +12,7 @@ export const useEmailNotifications = () => {
     // Load from localStorage
     const saved = localStorage.getItem('email-preferences');
     return saved ? JSON.parse(saved) : {
-      enabled: false,
+      enabled: true,
       userEmail: '',
       userName: '',
       dailyReminder: true,
@@ -22,7 +22,9 @@ export const useEmailNotifications = () => {
       advanceReminders: true,
       advanceDays: 3,
       lastReminderSent: null,
-      lastAdvanceReminderSent: null
+      lastAdvanceReminderSent: null,
+      lastAutoReminderSent: null,
+      lastAutoAdvanceReminderSent: null
     };
   });
 
@@ -40,6 +42,40 @@ export const useEmailNotifications = () => {
   };
 
   /**
+   * Reset email preferences to defaults and clear localStorage
+   */
+  const resetEmailPreferences = () => {
+    localStorage.removeItem('email-preferences');
+    setEmailPreferences({
+      enabled: false,
+      userEmail: '',
+      userName: '',
+      dailyReminder: true,
+      reminderTime: '09:00',
+      overdueReminders: true,
+      dueTodayReminders: true,
+      advanceReminders: true,
+      advanceDays: 3,
+      lastReminderSent: null,
+      lastAdvanceReminderSent: null,
+      lastAutoReminderSent: null,
+      lastAutoAdvanceReminderSent: null
+    });
+  };
+
+  /**
+   * Force update reminder time (workaround for React state caching)
+   */
+  const forceUpdateReminderTime = (newTime) => {
+    setEmailPreferences(prev => ({
+      ...prev,
+      reminderTime: newTime,
+      lastAutoReminderSent: null,
+      lastAutoAdvanceReminderSent: null
+    }));
+  };
+
+  /**
    * Get TODOs that are due today
    * @returns {Array} Array of due TODOs
    */
@@ -47,8 +83,10 @@ export const useEmailNotifications = () => {
     const today = dayjs();
     
     return filteredEvents.filter(evt => {
-      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
-      const isTodoEvent = evt.isRecurringTodo || (typeof evt.title === 'string' && evt.title.startsWith("TO DO:"));
+      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
+      const isTodoEvent = evt.isRecurringTodo || 
+                         (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
+                         (typeof evt.toDo === 'string' && evt.toDo.startsWith("TO DO:"));
       if (!isTodoEvent || evt.completed) return false;
       
       const eventDate = dayjs(evt.day);
@@ -64,8 +102,10 @@ export const useEmailNotifications = () => {
     const today = dayjs();
     
     return filteredEvents.filter(evt => {
-      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
-      const isTodoEvent = evt.isRecurringTodo || (typeof evt.title === 'string' && evt.title.startsWith("TO DO:"));
+      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
+      const isTodoEvent = evt.isRecurringTodo || 
+                         (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
+                         (typeof evt.toDo === 'string' && evt.toDo.startsWith("TO DO:"));
       if (!isTodoEvent || evt.completed) return false;
       
       const eventDate = dayjs(evt.day);
@@ -82,8 +122,10 @@ export const useEmailNotifications = () => {
     const nextWeek = today.add(7, 'days');
     
     return filteredEvents.filter(evt => {
-      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
-      const isTodoEvent = evt.isRecurringTodo || (typeof evt.title === 'string' && evt.title.startsWith("TO DO:"));
+      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
+      const isTodoEvent = evt.isRecurringTodo || 
+                         (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
+                         (typeof evt.toDo === 'string' && evt.toDo.startsWith("TO DO:"));
       if (!isTodoEvent || evt.completed) return false;
       
       const eventDate = dayjs(evt.day);
@@ -100,8 +142,10 @@ export const useEmailNotifications = () => {
     const targetDate = dayjs().add(days, 'days');
     
     return filteredEvents.filter(evt => {
-      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
-      const isTodoEvent = evt.isRecurringTodo || (typeof evt.title === 'string' && evt.title.startsWith("TO DO:"));
+      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
+      const isTodoEvent = evt.isRecurringTodo || 
+                         (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
+                         (typeof evt.toDo === 'string' && evt.toDo.startsWith("TO DO:"));
       if (!isTodoEvent || evt.completed) return false;
       
       const eventDate = dayjs(evt.day);
@@ -111,11 +155,13 @@ export const useEmailNotifications = () => {
 
   /**
    * Send daily reminder email
+   * @param {boolean} isAutomatic - Whether this is an automatic reminder (vs manual)
    * @returns {Promise<boolean>} Success status
    */
-  const sendDailyReminder = async () => {
+  const sendDailyReminder = async (isAutomatic = false) => {
+
     if (!emailPreferences.enabled || !emailPreferences.userEmail) {
-      console.log('Email notifications not enabled or email not configured');
+      console.log('❌ Email notifications not enabled or email not configured');
       return false;
     }
 
@@ -124,7 +170,7 @@ export const useEmailNotifications = () => {
     const allTodos = [...overdueTodos, ...dueTodos];
 
     if (allTodos.length === 0) {
-      console.log('No TODOs to remind about');
+      console.log('⚠️ No TODOs to remind about');
       return true; // No error, just nothing to send
     }
 
@@ -137,34 +183,39 @@ export const useEmailNotifications = () => {
       });
 
       if (success) {
-        // Update last reminder sent timestamp
+        // Update appropriate timestamp based on whether this is automatic or manual
         setEmailPreferences(prev => ({
           ...prev,
-          lastReminderSent: Date.now()
+          lastReminderSent: Date.now(),
+          ...(isAutomatic && { lastAutoReminderSent: Date.now() })
         }));
+      } else {
+        console.log('❌ Email service returned false');
       }
 
       return success;
     } catch (error) {
-      console.error('Failed to send daily reminder:', error);
+      console.error('❌ Failed to send daily reminder:', error);
       return false;
     }
   };
 
   /**
    * Send advance reminder email for TODOs due in X days
+   * @param {boolean} isAutomatic - Whether this is an automatic reminder (vs manual)
    * @returns {Promise<boolean>} Success status
    */
-  const sendAdvanceReminder = async () => {
+  const sendAdvanceReminder = async (isAutomatic = false) => {
+
     if (!emailPreferences.enabled || !emailPreferences.userEmail || !emailPreferences.advanceReminders) {
-      console.log('Advance reminders not enabled or email not configured');
+      console.log('❌ Advance reminders not enabled or email not configured');
       return false;
     }
 
     const advanceTodos = getTodosInAdvance(emailPreferences.advanceDays);
 
     if (advanceTodos.length === 0) {
-      console.log('No TODOs due in advance period to remind about');
+      console.log('⚠️ No TODOs due in advance period to remind about');
       return true; // No error, just nothing to send
     }
 
@@ -177,16 +228,19 @@ export const useEmailNotifications = () => {
       });
 
       if (success) {
-        // Update last advance reminder sent timestamp
+        // Update appropriate timestamp based on whether this is automatic or manual
         setEmailPreferences(prev => ({
           ...prev,
-          lastAdvanceReminderSent: Date.now()
+          lastAdvanceReminderSent: Date.now(),
+          ...(isAutomatic && { lastAutoAdvanceReminderSent: Date.now() })
         }));
+      } else {
+        console.log('❌ Advance email service returned false');
       }
 
       return success;
     } catch (error) {
-      console.error('Failed to send advance reminder:', error);
+      console.error('❌ Failed to send advance reminder:', error);
       return false;
     }
   };
@@ -248,18 +302,18 @@ export const useEmailNotifications = () => {
 
     const now = dayjs();
     const [reminderHour, reminderMinute] = emailPreferences.reminderTime.split(':').map(Number);
-    const lastSent = emailPreferences.lastReminderSent 
-      ? dayjs(emailPreferences.lastReminderSent) 
+    const lastSent = emailPreferences.lastAutoReminderSent 
+      ? dayjs(emailPreferences.lastAutoReminderSent) 
       : null;
 
     // Create a time today at the reminder time for comparison
     const reminderTimeToday = now.hour(reminderHour).minute(reminderMinute).second(0);
 
-    // Check if current time is past reminder time
-    const isTimeToSend = now.isAfter(reminderTimeToday) || now.isSame(reminderTimeToday, 'minute');
+    // Check if current time is past reminder time (with 5-minute window)
+    const isTimeToSend = now.isAfter(reminderTimeToday) || now.isAfter(reminderTimeToday.subtract(5, 'minutes'));
 
-    // Check if we haven't sent a reminder today yet
-    const haventSentToday = !lastSent || !lastSent.isSame(now, 'day');
+    // Check if we haven't sent an automatic reminder today yet 
+    const haventSentAutoToday = !lastSent || !lastSent.isSame(now, 'day');
 
     // Check if there are TODOs that need reminding
     const dueTodos = getDueTodos();
@@ -271,15 +325,15 @@ export const useEmailNotifications = () => {
       reminderTime: emailPreferences.reminderTime,
       reminderTimeToday: reminderTimeToday.format('HH:mm:ss'),
       isTimeToSend,
-      haventSentToday,
+      haventSentAutoToday,
       hasTodosToRemind,
       lastSent: lastSent ? lastSent.format('YYYY-MM-DD HH:mm:ss') : 'Never',
       dueTodosCount: dueTodos.length,
       overdueTodosCount: overdueTodos.length,
-      shouldSend: isTimeToSend && haventSentToday && hasTodosToRemind
+      shouldSend: isTimeToSend && haventSentAutoToday && hasTodosToRemind
     });
 
-    return isTimeToSend && haventSentToday && hasTodosToRemind;
+    return isTimeToSend && haventSentAutoToday && hasTodosToRemind;
   };
 
   /**
@@ -297,18 +351,18 @@ export const useEmailNotifications = () => {
 
     const now = dayjs();
     const [reminderHour, reminderMinute] = emailPreferences.reminderTime.split(':').map(Number);
-    const lastSent = emailPreferences.lastAdvanceReminderSent 
-      ? dayjs(emailPreferences.lastAdvanceReminderSent) 
+    const lastSent = emailPreferences.lastAutoAdvanceReminderSent 
+      ? dayjs(emailPreferences.lastAutoAdvanceReminderSent) 
       : null;
 
     // Create a time today at the reminder time for comparison
     const reminderTimeToday = now.hour(reminderHour).minute(reminderMinute).second(0);
 
-    // Check if current time is past reminder time
-    const isTimeToSend = now.isAfter(reminderTimeToday) || now.isSame(reminderTimeToday, 'minute');
+    // Check if current time is past reminder time (with 5-minute window)
+    const isTimeToSend = now.isAfter(reminderTimeToday) || now.isAfter(reminderTimeToday.subtract(5, 'minutes'));
 
-    // Check if we haven't sent an advance reminder today yet
-    const haventSentToday = !lastSent || !lastSent.isSame(now, 'day');
+    // Check if we haven't sent an automatic advance reminder today yet
+    const haventSentAutoToday = !lastSent || !lastSent.isSame(now, 'day');
 
     // Check if there are actually TODOs due in the advance period
     const advanceTodos = getTodosInAdvance(emailPreferences.advanceDays);
@@ -319,15 +373,15 @@ export const useEmailNotifications = () => {
       reminderTime: emailPreferences.reminderTime,
       reminderTimeToday: reminderTimeToday.format('HH:mm:ss'),
       isTimeToSend,
-      haventSentToday,
+      haventSentAutoToday,
       hasTodosToRemind,
       advanceDays: emailPreferences.advanceDays,
       lastSent: lastSent ? lastSent.format('YYYY-MM-DD HH:mm:ss') : 'Never',
       advanceTodosCount: advanceTodos.length,
-      shouldSend: isTimeToSend && haventSentToday && hasTodosToRemind
+      shouldSend: isTimeToSend && haventSentAutoToday && hasTodosToRemind
     });
 
-    return isTimeToSend && haventSentToday && hasTodosToRemind;
+    return isTimeToSend && haventSentAutoToday && hasTodosToRemind;
   };
 
   /**
@@ -372,6 +426,8 @@ export const useEmailNotifications = () => {
   return {
     emailPreferences,
     updateEmailPreferences,
+    resetEmailPreferences,
+    forceUpdateReminderTime,
     getDueTodos,
     getOverdueTodos,
     getUpcomingTodos,

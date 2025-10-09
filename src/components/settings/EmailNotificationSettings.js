@@ -11,6 +11,8 @@ export default function EmailNotificationSettings({ show, onHide }) {
   const {
     emailPreferences,
     updateEmailPreferences,
+    resetEmailPreferences,
+    forceUpdateReminderTime,
     testEmailConfiguration,
     isEmailServiceReady,
     getEmailServiceStatus,
@@ -341,6 +343,9 @@ export default function EmailNotificationSettings({ show, onHide }) {
             emailPreferences={emailPreferences}
             todoSummary={todoSummary}
             isEmailServiceReady={isEmailServiceReady}
+            updateEmailPreferences={updateEmailPreferences}
+            resetEmailPreferences={resetEmailPreferences}
+            forceUpdateReminderTime={forceUpdateReminderTime}
           />
         </Form>
       </Modal.Body>
@@ -360,7 +365,7 @@ export default function EmailNotificationSettings({ show, onHide }) {
 /**
  * Debug Panel Component - helps troubleshoot email notification issues
  */
-function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady }) {
+function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, updateEmailPreferences, resetEmailPreferences, forceUpdateReminderTime }) {
   const [showDebug, setShowDebug] = useState(false);
   const [debugInfo, setDebugInfo] = useState(null);
   const [isLoadingDebug, setIsLoadingDebug] = useState(false);
@@ -420,6 +425,10 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady }) {
       issues.push(`Current time (${currentTime}) is before daily reminder time (${emailPreferences.reminderTime})`);
     }
 
+    // Check localStorage directly for debugging
+    const localStorageData = localStorage.getItem('email-preferences');
+    const parsedLocalStorage = localStorageData ? JSON.parse(localStorageData) : null;
+
     const debugData = {
       serviceStatus: {
         ...serviceStatus,
@@ -434,6 +443,12 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady }) {
       lastAdvanceReminderSent,
       issues,
       preferences: emailPreferences,
+      localStorage: {
+        raw: localStorageData,
+        parsed: parsedLocalStorage,
+        reminderTimeInStorage: parsedLocalStorage?.reminderTime,
+        lastAutoAdvanceSentInStorage: parsedLocalStorage?.lastAutoAdvanceReminderSent
+      },
       todos: {
         dueToday: todoSummary.dueToday,
         overdue: todoSummary.overdue,
@@ -460,17 +475,17 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady }) {
     setIsLoadingDebug(false);
   };
 
-  const handleSendManualReminder = async () => {
+  const handleSendManualReminder = async (type = 'daily') => {
     try {
-      const success = await notificationService.sendManualReminder('daily');
+      const success = await notificationService.sendManualReminder(type);
       if (success) {
-        alert('Manual reminder sent successfully! Check your email.');
+        alert(`Manual ${type} reminder sent successfully! Check your email.`);
         loadDebugInfo(); // Refresh debug info
       } else {
-        alert('Failed to send manual reminder. Check the debug info below for details.');
+        alert(`Failed to send manual ${type} reminder. Check the debug info below for details.`);
       }
     } catch (error) {
-      alert(`Error sending manual reminder: ${error.message}`);
+      alert(`Error sending manual ${type} reminder: ${error.message}`);
     }
   };
 
@@ -528,7 +543,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady }) {
                     </Alert>
                   )}
                   
-                  <div className="d-flex gap-2 mt-3">
+                  <div className="d-flex flex-wrap gap-2 mt-3">
                     <Button 
                       variant="outline-primary" 
                       size="sm" 
@@ -539,11 +554,60 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady }) {
                     <Button 
                       variant="outline-success" 
                       size="sm" 
-                      onClick={handleSendManualReminder}
+                      onClick={() => handleSendManualReminder('daily')}
                       disabled={!emailPreferences.enabled || !emailPreferences.userEmail}
                     >
-                      📧 Send Manual Reminder
+                      📧 Manual Daily Reminder
                     </Button>
+              <Button
+                variant="outline-warning"
+                size="sm"
+                onClick={() => handleSendManualReminder('advance')}
+                disabled={!emailPreferences.enabled || !emailPreferences.userEmail}
+              >
+                🔔 Manual Advance Reminder
+              </Button>
+              <Button
+                variant="outline-danger"
+                size="sm"
+                onClick={() => {
+                  resetEmailPreferences();
+                  alert('Complete reset done! All preferences and timestamps cleared. Please re-configure your settings.');
+                  loadDebugInfo();
+                }}
+                className="ms-2"
+              >
+                🔄 Complete Reset
+              </Button>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={() => {
+                  updateEmailPreferences({
+                    lastAutoReminderSent: null,
+                    lastAutoAdvanceReminderSent: null
+                  });
+                  alert('Cleared only automatic reminder timestamps. Manual testing now allowed.');
+                  loadDebugInfo();
+                }}
+                className="ms-1"
+              >
+                🧪 Clear Auto Timestamps
+              </Button>
+              <Button
+                variant="outline-warning"
+                size="sm"
+                onClick={() => {
+                  const now = new Date();
+                  const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
+                  forceUpdateReminderTime(currentTime);
+                  alert(`Force updated reminder time to current time: ${currentTime}`);
+                  loadDebugInfo();
+                }}
+                className="ms-1"
+              >
+                ⏰ Fix Stuck Time
+              </Button>
                   </div>
                 </Accordion.Body>
               </Accordion.Item>

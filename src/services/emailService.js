@@ -39,8 +39,9 @@ class EmailService {
    * @returns {Promise<boolean>} Success status
    */
   async sendTodoReminder(params) {
+
     if (!this.isConfigured) {
-      console.error('EmailJS not configured - cannot send email');
+      console.error('❌ EmailJS not configured - cannot send email');
       return false;
     }
 
@@ -55,18 +56,14 @@ class EmailService {
         app_name: 'Happy Tomato Garden Planner'
       };
 
-      console.log('Sending email with params:', templateParams);
-
-      const result = await emailjs.send(
+      await emailjs.send(
         this.serviceId,
         this.templateId,
         templateParams
       );
-
-      console.log('Email sent successfully:', result);
       return true;
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error('❌ Failed to send email:', error);
       return false;
     }
   }

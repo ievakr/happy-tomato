@@ -94,7 +94,7 @@ class NotificationService {
       if (shouldSendDaily) {
         console.log('📅 Time for daily reminder - sending email...');
         
-        const success = await this.emailHook.sendDailyReminder();
+        const success = await this.emailHook.sendDailyReminder(true); // isAutomatic = true
         
         if (success) {
           console.log('✅ Daily reminder sent successfully');
@@ -110,7 +110,7 @@ class NotificationService {
         const advanceDays = this.emailHook.emailPreferences.advanceDays || 3;
         console.log(`🔔 Time for ${advanceDays}-day advance reminder - sending email...`);
         
-        const success = await this.emailHook.sendAdvanceReminder();
+        const success = await this.emailHook.sendAdvanceReminder(true); // isAutomatic = true
         
         if (success) {
           console.log(`✅ ${advanceDays}-day advance reminder sent successfully`);
