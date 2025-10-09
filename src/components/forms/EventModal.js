@@ -34,7 +34,7 @@ export default function EventModal() {
             
             // Check if this is a TODO event (recurring or manual)
             const isTodoEvent = selectedEvent.isRecurringTodo || 
-                               (selectedEvent.title && selectedEvent.title.startsWith("TO DO:")) ||
+                               (selectedEvent.title && typeof selectedEvent.title === 'string' && selectedEvent.title.startsWith("TO DO:")) ||
                                selectedEvent.toDo;
             
             if (isTodoEvent && selectedEvent.toDo) {
@@ -46,7 +46,7 @@ export default function EventModal() {
                 // Set dosage from TODO_ACTIONS
                 const firstTodo = Array.isArray(selectedEvent.toDo) ? selectedEvent.toDo[0] : selectedEvent.toDo;
                 setDosage(TODO_ACTIONS[firstTodo] || "");
-            } else if (isTodoEvent && selectedEvent.title && selectedEvent.title.startsWith("TO DO:")) {
+            } else if (isTodoEvent && selectedEvent.title && typeof selectedEvent.title === 'string' && selectedEvent.title.startsWith("TO DO:")) {
                 // This is a TODO event but might be missing toDo field - derive from title
                 setSelectedToDo([selectedEvent.title]);
                 setSelectedActions([]);

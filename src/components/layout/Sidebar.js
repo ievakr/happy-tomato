@@ -20,7 +20,7 @@ export default function Sidebar() {
             // Check if todos have the old ID format (indicating potential mismatch with Firebase)
             const currentTodos = getAllPendingTodos();
             const hasOldIdFormat = currentTodos.some(todo => 
-                todo.id && todo.id.startsWith('todo-') && todo.id.includes('-')
+                todo.id && typeof todo.id === 'string' && todo.id.startsWith('todo-') && todo.id.includes('-')
             );
             
             if (hasOldIdFormat) {
@@ -94,7 +94,7 @@ export default function Sidebar() {
                         </p>
                         
                         {/* Show fix button if old-style IDs detected */}
-                        {pendingTodos.some(todo => todo.id && todo.id.includes('-') && !todo.id.match(/^[a-zA-Z0-9]{20}$/)) && (
+                        {pendingTodos.some(todo => todo.id && typeof todo.id === 'string' && todo.id.includes('-') && !todo.id.match(/^[a-zA-Z0-9]{20}$/)) && (
                             <button
                                 className="btn btn-warning btn-sm w-100 mb-2"
                                 onClick={async () => {

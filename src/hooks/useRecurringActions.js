@@ -119,11 +119,13 @@ export const useRecurringActions = () => {
    * @returns {Array} - Array of pending TO DO events
    */
   const getPendingTodosForDay = (day) => {
-    return filteredEvents.filter(evt => 
-      dayjs(evt.day).format("DD-MM-YY") === day.format("DD-MM-YY") &&
-      evt.isRecurringTodo &&
-      !evt.completed
-    );
+    return filteredEvents.filter(evt => {
+      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
+      const isTodoEvent = evt.isRecurringTodo || (evt.title && typeof evt.title === 'string' && evt.title.startsWith("TO DO:"));
+      return dayjs(evt.day).format("DD-MM-YY") === day.format("DD-MM-YY") &&
+             isTodoEvent &&
+             !evt.completed;
+    });
   };
 
   /**
@@ -145,8 +147,9 @@ export const useRecurringActions = () => {
    * @returns {boolean}
    */
   const isTodoEvent = (event) => {
-    // Enhanced detection: check for both isRecurringTodo and toDo property
-    return (event.isRecurringTodo && !event.completed) || (event.toDo && !event.completed && !event.title);
+    // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
+    const isTodoEvent = event.isRecurringTodo || (event.title && typeof event.title === 'string' && event.title.startsWith("TO DO:")) || (event.toDo && !event.title);
+    return isTodoEvent && !event.completed;
   };
 
   /**
@@ -171,8 +174,10 @@ export const useRecurringActions = () => {
     const futureDate = today.add(daysAhead, 'days');
     
     return filteredEvents.filter(evt => {
+      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
+      const isTodoEvent = evt.isRecurringTodo || (evt.title && typeof evt.title === 'string' && evt.title.startsWith("TO DO:"));
       const eventDate = dayjs(evt.day);
-      return evt.isRecurringTodo &&
+      return isTodoEvent &&
              !evt.completed &&
              eventDate.isAfter(today) &&
              eventDate.isBefore(futureDate) &&
@@ -182,15 +187,17 @@ export const useRecurringActions = () => {
   };
 
   /**
-   * Get all pending recurring TO DO events
+   * Get all pending TO DO events (both recurring and manual)
    * @returns {Array} - Array of all pending TO DO events
    */
   const getAllPendingTodos = () => {
-    const pendingTodos = filteredEvents.filter(evt => 
-      evt.isRecurringTodo && !evt.completed
-    );
+    const pendingTodos = filteredEvents.filter(evt => {
+      // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:")
+      const isTodoEvent = evt.isRecurringTodo || (evt.title && typeof evt.title === 'string' && evt.title.startsWith("TO DO:"));
+      return isTodoEvent && !evt.completed;
+    });
     console.log(`📊 getAllPendingTodos: Found ${pendingTodos.length} pending todos out of ${filteredEvents.length} total events`);
-    console.log(`📝 Pending todos:`, pendingTodos.map(t => `${t.title} (ID: ${t.id}, isRecurringTodo: ${t.isRecurringTodo}, completed: ${t.completed})`));
+    console.log(`📝 Pending todos:`, pendingTodos.map(t => `${t.title} (ID: ${t.id}, isRecurringTodo: ${t.isRecurringTodo || 'manual'}, completed: ${t.completed})`));
     return pendingTodos;
   };
 
@@ -285,14 +292,14 @@ export const useRecurringActions = () => {
         const hasMatchingAction = originalAction && (
           (evt.actions && evt.actions.includes(originalAction)) ||
           (evt.toDo && evt.toDo.includes(originalAction)) ||
-          evt.title.includes(originalAction) ||
+          (evt.title && typeof evt.title === 'string' && evt.title.includes(originalAction)) ||
           // Also try matching the base action name (without "TO DO: " prefix)
           (originalAction.startsWith("TO DO: ") && (
             (evt.actions && evt.actions.includes(originalAction.replace("TO DO: ", ""))) ||
             (evt.title && evt.title.includes(originalAction.replace("TO DO: ", "")))
           )) ||
           // Try matching in reverse (if originalAction doesn't have "TO DO: " but event title does)
-          (!originalAction.startsWith("TO DO: ") && evt.title.includes(`TO DO: ${originalAction}`))
+          (!originalAction.startsWith("TO DO: ") && evt.title && typeof evt.title === 'string' && evt.title.includes(`TO DO: ${originalAction}`))
         );
         
         // Match by labels - require exact matching to avoid deleting events from different plants
@@ -615,7 +622,7 @@ export const useRecurringActions = () => {
             (evt.actions && evt.actions.includes(actionName.replace("TO DO: ", ""))) ||
             (evt.title && evt.title.includes(actionName.replace("TO DO: ", "")))
           )) ||
-          (!actionName.startsWith("TO DO: ") && evt.title && evt.title.includes(`TO DO: ${actionName}`))
+          (!actionName.startsWith("TO DO: ") && evt.title && typeof evt.title === 'string' && evt.title.includes(`TO DO: ${actionName}`))
         );
         
         // Match by labels - require exact matching

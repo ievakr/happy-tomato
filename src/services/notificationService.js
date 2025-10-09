@@ -68,15 +68,37 @@ class NotificationService {
     try {
       this.lastCheck = new Date();
       
+      // Get current status for debugging
+      const shouldSendDaily = this.emailHook.shouldSendDailyReminder();
+      const shouldSendAdvance = this.emailHook.shouldSendAdvanceReminder();
+      const todoSummary = this.emailHook.getTodoSummary();
+      
+      // Log check details for debugging
+      console.log(`🔍 Reminder check at ${this.lastCheck.toLocaleTimeString()}:`, {
+        shouldSendDaily,
+        shouldSendAdvance,
+        todosCount: {
+          dueToday: todoSummary.dueToday,
+          overdue: todoSummary.overdue,
+          advance: todoSummary.advance
+        },
+        preferences: {
+          enabled: this.emailHook.emailPreferences.enabled,
+          dailyReminder: this.emailHook.emailPreferences.dailyReminder,
+          reminderTime: this.emailHook.emailPreferences.reminderTime,
+          userEmail: !!this.emailHook.emailPreferences.userEmail
+        }
+      });
+
       // Check if daily reminder should be sent
-      if (this.emailHook.shouldSendDailyReminder()) {
+      if (shouldSendDaily) {
         console.log('📅 Time for daily reminder - sending email...');
         
         const success = await this.emailHook.sendDailyReminder();
         
         if (success) {
           console.log('✅ Daily reminder sent successfully');
-          this.logNotification('daily_reminder', 'success');
+          this.logNotification('daily_reminder', 'success', `${todoSummary.dueToday + todoSummary.overdue} TODOs`);
         } else {
           console.warn('⚠️ Failed to send daily reminder');
           this.logNotification('daily_reminder', 'failed');
@@ -84,7 +106,7 @@ class NotificationService {
       }
 
       // Check if advance reminder should be sent
-      if (this.emailHook.shouldSendAdvanceReminder()) {
+      if (shouldSendAdvance) {
         const advanceDays = this.emailHook.emailPreferences.advanceDays || 3;
         console.log(`🔔 Time for ${advanceDays}-day advance reminder - sending email...`);
         
@@ -92,10 +114,23 @@ class NotificationService {
         
         if (success) {
           console.log(`✅ ${advanceDays}-day advance reminder sent successfully`);
-          this.logNotification('advance_reminder', 'success', `${advanceDays} days ahead`);
+          this.logNotification('advance_reminder', 'success', `${advanceDays} days ahead - ${todoSummary.advance} TODOs`);
         } else {
           console.warn(`⚠️ Failed to send ${advanceDays}-day advance reminder`);
           this.logNotification('advance_reminder', 'failed', `${advanceDays} days ahead`);
+        }
+      }
+
+      // Log when no reminders are needed (for debugging quiet periods)
+      if (!shouldSendDaily && !shouldSendAdvance) {
+        const now = new Date();
+        const hour = now.getHours();
+        const minute = now.getMinutes();
+        
+        // Only log every 10 minutes during business hours to avoid spam
+        if (hour >= 6 && hour <= 22 && minute % 10 === 0) {
+          this.logNotification('check_no_action', 'info', 
+            `No reminders needed. Due today: ${todoSummary.dueToday}, Overdue: ${todoSummary.overdue}, Advance: ${todoSummary.advance}`);
         }
       }
     } catch (error) {

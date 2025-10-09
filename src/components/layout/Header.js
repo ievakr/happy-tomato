@@ -40,7 +40,8 @@ export default function Header() {
         return () => {
             notificationService.stop();
         };
-    }, [emailNotifications]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [emailNotifications.emailPreferences.enabled]);
     
     const switchToWeekView = useCallback(() => {
         setCurrentView('week');
