@@ -81,8 +81,27 @@ class EmailService {
 
     return todos.map(todo => {
       const dueDate = new Date(todo.day).toLocaleDateString();
+      
+      // Get action name from various possible sources
+      let actionName = '';
+      
+      // First, try the actions array
+      if (todo.actions && todo.actions.length > 0) {
+        actionName = todo.actions.join(', ');
+      }
+      // Then, try the toDo field (strip "TO DO: " prefix if present)
+      else if (todo.toDo) {
+        const todoText = Array.isArray(todo.toDo) ? todo.toDo.join(', ') : todo.toDo;
+        actionName = todoText.replace(/^TO DO:\s*/i, '');
+      }
+      // Finally, try the title (strip "TO DO: " prefix if present)
+      else if (todo.title) {
+        actionName = todo.title.replace(/^TO DO:\s*/i, '');
+      }
+      
+      // Get plant labels
       const plantLabels = todo.labels && todo.labels.length > 0 
-        ? ` (${todo.labels.join(', ')})` 
+        ? todo.labels.join(', ')
         : '';
       
       const status = this.getTodoStatus(todo);
@@ -101,7 +120,25 @@ class EmailService {
         statusText = ' - Coming Up';
       }
       
-      return `${statusEmoji} ${todo.title}${plantLabels} - Due: ${dueDate}${statusText}`;
+      // Build the todo line with action and plant info
+      let todoLine = `${statusEmoji} `;
+      
+      if (actionName) {
+        todoLine += actionName;
+        if (plantLabels) {
+          todoLine += ` (${plantLabels})`;
+        }
+      } else {
+        // Fallback if we couldn't extract action name
+        todoLine += 'Unnamed TODO';
+        if (plantLabels) {
+          todoLine += ` (${plantLabels})`;
+        }
+      }
+      
+      todoLine += ` - Due: ${dueDate}${statusText}`;
+      
+      return todoLine;
     }).join('\n');
   }
 
