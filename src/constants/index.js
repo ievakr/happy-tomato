@@ -48,7 +48,7 @@ export const TODO_ITEMS = [
 export const TODO_ACTIONS = {
   "TO DO: Plant seeds": "",
   "TO DO: Transplant": "",
-  "TO DO: Water": "Use every 2 days",
+  "TO DO: Water": "",
   "TO DO: Fertilize": "Use every 7 days", 
   "TO DO: Kytos": "Use every 14 days",
   "TO DO: Copfort": "Use every 14 days",
