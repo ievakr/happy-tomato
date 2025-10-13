@@ -272,31 +272,31 @@ export default function Header() {
                         Happy Tomato
                     </h1>
                     
-                    {/* Navigation buttons */}
-                    <button 
-                        className="btn btn-sm me-1" 
-                        onClick={getNavigationHandler('prev')}
-                        style={{ padding: '0.25rem 0.5rem' }}
-                    >
-                        <span className="material-icons-outlined text-secondary" style={{ fontSize: '1.2rem' }}>
-                            chevron_left
-                        </span>
-                    </button>
-                    <button 
-                        className="btn btn-sm me-2" 
-                        onClick={getNavigationHandler('next')}
-                        style={{ padding: '0.25rem 0.5rem' }}
-                    >
-                        <span className="material-icons-outlined text-secondary" style={{ fontSize: '1.2rem' }}>
-                            chevron_right
-                        </span>
-                    </button>
-                    
-                    {/* Current period display */}
-                    <div className="flex-grow-1 mx-2">
-                        <h2 className="mb-0 text-secondary fw-bold text-center fs-5">
+                    {/* Current period display with navigation buttons */}
+                    <div className="flex-grow-1 mx-2 d-flex align-items-center justify-content-center">
+                        <button 
+                            className="btn btn-sm me-1" 
+                            onClick={getNavigationHandler('prev')}
+                            style={{ padding: '0.25rem 0.5rem' }}
+                        >
+                            <span className="material-icons-outlined text-secondary" style={{ fontSize: '1.2rem' }}>
+                                chevron_left
+                            </span>
+                        </button>
+                        
+                        <h2 className="mb-0 text-secondary fw-bold text-center fs-5 mx-3">
                             {getCurrentDisplayTitle()}
                         </h2>
+                        
+                        <button 
+                            className="btn btn-sm ms-1" 
+                            onClick={getNavigationHandler('next')}
+                            style={{ padding: '0.25rem 0.5rem' }}
+                        >
+                            <span className="material-icons-outlined text-secondary" style={{ fontSize: '1.2rem' }}>
+                                chevron_right
+                            </span>
+                        </button>
                     </div>
                 </>
             )}
@@ -311,10 +311,11 @@ export default function Header() {
                         title="Email notification settings"
                         style={{
                             padding: '0.25rem 0.5rem',
-                            fontSize: '0.8rem'
+                            fontSize: '0.75rem',
+                            lineHeight: '1.2'
                         }}
                     >
-                        <span className="material-icons-outlined me-1" style={{ fontSize: '1rem' }}>
+                        <span className="material-icons-outlined me-1" style={{ fontSize: '0.9rem' }}>
                             {emailNotifications.emailPreferences.enabled ? 'mail' : 'mail_outline'}
                         </span>
                         <span>Email</span>
