@@ -28,9 +28,10 @@ export default function Header() {
     // Very small screen detection (iPhone 13 mini and smaller)
     const isVerySmallScreen = windowSize.width < 390;
     
-    // Initialize notification service
+    // Initialize notification service and update it when preferences change
     useEffect(() => {
         if (emailNotifications.emailPreferences.enabled) {
+            // Start will update the email hook reference if already running
             notificationService.start(emailNotifications);
         } else {
             notificationService.stop();
@@ -41,7 +42,7 @@ export default function Header() {
             notificationService.stop();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [emailNotifications.emailPreferences.enabled]);
+    }, [emailNotifications.emailPreferences]);
     
     const switchToWeekView = useCallback(() => {
         setCurrentView('week');
@@ -351,7 +352,8 @@ export default function Header() {
             {/* Email Notification Settings Modal */}
             <EmailNotificationSettings 
                 show={showEmailSettings} 
-                onHide={() => setShowEmailSettings(false)} 
+                onHide={() => setShowEmailSettings(false)}
+                emailNotifications={emailNotifications}
             />
         </header>
     );

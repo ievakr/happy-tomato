@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug LocalStorage</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px 0; }
+        pre { background: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .timestamp { color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>LocalStorage Email Preferences Debug</h1>
+    
+    <button onclick="checkStorage()">🔍 Check Current Settings</button>
+    <button onclick="watchStorage()">👁️ Start Watching (1 sec intervals)</button>
+    <button onclick="stopWatching()">⏹️ Stop Watching</button>
+    <button onclick="clearStorage()">🗑️ Clear Settings</button>
+    
+    <div id="output"></div>
+    
+    <script>
+        let watchInterval = null;
+        
+        function checkStorage() {
+            const data = localStorage.getItem('email-preferences');
+            const parsed = data ? JSON.parse(data) : null;
+            
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            output.innerHTML = `
+                <div class="timestamp">Last checked: ${timestamp}</div>
+                <h3>Raw localStorage data:</h3>
+                <pre>${data || 'null (not found)'}</pre>
+                
+                <h3>Parsed data:</h3>
+                <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                
+                <h3>Key settings:</h3>
+                <pre>enabled: ${parsed?.enabled}
+dailyReminder: ${parsed?.dailyReminder}
+reminderTime: ${parsed?.reminderTime}
+advanceReminders: ${parsed?.advanceReminders}
+advanceDays: ${parsed?.advanceDays}
+userEmail: ${parsed?.userEmail || '(not set)'}</pre>
+            `;
+        }
+        
+        function watchStorage() {
+            if (watchInterval) {
+                alert('Already watching!');
+                return;
+            }
+            
+            checkStorage();
+            watchInterval = setInterval(checkStorage, 1000);
+            console.log('Started watching localStorage...');
+        }
+        
+        function stopWatching() {
+            if (watchInterval) {
+                clearInterval(watchInterval);
+                watchInterval = null;
+                console.log('Stopped watching localStorage');
+            }
+        }
+        
+        function clearStorage() {
+            if (confirm('Clear email-preferences from localStorage?')) {
+                localStorage.removeItem('email-preferences');
+                checkStorage();
+                console.log('Cleared email-preferences');
+            }
+        }
+        
+        // Check on load
+        window.addEventListener('load', checkStorage);
+    </script>
+</body>
+</html>

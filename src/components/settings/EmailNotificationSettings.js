@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Modal, Button, Form, Alert, Card, Row, Col, Badge, Spinner, Accordion, Table } from 'react-bootstrap';
-import { useEmailNotifications } from '../../hooks/useEmailNotifications';
 import notificationService from '../../services/notificationService';
 
 /**
  * Email Notification Settings Component
  * Allows users to configure email reminders for TODOs
  */
-export default function EmailNotificationSettings({ show, onHide }) {
+export default function EmailNotificationSettings({ show, onHide, emailNotifications }) {
   const {
     emailPreferences,
     updateEmailPreferences,
@@ -17,7 +16,7 @@ export default function EmailNotificationSettings({ show, onHide }) {
     isEmailServiceReady,
     getEmailServiceStatus,
     getTodoSummary
-  } = useEmailNotifications();
+  } = emailNotifications;
 
   const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [testResult, setTestResult] = useState(null);

@@ -17,7 +17,8 @@ class NotificationService {
    */
   start(emailHook) {
     if (this.isRunning) {
-      console.log('Notification service already running');
+      console.log('Notification service already running, updating email hook reference...');
+      this.emailHook = emailHook;
       return;
     }
 
@@ -34,6 +35,15 @@ class NotificationService {
     }, this.checkFrequency);
 
     console.log(`Notification service started - checking every ${this.checkFrequency / 1000} seconds`);
+  }
+
+  /**
+   * Update the email hook reference without restarting the service
+   * @param {Object} emailHook - Updated email notifications hook instance
+   */
+  updateEmailHook(emailHook) {
+    console.log('Updating notification service email hook reference...');
+    this.emailHook = emailHook;
   }
 
   /**
@@ -90,7 +100,8 @@ class NotificationService {
         }
       });
 
-      // Check if daily reminder should be sent
+      // Only send ONE type of reminder per check cycle to avoid race conditions
+      // Priority: Daily reminder first, then advance reminder in next cycle
       if (shouldSendDaily) {
         console.log('📅 Time for daily reminder - sending email...');
         
@@ -103,10 +114,11 @@ class NotificationService {
           console.warn('⚠️ Failed to send daily reminder');
           this.logNotification('daily_reminder', 'failed');
         }
-      }
-
-      // Check if advance reminder should be sent
-      if (shouldSendAdvance) {
+        
+        // Skip advance reminder this cycle - it will be sent in the next cycle
+        console.log('⏭️  Skipping advance reminder this cycle (will check in next cycle)');
+      } else if (shouldSendAdvance) {
+        // Only check advance if daily wasn't sent
         const advanceDays = this.emailHook.emailPreferences.advanceDays || 3;
         console.log(`🔔 Time for ${advanceDays}-day advance reminder - sending email...`);
         

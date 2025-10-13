@@ -38,7 +38,26 @@ export const useEmailNotifications = () => {
    * @param {Object} newPreferences - Updated preferences
    */
   const updateEmailPreferences = (newPreferences) => {
-    setEmailPreferences(prev => ({ ...prev, ...newPreferences }));
+    setEmailPreferences(prev => {
+      const updated = { ...prev, ...newPreferences };
+      
+      // If reminder time changed, clear auto reminder timestamps so reminders can be sent at new time
+      if (newPreferences.reminderTime && newPreferences.reminderTime !== prev.reminderTime) {
+        console.log('⏰ Reminder time changed from', prev.reminderTime, 'to', newPreferences.reminderTime);
+        console.log('🔄 Clearing auto reminder timestamps to allow sending at new time');
+        updated.lastAutoReminderSent = null;
+        updated.lastAutoAdvanceReminderSent = null;
+      }
+      
+      // If advance days changed, clear advance reminder timestamp
+      if (newPreferences.advanceDays && newPreferences.advanceDays !== prev.advanceDays) {
+        console.log('📅 Advance days changed from', prev.advanceDays, 'to', newPreferences.advanceDays);
+        console.log('🔄 Clearing advance reminder timestamp');
+        updated.lastAutoAdvanceReminderSent = null;
+      }
+      
+      return updated;
+    });
   };
 
   /**
@@ -309,8 +328,9 @@ export const useEmailNotifications = () => {
     // Create a time today at the reminder time for comparison
     const reminderTimeToday = now.hour(reminderHour).minute(reminderMinute).second(0);
 
-    // Check if current time is past reminder time (with 5-minute window)
-    const isTimeToSend = now.isAfter(reminderTimeToday) || now.isAfter(reminderTimeToday.subtract(5, 'minutes'));
+    // Check if current time is within the reminder window (reminder time to 5 minutes after)
+    const fiveMinutesAfter = reminderTimeToday.add(5, 'minutes');
+    const isTimeToSend = now.isAfter(reminderTimeToday) && now.isBefore(fiveMinutesAfter);
 
     // Check if we haven't sent an automatic reminder today yet 
     const haventSentAutoToday = !lastSent || !lastSent.isSame(now, 'day');
@@ -358,8 +378,9 @@ export const useEmailNotifications = () => {
     // Create a time today at the reminder time for comparison
     const reminderTimeToday = now.hour(reminderHour).minute(reminderMinute).second(0);
 
-    // Check if current time is past reminder time (with 5-minute window)
-    const isTimeToSend = now.isAfter(reminderTimeToday) || now.isAfter(reminderTimeToday.subtract(5, 'minutes'));
+    // Check if current time is within the reminder window (reminder time to 5 minutes after)
+    const fiveMinutesAfter = reminderTimeToday.add(5, 'minutes');
+    const isTimeToSend = now.isAfter(reminderTimeToday) && now.isBefore(fiveMinutesAfter);
 
     // Check if we haven't sent an automatic advance reminder today yet
     const haventSentAutoToday = !lastSent || !lastSent.isSame(now, 'day');
