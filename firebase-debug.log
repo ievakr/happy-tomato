@@ -130,3 +130,128 @@
 [info] >      options: {} {"user":"    options: {}","metadata":{"emulator":{"name":"functions"},"function":{"name":"us-central1-sendDailyReminders"},"extension":{},"message":"\u001b[90m> \u001b[39m     options: {}"}}
 [info] >    } {"user":"  }","metadata":{"emulator":{"name":"functions"},"function":{"name":"us-central1-sendDailyReminders"},"extension":{},"message":"\u001b[90m> \u001b[39m   }"}}
 [info] >  } {"user":"}","metadata":{"emulator":{"name":"functions"},"function":{"name":"us-central1-sendDailyReminders"},"extension":{},"message":"\u001b[90m> \u001b[39m }"}}
+[debug] [2025-10-19T17:33:06.935Z] DEBUG: File /Users/ievak/happy-tomato/functions/index.js changed, reloading triggers
+[debug] [2025-10-19T17:33:07.936Z] Validating nodejs source
+[warn] ⚠  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[warn] ⚠  functions: Please note that there will be breaking changes when you upgrade. 
+[debug] [2025-10-19T17:33:08.784Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0",
+    "@emailjs/nodejs": "^4.0.0",
+    "dayjs": "^1.11.10"
+  },
+  "devDependencies": {
+    "eslint": "^8.15.0",
+    "eslint-config-google": "^0.14.0",
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
+[debug] [2025-10-19T17:33:08.784Z] Building nodejs source
+[debug] [2025-10-19T17:33:08.784Z] Failed to find version of module node: reached end of search path /Users/ievak/happy-tomato/functions/node_modules
+[warn] ⚠  functions: Your requested "node" version "18" doesn't match your global version "20". Using node@20 from host. 
+[debug] [2025-10-19T17:33:08.785Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-10-19T17:33:08.786Z] Found firebase-functions binary at '/Users/ievak/happy-tomato/functions/node_modules/.bin/firebase-functions'
+[info] Serving at port 8083
+
+[debug] [2025-10-19T17:33:09.304Z] DEBUG: File /Users/ievak/happy-tomato/functions/index.js changed, reloading triggers
+[debug] [2025-10-19T17:33:09.630Z] Got response from /__/functions.yaml {"endpoints":{"sendDailyReminders":{"platform":"gcfv1","availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"scheduleTrigger":{"schedule":"0 * * * *","retryConfig":{"retryCount":null,"maxDoublings":null,"maxRetryDuration":null,"maxBackoffDuration":null,"minBackoffDuration":null},"timeZone":""},"labels":{},"entryPoint":"sendDailyReminders"},"sendAdvanceReminders":{"platform":"gcfv1","availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"scheduleTrigger":{"schedule":"0 * * * *","retryConfig":{"retryCount":null,"maxDoublings":null,"maxRetryDuration":null,"maxBackoffDuration":null,"minBackoffDuration":null},"timeZone":"America/New_York"},"labels":{},"entryPoint":"sendAdvanceReminders"}},"specVersion":"v1alpha1","requiredAPIs":[{"api":"cloudscheduler.googleapis.com","reason":"Needed for scheduled functions."}],"extensions":{}}
+[debug] [2025-10-19T17:33:10.305Z] Validating nodejs source
+[warn] ⚠  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[warn] ⚠  functions: Please note that there will be breaking changes when you upgrade. 
+[debug] [2025-10-19T17:33:10.978Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0",
+    "@emailjs/nodejs": "^4.0.0",
+    "dayjs": "^1.11.10"
+  },
+  "devDependencies": {
+    "eslint": "^8.15.0",
+    "eslint-config-google": "^0.14.0",
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
+[debug] [2025-10-19T17:33:10.979Z] Building nodejs source
+[debug] [2025-10-19T17:33:10.979Z] Failed to find version of module node: reached end of search path /Users/ievak/happy-tomato/functions/node_modules
+[warn] ⚠  functions: Your requested "node" version "18" doesn't match your global version "20". Using node@20 from host. 
+[debug] [2025-10-19T17:33:10.979Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-10-19T17:33:10.980Z] Found firebase-functions binary at '/Users/ievak/happy-tomato/functions/node_modules/.bin/firebase-functions'
+[info] Serving at port 8263
+
+[debug] [2025-10-19T17:33:11.463Z] Got response from /__/functions.yaml {"endpoints":{"sendDailyReminders":{"platform":"gcfv1","availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"scheduleTrigger":{"schedule":"0 * * * *","retryConfig":{"retryCount":null,"maxDoublings":null,"maxRetryDuration":null,"maxBackoffDuration":null,"minBackoffDuration":null},"timeZone":"\tEurope/Vilnius"},"labels":{},"entryPoint":"sendDailyReminders"},"sendAdvanceReminders":{"platform":"gcfv1","availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"serviceAccountEmail":null,"vpc":null,"scheduleTrigger":{"schedule":"0 * * * *","retryConfig":{"retryCount":null,"maxDoublings":null,"maxRetryDuration":null,"maxBackoffDuration":null,"minBackoffDuration":null},"timeZone":"America/New_York"},"labels":{},"entryPoint":"sendAdvanceReminders"}},"specVersion":"v1alpha1","requiredAPIs":[{"api":"cloudscheduler.googleapis.com","reason":"Needed for scheduled functions."}],"extensions":{}}
+[debug] [2025-10-19T17:33:13.980Z] DEBUG: File /Users/ievak/happy-tomato/functions/index.js changed, reloading triggers
+[debug] [2025-10-19T17:33:14.647Z] [functions] Loaded functions definitions from source: sendDailyReminders, sendAdvanceReminders.
+[debug] [2025-10-19T17:33:14.647Z] DEBUG: [worker-pool] Shutting down IDLE worker (us-central1-sendDailyReminders)
+[debug] [2025-10-19T17:33:14.647Z] DEBUG: [worker-us-central1-sendDailyReminders-e3d0dabd-01b9-439a-a365-cad165976ef8]: FINISHING
+[debug] [2025-10-19T17:33:14.657Z] DEBUG: [worker-us-central1-sendDailyReminders-e3d0dabd-01b9-439a-a365-cad165976ef8]: exited
+[debug] [2025-10-19T17:33:14.657Z] DEBUG: [worker-us-central1-sendDailyReminders-e3d0dabd-01b9-439a-a365-cad165976ef8]: FINISHED
+[debug] [2025-10-19T17:33:14.981Z] Validating nodejs source
+[warn] ⚠  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[warn] ⚠  functions: Please note that there will be breaking changes when you upgrade. 
+[debug] [2025-10-19T17:33:16.321Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0",
+    "@emailjs/nodejs": "^4.0.0",
+    "dayjs": "^1.11.10"
+  },
+  "devDependencies": {
+    "eslint": "^8.15.0",
+    "eslint-config-google": "^0.14.0",
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
+[debug] [2025-10-19T17:33:16.321Z] Building nodejs source
+[debug] [2025-10-19T17:33:16.321Z] Failed to find version of module node: reached end of search path /Users/ievak/happy-tomato/functions/node_modules
+[warn] ⚠  functions: Your requested "node" version "18" doesn't match your global version "20". Using node@20 from host. 
+[debug] [2025-10-19T17:33:16.322Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-10-19T17:33:16.322Z] Found firebase-functions binary at '/Users/ievak/happy-tomato/functions/node_modules/.bin/firebase-functions'
+[debug] [2025-10-19T17:33:16.491Z] [functions] Loaded functions definitions from source: sendDailyReminders, sendAdvanceReminders.
+[info] Serving at port 8666
+

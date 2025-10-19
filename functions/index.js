@@ -164,7 +164,7 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
  */
 exports.sendDailyReminders = functions.pubsub
     .schedule("0 * * * *") // Every hour at minute 0
-    .timeZone("America/New_York") // Change to your timezone
+    .timeZone("Europe/Vilnius") // Change to your timezone
     .onRun(async (context) => {
       console.log("🔍 Checking for daily reminders to send...");
 
