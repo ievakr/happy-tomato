@@ -3,7 +3,7 @@ import GlobalContext from '../context/GlobalContext';
 import emailService from '../services/emailService';
 import dayjs from 'dayjs';
 import { db } from '../firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 
 /**
  * Custom hook for managing email notifications for TODOs
