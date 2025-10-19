@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 
-export default function CustomDropdown({ title, options, selectedOptions = [], onSelect }) {
+export default function CustomDropdown({ title, options, selectedOptions = [], onSelect, displayTitle }) {
     const [isOpen, setIsOpen] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
     const dropdownRef = useRef(null);
@@ -53,11 +53,21 @@ export default function CustomDropdown({ title, options, selectedOptions = [], o
         onSelect(newSelection);
     };
 
+    // Determine what to display in the dropdown title
+    const getDisplayText = () => {
+        // If displayTitle is provided, use it (allows custom formatting)
+        if (displayTitle !== undefined) {
+            return displayTitle;
+        }
+        // Otherwise, use default behavior (show selected items or placeholder)
+        return selectedOptions.length ? selectedOptions.join(", ") : title;
+    };
+
     return (
         <>
             <div className="custom-dropdown" ref={dropdownRef}>
                 <div className="custom-dropdown__title" onClick={() => setIsOpen(!isOpen)}>
-                    {selectedOptions.length ? selectedOptions.join(", ") : title}
+                    {getDisplayText()}
                     <span className="custom-dropdown__arrow">{isOpen ? "▲" : "▼"}</span>
                 </div>
             </div>

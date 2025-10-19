@@ -2,6 +2,8 @@ import { useState, useEffect, useContext } from 'react';
 import GlobalContext from '../context/GlobalContext';
 import emailService from '../services/emailService';
 import dayjs from 'dayjs';
+import { db } from '../firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 /**
  * Custom hook for managing email notifications for TODOs
@@ -54,6 +56,10 @@ export const useEmailNotifications = () => {
         console.log('📅 Advance days changed from', prev.advanceDays, 'to', newPreferences.advanceDays);
         console.log('🔄 Clearing advance reminder timestamp');
         updated.lastAutoAdvanceReminderSent = null;
+      }
+
+      if (updated.userEmail) {
+        syncPreferencesToFirestore(updated);
       }
       
       return updated;
@@ -442,6 +448,25 @@ export const useEmailNotifications = () => {
    */
   const getEmailServiceStatus = () => {
     return emailService.getConfigurationStatus();
+  };
+
+  /**
+   * Sync preferences to Firestore for Cloud Functions
+   */
+  const syncPreferencesToFirestore = async (preferences) => {
+    try {
+      // Use email as document ID (or user ID if you have authentication)
+      const docId = preferences.userEmail.replace(/[.#$[\]]/g, '_'); // Sanitize email for Firestore
+      
+      await setDoc(doc(db, 'emailPreferences', docId), {
+        ...preferences,
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log('✅ Email preferences synced to Firestore');
+    } catch (error) {
+      console.error('❌ Failed to sync preferences to Firestore:', error);
+    }
   };
 
   return {

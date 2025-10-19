@@ -1,41 +1,55 @@
-import React, { useContext } from "react";
-import { PLANT_LABELS } from "../../constants";
+import React, { useContext, useMemo } from "react";
 import GlobalContext from "../../context/GlobalContext";
-import { EventListSkeleton } from "../common";
+import { EventListSkeleton, CustomDropdown } from "../common";
 
 export default function Labels() {
-    const { labels, updateLabel, isInitialLoading } = useContext(GlobalContext);
+    const { labels, setLabels, isInitialLoading } = useContext(GlobalContext);
+    
+    // Get all available label options
+    const labelOptions = useMemo(() => {
+        return labels.map(lbl => lbl.label);
+    }, [labels]);
+    
+    // Get currently selected (checked) labels
+    const selectedLabels = useMemo(() => {
+        return labels.filter(lbl => lbl.checked).map(lbl => lbl.label);
+    }, [labels]);
+    
+    // Handle label selection from dropdown
+    const handleLabelSelect = (selectedLabelNames) => {
+        const updatedLabels = labels.map(lbl => ({
+            ...lbl,
+            checked: selectedLabelNames.includes(lbl.label)
+        }));
+        setLabels(updatedLabels);
+    };
+    
+    // Create a custom title that doesn't show all selected items
+    const dropdownTitle = useMemo(() => {
+        if (selectedLabels.length === 0) {
+            return "Select labels to filter";
+        } else if (selectedLabels.length === labelOptions.length) {
+            return "All plants selected";
+        } else {
+            return `${selectedLabels.length} label${selectedLabels.length > 1 ? 's' : ''} selected`;
+        }
+    }, [selectedLabels.length, labelOptions.length]);
     
     return (
         <React.Fragment>
-            <p className="text-secondary fw-bold mt-4">Labels</p>
+            <p className="text-secondary fw-bold mt-4">Filter by Plants</p>
             {isInitialLoading ? (
-                <EventListSkeleton count={4} />
+                <EventListSkeleton count={1} />
             ) : (
-                labels.map((label, idx) => {
-                // Find the icon class for this label
-                const iconClass = Object.keys(PLANT_LABELS).find(key => 
-                    PLANT_LABELS[key] === label.label
-                ) || 'leaf';
-                
-                return (
-                    <div key={idx} className="d-flex align-items-center mb-2">
-                        <input
-                            type="checkbox"
-                            checked={label.checked}
-                            onChange={() => updateLabel({ ...label, checked: !label.checked })}
-                            className="me-2"
-                        />
-                        <span>
-                            <i
-                                className={`fi fi-rr-${iconClass}`}
-                                style={{ fontSize: '20px' }} 
-                            />
-                        </span>
-                        <span className="text-capitalize ms-2">{label.label}</span>
-                    </div>
-                );
-                })
+                <div className="mb-3">
+                    <CustomDropdown
+                        title="Select labels to filter"
+                        options={labelOptions}
+                        selectedOptions={selectedLabels}
+                        onSelect={handleLabelSelect}
+                        displayTitle={dropdownTitle}
+                    />
+                </div>
             )}
         </React.Fragment>
     );
