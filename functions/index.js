@@ -4,10 +4,12 @@ const emailjs = require("@emailjs/nodejs");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const timezone = require("dayjs/plugin/timezone");
+const isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
 
 // Configure dayjs with timezone support
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(isSameOrBefore);
 
 // Set default timezone to Europe/Vilnius
 dayjs.tz.setDefault("Europe/Vilnius");
