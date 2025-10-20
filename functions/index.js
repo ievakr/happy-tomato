@@ -2,6 +2,15 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 const emailjs = require("@emailjs/nodejs");
 const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
+
+// Configure dayjs with timezone support
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+// Set default timezone to Europe/Vilnius
+dayjs.tz.setDefault("Europe/Vilnius");
 
 admin.initializeApp();
 
@@ -77,7 +86,7 @@ function formatTodoList(todos) {
  * @return {Array} Filtered array of due/overdue TODOs
  */
 function getDueAndOverdueTodos(events) {
-  const today = dayjs().startOf("day");
+  const today = dayjs.tz(new Date(), "Europe/Vilnius").startOf("day");
 
   return events.filter((evt) => {
     // Check if it's a TODO
@@ -89,7 +98,7 @@ function getDueAndOverdueTodos(events) {
 
     if (!isTodoEvent || evt.completed) return false;
 
-    const eventDate = dayjs(evt.day).startOf("day");
+    const eventDate = dayjs.tz(evt.day, "Europe/Vilnius").startOf("day");
 
     // Include if due today or overdue
     return eventDate.isSameOrBefore(today, "day");
@@ -103,7 +112,14 @@ function getDueAndOverdueTodos(events) {
  * @return {Array} Filtered array of TODOs due in X days
  */
 function getTodosInAdvance(events, days) {
-  const targetDate = dayjs().add(days, "days").startOf("day");
+  const targetDate = dayjs.tz(new Date(), "Europe/Vilnius")
+      .add(days, "days")
+      .startOf("day");
+
+  console.log(
+      `🔍 Looking for TODOs due on ${targetDate.format("YYYY-MM-DD")} ` +
+      `(${days} days from now)`,
+  );
 
   return events.filter((evt) => {
     const isTodoEvent = evt.isRecurringTodo ||
@@ -114,7 +130,7 @@ function getTodosInAdvance(events, days) {
 
     if (!isTodoEvent || evt.completed) return false;
 
-    const eventDate = dayjs(evt.day).startOf("day");
+    const eventDate = dayjs.tz(evt.day, "Europe/Vilnius").startOf("day");
     return eventDate.isSame(targetDate, "day");
   });
 }
@@ -168,8 +184,13 @@ exports.sendDailyReminders = functions.pubsub
     .onRun(async (context) => {
       console.log("🔍 Checking for daily reminders to send...");
 
-      const now = dayjs();
+      const now = dayjs.tz(new Date(), "Europe/Vilnius");
       const currentHour = now.hour();
+
+      console.log(
+          `⏰ Current time in Vilnius: ` +
+          `${now.format("YYYY-MM-DD HH:mm:ss")} (Hour: ${currentHour})`,
+      );
 
       try {
         // Get all email preferences
@@ -215,10 +236,15 @@ exports.sendDailyReminders = functions.pubsub
 
           // Check if we already sent today
           const lastSent = prefs.lastAutoReminderSent ?
-            dayjs(prefs.lastAutoReminderSent.toDate()) : null;
+            dayjs.tz(
+                prefs.lastAutoReminderSent.toDate(),
+                "Europe/Vilnius",
+            ) : null;
           if (lastSent && lastSent.isSame(now, "day")) {
-            console.log(`Already sent daily reminder to ` +
-              `${prefs.userEmail} today`);
+            console.log(
+                `Already sent daily reminder to ${prefs.userEmail} today ` +
+                `(last sent: ${lastSent.format("YYYY-MM-DD HH:mm")})`,
+            );
             continue;
           }
 
@@ -267,12 +293,17 @@ exports.sendDailyReminders = functions.pubsub
  */
 exports.sendAdvanceReminders = functions.pubsub
     .schedule("0 * * * *") // Every hour at minute 0
-    .timeZone("America/New_York") // Change to your timezone
+    .timeZone("Europe/Vilnius") // Change to your timezone
     .onRun(async (context) => {
       console.log("🔍 Checking for advance reminders to send...");
 
-      const now = dayjs();
+      const now = dayjs.tz(new Date(), "Europe/Vilnius");
       const currentHour = now.hour();
+
+      console.log(
+          `⏰ Current time in Vilnius: ` +
+          `${now.format("YYYY-MM-DD HH:mm:ss")} (Hour: ${currentHour})`,
+      );
 
       try {
         // Get all email preferences with advance reminders enabled
@@ -313,10 +344,15 @@ exports.sendAdvanceReminders = functions.pubsub
 
           // Check if we already sent today
           const lastSent = prefs.lastAutoAdvanceReminderSent ?
-            dayjs(prefs.lastAutoAdvanceReminderSent.toDate()) : null;
+            dayjs.tz(
+                prefs.lastAutoAdvanceReminderSent.toDate(),
+                "Europe/Vilnius",
+            ) : null;
           if (lastSent && lastSent.isSame(now, "day")) {
-            console.log(`Already sent advance reminder to ` +
-              `${prefs.userEmail} today`);
+            console.log(
+                `Already sent advance reminder to ${prefs.userEmail} ` +
+                `today (last sent: ${lastSent.format("YYYY-MM-DD HH:mm")})`,
+            );
             continue;
           }
 
