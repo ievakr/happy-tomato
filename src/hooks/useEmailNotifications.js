@@ -9,7 +9,12 @@ import { doc, setDoc } from 'firebase/firestore';
  * Custom hook for managing email notifications for TODOs
  */
 export const useEmailNotifications = () => {
-  const { filteredEvents } = useContext(GlobalContext);
+  const { filteredEvents, savedEvents } = useContext(GlobalContext);
+  
+  // IMPORTANT: For email notifications, we should check ALL events, not just filtered ones
+  // The filteredEvents may be empty if labels are unchecked, but we still need to send reminders
+  // for all todos regardless of label filtering
+  const allEvents = savedEvents || filteredEvents;
   const [emailPreferences, setEmailPreferences] = useState(() => {
     // Load from localStorage
     const saved = localStorage.getItem('email-preferences');
@@ -107,7 +112,7 @@ export const useEmailNotifications = () => {
   const getDueTodos = () => {
     const today = dayjs();
     
-    return filteredEvents.filter(evt => {
+    return allEvents.filter(evt => {
       // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
       const isTodoEvent = evt.isRecurringTodo || 
                          (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
@@ -126,7 +131,7 @@ export const useEmailNotifications = () => {
   const getOverdueTodos = () => {
     const today = dayjs();
     
-    return filteredEvents.filter(evt => {
+    return allEvents.filter(evt => {
       // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
       const isTodoEvent = evt.isRecurringTodo || 
                          (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
@@ -146,7 +151,7 @@ export const useEmailNotifications = () => {
     const today = dayjs();
     const nextWeek = today.add(7, 'days');
     
-    return filteredEvents.filter(evt => {
+    return allEvents.filter(evt => {
       // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
       const isTodoEvent = evt.isRecurringTodo || 
                          (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
@@ -169,11 +174,11 @@ export const useEmailNotifications = () => {
     console.log('🔍 getTodosInAdvance DEBUG:', {
       daysAhead: days,
       targetDate: targetDate.format('YYYY-MM-DD'),
-      totalEvents: filteredEvents.length
+      totalEvents: allEvents.length
     });
     
     // Log all events to see what we have
-    const allTodos = filteredEvents.filter(evt => {
+    const allTodos = allEvents.filter(evt => {
       const isTodoEvent = evt.isRecurringTodo || 
                          (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
                          (typeof evt.toDo === 'string' && evt.toDo.startsWith("TO DO:"));
@@ -187,7 +192,7 @@ export const useEmailNotifications = () => {
       completed: t.completed
     })));
     
-    const matchingTodos = filteredEvents.filter(evt => {
+    const matchingTodos = allEvents.filter(evt => {
       // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
       const isTodoEvent = evt.isRecurringTodo || 
                          (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
