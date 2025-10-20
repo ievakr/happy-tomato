@@ -166,7 +166,28 @@ export const useEmailNotifications = () => {
   const getTodosInAdvance = (days = 3) => {
     const targetDate = dayjs().add(days, 'days');
     
-    return filteredEvents.filter(evt => {
+    console.log('🔍 getTodosInAdvance DEBUG:', {
+      daysAhead: days,
+      targetDate: targetDate.format('YYYY-MM-DD'),
+      totalEvents: filteredEvents.length
+    });
+    
+    // Log all events to see what we have
+    const allTodos = filteredEvents.filter(evt => {
+      const isTodoEvent = evt.isRecurringTodo || 
+                         (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
+                         (typeof evt.toDo === 'string' && evt.toDo.startsWith("TO DO:"));
+      return isTodoEvent && !evt.completed;
+    });
+    
+    console.log(`📋 All pending todos (${allTodos.length}):`, allTodos.map(t => ({
+      title: t.title || t.toDo,
+      day: dayjs(t.day).format('YYYY-MM-DD'),
+      isRecurringTodo: t.isRecurringTodo,
+      completed: t.completed
+    })));
+    
+    const matchingTodos = filteredEvents.filter(evt => {
       // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
       const isTodoEvent = evt.isRecurringTodo || 
                          (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
@@ -174,8 +195,18 @@ export const useEmailNotifications = () => {
       if (!isTodoEvent || evt.completed) return false;
       
       const eventDate = dayjs(evt.day);
-      return eventDate.isSame(targetDate, 'day');
+      const matches = eventDate.isSame(targetDate, 'day');
+      
+      if (isTodoEvent && !evt.completed) {
+        console.log(`  📝 Checking todo: ${evt.title || evt.toDo} on ${eventDate.format('YYYY-MM-DD')} - ${matches ? '✅ MATCH' : '❌ no match'}`);
+      }
+      
+      return matches;
     });
+    
+    console.log(`✅ Found ${matchingTodos.length} todos matching target date ${targetDate.format('YYYY-MM-DD')}`);
+    
+    return matchingTodos;
   };
 
   /**
