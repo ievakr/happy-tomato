@@ -1,6 +1,6 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const emailjs = require("@emailjs/nodejs");
+const sgMail = require("@sendgrid/mail");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const timezone = require("dayjs/plugin/timezone");
@@ -138,7 +138,7 @@ function getTodosInAdvance(events, days) {
 }
 
 /**
- * Send email using EmailJS
+ * Send email using SendGrid
  * @param {string} userEmail - Recipient email address
  * @param {string} userName - Recipient name
  * @param {Array} todos - Array of TODO objects
@@ -146,32 +146,76 @@ function getTodosInAdvance(events, days) {
  * @return {Promise<boolean>} Success status
  */
 async function sendEmail(userEmail, userName, todos, reminderType) {
-  const config = functions.config().emailjs;
+  const config = functions.config().sendgrid;
 
-  const templateParams = {
-    to_email: userEmail,
-    to_name: userName || "Garden Friend",
-    reminder_type: reminderType,
-    todo_count: todos.length,
-    todo_list: formatTodoList(todos),
-    today_date: new Date().toLocaleDateString(),
-    app_name: "Happy Tomato Garden Planner",
+  // Initialize SendGrid with API key
+  sgMail.setApiKey(config.api_key);
+
+  // Create email HTML content
+  const todoListHtml = formatTodoList(todos)
+      .split("\n")
+      .map((line) => `<li style="margin: 10px 0;">${line}</li>`)
+      .join("");
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; 
+    margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+      <div style="background-color: white; border-radius: 8px; 
+      padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h1 style="color: #10b981; margin: 0 0 20px 0;">
+        🌱 ${reminderType}</h1>
+        <p style="font-size: 16px; color: #374151; 
+        margin-bottom: 20px;">
+          Hi ${userName || "Garden Friend"}! 👋
+        </p>
+        <p style="font-size: 14px; color: #6b7280; 
+        margin-bottom: 20px;">
+          You have <strong>${todos.length} garden task${
+  todos.length !== 1 ? "s" : ""}</strong> that need your attention:
+        </p>
+        <ul style="list-style: none; padding: 0; margin: 20px 0;">
+          ${todoListHtml}
+        </ul>
+        <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
+          Happy Gardening! 🌻<br>
+          <em>Happy Tomato Garden Planner</em>
+        </p>
+      </div>
+      <p style="text-align: center; color: #9ca3af; 
+      font-size: 12px; margin-top: 20px;">
+        ${new Date().toLocaleDateString()} | 
+        <a href="https://happytomato-c4fed.web.app" 
+        style="color: #10b981; text-decoration: none;">Open App</a>
+      </p>
+    </div>
+  `;
+
+  const msg = {
+    to: userEmail,
+    from: {
+      email: config.from_email,
+      name: "Happy Tomato Garden Planner",
+    },
+    subject: `${reminderType} - ${todos.length} Task${
+      todos.length !== 1 ? "s" : ""} for Your Garden`,
+    text: `Hi ${userName || "Garden Friend"}!\n\n` +
+          `You have ${todos.length} garden task${
+            todos.length !== 1 ? "s" : ""} ` +
+          `that need your attention:\n\n` +
+          formatTodoList(todos) +
+          `\n\nHappy Gardening!\n- Happy Tomato Garden Planner`,
+    html: htmlContent,
   };
 
   try {
-    await emailjs.send(
-        config.service_id,
-        config.template_id,
-        templateParams,
-        {
-          publicKey: config.public_key,
-          privateKey: config.private_key,
-        },
-    );
+    await sgMail.send(msg);
     console.log(`✅ Email sent to ${userEmail}`);
     return true;
   } catch (error) {
     console.error(`❌ Failed to send email to ${userEmail}:`, error);
+    if (error.response) {
+      console.error("SendGrid error details:", error.response.body);
+    }
     return false;
   }
 }
