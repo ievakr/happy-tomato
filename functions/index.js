@@ -151,6 +151,27 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
   // Initialize SendGrid with API key
   sgMail.setApiKey(config.api_key);
 
+  // Determine the context date and message based on reminder type
+  let contextDate = new Date();
+  let reminderMessage = "";
+
+  if (reminderType.includes("Advance")) {
+    // Extract days from reminder type (e.g., "3-Day Advance Garden Reminder")
+    const match = reminderType.match(/(\d+)-Day/);
+    if (match) {
+      const daysAhead = parseInt(match[1], 10);
+      contextDate = new Date();
+      contextDate.setDate(contextDate.getDate() + daysAhead);
+      reminderMessage = `You have <strong>${todos.length} garden task${
+        todos.length !== 1 ? "s" : ""}</strong> coming up in ${daysAhead} day${
+        daysAhead !== 1 ? "s" : ""} (${contextDate.toLocaleDateString()}):`;
+    }
+  } else {
+    reminderMessage = `You have <strong>${todos.length} garden task${
+      todos.length !== 1 ? "s" : ""}</strong> for today (${
+      new Date().toLocaleDateString()}):`;
+  }
+
   // Create email HTML content
   const todoListHtml = formatTodoList(todos)
       .split("\n")
@@ -170,8 +191,7 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
         </p>
         <p style="font-size: 14px; color: #6b7280; 
         margin-bottom: 20px;">
-          You have <strong>${todos.length} garden task${
-  todos.length !== 1 ? "s" : ""}</strong> that need your attention:
+          ${reminderMessage}
         </p>
         <ul style="list-style: none; padding: 0; margin: 20px 0;">
           ${todoListHtml}
@@ -190,6 +210,20 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
     </div>
   `;
 
+  // Create plain text version with appropriate message
+  let plainTextMessage = "";
+  if (reminderType.includes("Advance")) {
+    const match = reminderType.match(/(\d+)-Day/);
+    const daysAhead = match ? parseInt(match[1], 10) : 0;
+    plainTextMessage = `You have ${todos.length} garden task${
+      todos.length !== 1 ? "s" : ""} coming up in ${daysAhead} day${
+      daysAhead !== 1 ? "s" : ""} (${contextDate.toLocaleDateString()})`;
+  } else {
+    plainTextMessage = `You have ${todos.length} garden task${
+      todos.length !== 1 ? "s" : ""} for today (${
+      new Date().toLocaleDateString()})`;
+  }
+
   const msg = {
     to: userEmail,
     from: {
@@ -199,9 +233,7 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
     subject: `${reminderType} - ${todos.length} Task${
       todos.length !== 1 ? "s" : ""} for Your Garden`,
     text: `Hi ${userName || "Garden Friend"}!\n\n` +
-          `You have ${todos.length} garden task${
-            todos.length !== 1 ? "s" : ""} ` +
-          `that need your attention:\n\n` +
+          `${plainTextMessage}:\n\n` +
           formatTodoList(todos) +
           `\n\nHappy Gardening!\n- Happy Tomato Garden Planner`,
     html: htmlContent,

@@ -46,6 +46,28 @@ class EmailService {
     }
 
     try {
+      // Determine the context date based on reminder type
+      let contextDate = new Date();
+      if (params.reminderType && params.reminderType.includes('Advance')) {
+        // Extract days from reminder type (e.g., "3-Day Advance Garden Reminder")
+        const match = params.reminderType.match(/(\d+)-Day/);
+        if (match) {
+          const daysAhead = parseInt(match[1], 10);
+          contextDate = new Date();
+          contextDate.setDate(contextDate.getDate() + daysAhead);
+        }
+      }
+      
+      // Create a more descriptive message based on reminder type
+      let reminderMessage = '';
+      if (params.reminderType && params.reminderType.includes('Advance')) {
+        const match = params.reminderType.match(/(\d+)-Day/);
+        const days = match ? match[1] : '';
+        reminderMessage = `You have ${params.todos.length} task${params.todos.length !== 1 ? 's' : ''} coming up in ${days} day${days !== '1' ? 's' : ''} (${contextDate.toLocaleDateString()})`;
+      } else {
+        reminderMessage = `You have ${params.todos.length} task${params.todos.length !== 1 ? 's' : ''} for today (${new Date().toLocaleDateString()})`;
+      }
+      
       const templateParams = {
         to_email: params.userEmail,
         to_name: params.userName || 'Garden Friend',
@@ -53,6 +75,8 @@ class EmailService {
         todo_count: params.todos.length,
         todo_list: this.formatTodoList(params.todos, params.reminderType),
         today_date: new Date().toLocaleDateString(),
+        context_date: contextDate.toLocaleDateString(),
+        reminder_message: reminderMessage,
         app_name: 'Happy Tomato Garden Planner'
       };
 
