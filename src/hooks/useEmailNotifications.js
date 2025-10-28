@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext, useCallback } from 'react';
 import GlobalContext from '../context/GlobalContext';
 import emailService from '../services/emailService';
 import dayjs from 'dayjs';
@@ -38,7 +38,7 @@ export const useEmailNotifications = () => {
   /**
    * Sync preferences to Firestore for Cloud Functions
    */
-  const syncPreferencesToFirestore = async (preferences) => {
+  const syncPreferencesToFirestore = useCallback(async (preferences) => {
     try {
       // Use email as document ID (or user ID if you have authentication)
       const docId = preferences.userEmail.replace(/[.#$[\]]/g, '_'); // Sanitize email for Firestore
@@ -52,7 +52,7 @@ export const useEmailNotifications = () => {
     } catch (error) {
       console.error('❌ Failed to sync preferences to Firestore:', error);
     }
-  };
+  }, []); // No dependencies - uses parameter directly
 
   // Save preferences to localStorage whenever they change
   useEffect(() => {
@@ -63,7 +63,7 @@ export const useEmailNotifications = () => {
    * Load preferences from Firestore and sync with local state
    * This can be called on mount or manually to refresh
    */
-  const loadFromFirestore = async () => {
+  const loadFromFirestore = useCallback(async () => {
     const saved = localStorage.getItem('email-preferences');
     if (!saved) {
       console.log('⚠️ No local preferences found, skipping Firestore sync');
@@ -131,12 +131,12 @@ export const useEmailNotifications = () => {
     } catch (error) {
       console.error('❌ Failed to load preferences from Firestore:', error);
     }
-  };
+  }, [syncPreferencesToFirestore]);
 
   // Load preferences from Firestore on mount (to sync across devices)
   useEffect(() => {
     loadFromFirestore();
-  }, []); // Run once on mount
+  }, [loadFromFirestore]); // Run once on mount
 
   // Also check Firestore periodically (every 30 seconds) to catch updates from other devices
   useEffect(() => {
@@ -148,7 +148,7 @@ export const useEmailNotifications = () => {
     }, 30000); // Check every 30 seconds
 
     return () => clearInterval(intervalId);
-  }, [emailPreferences.userEmail]); // Re-create interval if email changes
+  }, [emailPreferences.userEmail, loadFromFirestore]); // Re-create interval if email changes
 
   /**
    * Update email preferences
