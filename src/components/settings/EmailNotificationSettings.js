@@ -337,6 +337,16 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
             </Card.Body>
           </Card>
 
+          {/* Sync Info */}
+          <Alert variant="info" className="mb-3">
+            <strong>📡 Auto-Sync Active</strong>
+            <br />
+            <small>
+              Settings automatically sync across all devices every 30 seconds.
+              No manual action needed!
+            </small>
+          </Alert>
+
           {/* Debug Panel */}
           <DebugPanel 
             emailPreferences={emailPreferences}

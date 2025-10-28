@@ -59,67 +59,96 @@ export const useEmailNotifications = () => {
     localStorage.setItem('email-preferences', JSON.stringify(emailPreferences));
   }, [emailPreferences]);
 
+  /**
+   * Load preferences from Firestore and sync with local state
+   * This can be called on mount or manually to refresh
+   */
+  const loadFromFirestore = async () => {
+    const saved = localStorage.getItem('email-preferences');
+    if (!saved) {
+      console.log('⚠️ No local preferences found, skipping Firestore sync');
+      return;
+    }
+    
+    const localPrefs = JSON.parse(saved);
+    if (!localPrefs.userEmail) {
+      console.log('⚠️ No email configured, skipping Firestore sync');
+      return;
+    }
+    
+    try {
+      console.log('🔄 Checking Firestore for updated preferences...');
+      const docId = localPrefs.userEmail.replace(/[.#$[\]]/g, '_');
+      const docRef = doc(db, 'emailPreferences', docId);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const firestorePrefs = docSnap.data();
+        
+        // Check if Firestore has a newer version
+        const localUpdated = localPrefs.updatedAt || 0;
+        const firestoreUpdated = firestorePrefs.updatedAt || 0;
+        
+        console.log('📊 Version comparison:', {
+          local: { time: localUpdated, reminderTime: localPrefs.reminderTime },
+          firestore: { time: firestoreUpdated, reminderTime: firestorePrefs.reminderTime }
+        });
+        
+        if (firestoreUpdated > localUpdated) {
+          console.log('📥 Loading newer preferences from Firestore', {
+            firestoreTime: firestoreUpdated,
+            localTime: localUpdated,
+            reminderTime: firestorePrefs.reminderTime
+          });
+          
+          // Update local state with Firestore data
+          setEmailPreferences(prev => ({
+            ...prev,
+            ...firestorePrefs,
+            // Preserve local-only timestamps if they're more recent
+            lastReminderSent: Math.max(prev.lastReminderSent || 0, firestorePrefs.lastReminderSent || 0),
+            lastAdvanceReminderSent: Math.max(prev.lastAdvanceReminderSent || 0, firestorePrefs.lastAdvanceReminderSent || 0),
+            lastAutoReminderSent: firestorePrefs.lastAutoReminderSent || prev.lastAutoReminderSent,
+            lastAutoAdvanceReminderSent: firestorePrefs.lastAutoAdvanceReminderSent || prev.lastAutoAdvanceReminderSent
+          }));
+        } else {
+          console.log('📤 Local preferences are up to date or newer', {
+            firestoreTime: firestoreUpdated,
+            localTime: localUpdated
+          });
+          
+          // Sync local to Firestore if local is newer
+          if (localUpdated > firestoreUpdated) {
+            console.log('📤 Syncing newer local preferences to Firestore');
+            syncPreferencesToFirestore(localPrefs);
+          }
+        }
+      } else {
+        console.log('📤 No Firestore preferences found, syncing local to Firestore');
+        // No Firestore data yet, sync local to Firestore
+        syncPreferencesToFirestore(localPrefs);
+      }
+    } catch (error) {
+      console.error('❌ Failed to load preferences from Firestore:', error);
+    }
+  };
+
   // Load preferences from Firestore on mount (to sync across devices)
   useEffect(() => {
-    const loadFromFirestore = async () => {
-      const saved = localStorage.getItem('email-preferences');
-      if (!saved) return; // No local preferences yet
-      
-      const localPrefs = JSON.parse(saved);
-      if (!localPrefs.userEmail) return; // No email configured yet
-      
-      try {
-        const docId = localPrefs.userEmail.replace(/[.#$[\]]/g, '_');
-        const docRef = doc(db, 'emailPreferences', docId);
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          const firestorePrefs = docSnap.data();
-          
-          // Check if Firestore has a newer version
-          const localUpdated = localPrefs.updatedAt || 0;
-          const firestoreUpdated = firestorePrefs.updatedAt || 0;
-          
-          if (firestoreUpdated > localUpdated) {
-            console.log('📥 Loading newer preferences from Firestore', {
-              firestoreTime: firestoreUpdated,
-              localTime: localUpdated,
-              reminderTime: firestorePrefs.reminderTime
-            });
-            
-            // Update local state with Firestore data
-            setEmailPreferences(prev => ({
-              ...prev,
-              ...firestorePrefs,
-              // Preserve local-only timestamps if they're more recent
-              lastReminderSent: Math.max(prev.lastReminderSent || 0, firestorePrefs.lastReminderSent || 0),
-              lastAdvanceReminderSent: Math.max(prev.lastAdvanceReminderSent || 0, firestorePrefs.lastAdvanceReminderSent || 0),
-              lastAutoReminderSent: firestorePrefs.lastAutoReminderSent || prev.lastAutoReminderSent,
-              lastAutoAdvanceReminderSent: firestorePrefs.lastAutoAdvanceReminderSent || prev.lastAutoAdvanceReminderSent
-            }));
-          } else {
-            console.log('📤 Local preferences are up to date or newer', {
-              firestoreTime: firestoreUpdated,
-              localTime: localUpdated
-            });
-            
-            // Sync local to Firestore if local is newer
-            if (localUpdated > firestoreUpdated) {
-              syncPreferencesToFirestore(localPrefs);
-            }
-          }
-        } else {
-          console.log('📤 No Firestore preferences found, syncing local to Firestore');
-          // No Firestore data yet, sync local to Firestore
-          syncPreferencesToFirestore(localPrefs);
-        }
-      } catch (error) {
-        console.error('❌ Failed to load preferences from Firestore:', error);
-      }
-    };
-    
     loadFromFirestore();
   }, []); // Run once on mount
+
+  // Also check Firestore periodically (every 30 seconds) to catch updates from other devices
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (emailPreferences.userEmail) {
+        console.log('🔄 Periodic Firestore sync check...');
+        loadFromFirestore();
+      }
+    }, 30000); // Check every 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [emailPreferences.userEmail]); // Re-create interval if email changes
 
   /**
    * Update email preferences
@@ -576,6 +605,7 @@ export const useEmailNotifications = () => {
     updateEmailPreferences,
     resetEmailPreferences,
     forceUpdateReminderTime,
+    loadFromFirestore,
     getDueTodos,
     getOverdueTodos,
     getUpcomingTodos,
