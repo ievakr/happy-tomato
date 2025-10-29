@@ -60,7 +60,8 @@ function formatTodoList(todos, isAdvanceReminder = false, advanceDays = 0) {
     if (isAdvanceReminder) {
       // For advance reminders, show status relative to the advance date
       statusEmoji = "📅";
-      statusText = ` - Coming up in ${advanceDays} day${advanceDays !== 1 ? "s" : ""}`;
+      const dayWord = advanceDays !== 1 ? "s" : "";
+      statusText = ` - Coming up in ${advanceDays} day${dayWord}`;
     } else if (dueDateObj < today) {
       statusEmoji = "⚠️";
       statusText = " - OVERDUE";
@@ -290,18 +291,6 @@ exports.sendDailyReminders = functions.pubsub
           return null;
         }
 
-        // Get all events
-        const eventsSnapshot = await admin.firestore()
-            .collection("events")
-            .get();
-
-        const events = eventsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        console.log(`Found ${events.length} events`);
-
         // Process each user
         for (const prefDoc of prefsSnapshot.docs) {
           const prefs = prefDoc.data();
@@ -333,8 +322,23 @@ exports.sendDailyReminders = functions.pubsub
             continue;
           }
 
+          // Get user's events only
+          const eventsSnapshot = await admin.firestore()
+              .collection("events")
+              .where("userId", "==", userId)
+              .get();
+
+          const userEvents = eventsSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
+          console.log(
+              `Found ${userEvents.length} events for ${prefs.userEmail}`,
+          );
+
           // Get due/overdue TODOs
-          const dueTodos = getDueAndOverdueTodos(events);
+          const dueTodos = getDueAndOverdueTodos(userEvents);
 
           if (dueTodos.length === 0) {
             console.log(`No due TODOs for ${prefs.userEmail}`);
@@ -403,16 +407,6 @@ exports.sendAdvanceReminders = functions.pubsub
           return null;
         }
 
-        // Get all events
-        const eventsSnapshot = await admin.firestore()
-            .collection("events")
-            .get();
-
-        const events = eventsSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
         // Process each user
         for (const prefDoc of prefsSnapshot.docs) {
           const prefs = prefDoc.data();
@@ -441,9 +435,24 @@ exports.sendAdvanceReminders = functions.pubsub
             continue;
           }
 
+          // Get user's events only
+          const eventsSnapshot = await admin.firestore()
+              .collection("events")
+              .where("userId", "==", userId)
+              .get();
+
+          const userEvents = eventsSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
+          console.log(
+              `Found ${userEvents.length} events for ${prefs.userEmail}`,
+          );
+
           // Get advance TODOs
           const advanceDays = prefs.advanceDays || 3;
-          const advanceTodos = getTodosInAdvance(events, advanceDays);
+          const advanceTodos = getTodosInAdvance(userEvents, advanceDays);
 
           if (advanceTodos.length === 0) {
             console.log(`No advance TODOs for ${prefs.userEmail}`);
