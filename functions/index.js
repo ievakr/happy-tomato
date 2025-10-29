@@ -19,9 +19,11 @@ admin.initializeApp();
 /**
  * Format TODO list for email
  * @param {Array} todos - Array of TODO objects
+ * @param {boolean} isAdvanceReminder - Whether this is an advance reminder
+ * @param {number} advanceDays - Number of days in advance (if applicable)
  * @return {string} Formatted TODO list string
  */
-function formatTodoList(todos) {
+function formatTodoList(todos, isAdvanceReminder = false, advanceDays = 0) {
   if (!todos || todos.length === 0) {
     return "No TODOs found.";
   }
@@ -46,7 +48,7 @@ function formatTodoList(todos) {
       todo.labels.join(", ") :
       "";
 
-    // Determine status
+    // Determine status relative to today (not advance date)
     const today = new Date();
     const dueDateObj = new Date(todo.day);
     today.setHours(0, 0, 0, 0);
@@ -55,7 +57,11 @@ function formatTodoList(todos) {
     let statusEmoji = "📝";
     let statusText = "";
 
-    if (dueDateObj < today) {
+    if (isAdvanceReminder) {
+      // For advance reminders, show status relative to the advance date
+      statusEmoji = "📅";
+      statusText = ` - Coming up in ${advanceDays} day${advanceDays !== 1 ? "s" : ""}`;
+    } else if (dueDateObj < today) {
       statusEmoji = "⚠️";
       statusText = " - OVERDUE";
     } else if (dueDateObj.getTime() === today.getTime()) {
@@ -154,12 +160,15 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
   // Determine the context date and message based on reminder type
   let contextDate = new Date();
   let reminderMessage = "";
+  let isAdvanceReminder = false;
+  let daysAhead = 0;
 
   if (reminderType.includes("Advance")) {
     // Extract days from reminder type (e.g., "3-Day Advance Garden Reminder")
     const match = reminderType.match(/(\d+)-Day/);
     if (match) {
-      const daysAhead = parseInt(match[1], 10);
+      isAdvanceReminder = true;
+      daysAhead = parseInt(match[1], 10);
       contextDate = new Date();
       contextDate.setDate(contextDate.getDate() + daysAhead);
       reminderMessage = `You have <strong>${todos.length} garden task${
@@ -173,7 +182,7 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
   }
 
   // Create email HTML content
-  const todoListHtml = formatTodoList(todos)
+  const todoListHtml = formatTodoList(todos, isAdvanceReminder, daysAhead)
       .split("\n")
       .map((line) => `<li style="margin: 10px 0;">${line}</li>`)
       .join("");
@@ -212,9 +221,7 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
 
   // Create plain text version with appropriate message
   let plainTextMessage = "";
-  if (reminderType.includes("Advance")) {
-    const match = reminderType.match(/(\d+)-Day/);
-    const daysAhead = match ? parseInt(match[1], 10) : 0;
+  if (isAdvanceReminder) {
     plainTextMessage = `You have ${todos.length} garden task${
       todos.length !== 1 ? "s" : ""} coming up in ${daysAhead} day${
       daysAhead !== 1 ? "s" : ""} (${contextDate.toLocaleDateString()})`;
@@ -234,7 +241,7 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
       todos.length !== 1 ? "s" : ""} for Your Garden`,
     text: `Hi ${userName || "Garden Friend"}!\n\n` +
           `${plainTextMessage}:\n\n` +
-          formatTodoList(todos) +
+          formatTodoList(todos, isAdvanceReminder, daysAhead) +
           `\n\nHappy Gardening!\n- Happy Tomato Garden Planner`,
     html: htmlContent,
   };
