@@ -322,16 +322,34 @@ exports.sendDailyReminders = functions.pubsub
             continue;
           }
 
-          // Get user's events only
+          // Get user's events - try by userId first,
+          // then fallback to all events
           const eventsSnapshot = await admin.firestore()
               .collection("events")
               .where("userId", "==", userId)
               .get();
 
-          const userEvents = eventsSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
+          let userEvents = [];
+
+          // If no events found by userId,
+          // get all events (for backward compatibility)
+          if (eventsSnapshot.empty) {
+            console.log(
+                `No events with userId field, fetching all events...`,
+            );
+            const allEventsSnapshot = await admin.firestore()
+                .collection("events")
+                .get();
+            userEvents = allEventsSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+          } else {
+            userEvents = eventsSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+          }
 
           console.log(
               `Found ${userEvents.length} events for ${prefs.userEmail}`,
@@ -412,14 +430,28 @@ exports.sendAdvanceReminders = functions.pubsub
           const prefs = prefDoc.data();
           const userId = prefDoc.id;
 
+          console.log(
+              `\n👤 Checking user: ${prefs.userEmail}`,
+          );
+          console.log(
+              `   Settings: advanceDays=${prefs.advanceDays || 3}, ` +
+              `reminderTime=${prefs.reminderTime}`,
+          );
+
           // Parse reminder time
           const [reminderHour] =
             prefs.reminderTime.split(":").map(Number);
 
           // Check if it's time to send (within the current hour)
           if (currentHour !== reminderHour) {
+            console.log(
+                `   ⏰ Not time yet (wants ${reminderHour}:00, ` +
+                `now is ${currentHour}:00)`,
+            );
             continue;
           }
+
+          console.log(`   ✅ It's the right hour!`);
 
           // Check if we already sent today
           const lastSent = prefs.lastAutoAdvanceReminderSent ?
@@ -429,22 +461,49 @@ exports.sendAdvanceReminders = functions.pubsub
             ) : null;
           if (lastSent && lastSent.isSame(now, "day")) {
             console.log(
-                `Already sent advance reminder to ${prefs.userEmail} ` +
-                `today (last sent: ${lastSent.format("YYYY-MM-DD HH:mm")})`,
+                `   ⚠️  Already sent advance reminder today ` +
+                `(last sent: ${lastSent.format("YYYY-MM-DD HH:mm")})`,
             );
             continue;
           }
 
-          // Get user's events only
+          if (lastSent) {
+            console.log(
+                `   ✅ Last sent: ${lastSent.format("YYYY-MM-DD HH:mm")} ` +
+                `(not today)`,
+            );
+          } else {
+            console.log(`   ✅ Never sent before`);
+          }
+
+          // Get user's events - try by userId first,
+          // then fallback to all events
           const eventsSnapshot = await admin.firestore()
               .collection("events")
               .where("userId", "==", userId)
               .get();
 
-          const userEvents = eventsSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
+          let userEvents = [];
+
+          // If no events found by userId,
+          // get all events (for backward compatibility)
+          if (eventsSnapshot.empty) {
+            console.log(
+                `   ℹ️  No events with userId field, fetching all events...`,
+            );
+            const allEventsSnapshot = await admin.firestore()
+                .collection("events")
+                .get();
+            userEvents = allEventsSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+          } else {
+            userEvents = eventsSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+          }
 
           console.log(
               `Found ${userEvents.length} events for ${prefs.userEmail}`,
@@ -452,15 +511,60 @@ exports.sendAdvanceReminders = functions.pubsub
 
           // Get advance TODOs
           const advanceDays = prefs.advanceDays || 3;
+          const targetDate = dayjs.tz(new Date(), "Europe/Vilnius")
+              .add(advanceDays, "days")
+              .startOf("day");
+
+          console.log(
+              `   🎯 Looking for TODOs on ${targetDate.format("YYYY-MM-DD")} ` +
+              `(${advanceDays} days from now)`,
+          );
+
           const advanceTodos = getTodosInAdvance(userEvents, advanceDays);
 
           if (advanceTodos.length === 0) {
-            console.log(`No advance TODOs for ${prefs.userEmail}`);
+            console.log(
+                `   ⚠️  No TODOs found for ${targetDate.format("YYYY-MM-DD")}`,
+            );
+
+            // Show all TODO dates for debugging
+            const allTodos = userEvents.filter((evt) => {
+              const isTodoEvent = evt.isRecurringTodo ||
+                (typeof evt.title === "string" &&
+                 evt.title.startsWith("TO DO:")) ||
+                (typeof evt.toDo === "string" &&
+                 evt.toDo.startsWith("TO DO:"));
+              return isTodoEvent && !evt.completed;
+            });
+
+            if (allTodos.length > 0) {
+              console.log(`   📋 All TODO dates:`);
+              const todoDates = new Set();
+              allTodos.forEach((todo) => {
+                const date = dayjs.tz(todo.day, "Europe/Vilnius")
+                    .format("YYYY-MM-DD");
+                todoDates.add(date);
+              });
+              [...todoDates].sort().forEach((date) => {
+                const count = allTodos.filter((t) =>
+                  dayjs.tz(t.day, "Europe/Vilnius")
+                      .format("YYYY-MM-DD") === date,
+                ).length;
+                console.log(`      ${date}: ${count} TODO(s)`);
+              });
+            } else {
+              console.log(`   📋 No TODOs at all for this user`);
+            }
             continue;
           }
 
-          console.log(`📧 Sending ${advanceDays}-day advance reminder to ` +
-            `${prefs.userEmail} (${advanceTodos.length} TODOs)`);
+          console.log(
+              `   ✅ Found ${advanceTodos.length} TODO(s) for target date`,
+          );
+          console.log(
+              `📧 Sending ${advanceDays}-day advance reminder to ` +
+              `${prefs.userEmail}`,
+          );
 
           // Send email
           const success = await sendEmail(

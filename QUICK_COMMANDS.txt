@@ -1,0 +1,72 @@
+═══════════════════════════════════════════════════════════════
+  ADVANCE REMINDER - QUICK COMMAND REFERENCE
+═══════════════════════════════════════════════════════════════
+
+✅ DEPLOYMENT COMPLETE - Enhanced logging is now live!
+
+───────────────────────────────────────────────────────────────
+📋 CHECK LOGS
+───────────────────────────────────────────────────────────────
+
+# View last 50 logs
+firebase functions:log --only sendAdvanceReminders -n 50
+
+# View last 100 logs
+firebase functions:log --only sendAdvanceReminders -n 100
+
+# Open logs in browser
+firebase functions:log --only sendAdvanceReminders --open
+
+───────────────────────────────────────────────────────────────
+🔍 CHECK SETTINGS
+───────────────────────────────────────────────────────────────
+
+# Open Firestore Console
+open https://console.firebase.google.com/project/happytomato-c4fed/firestore/data/emailPreferences
+
+Look for: advanceDays (should be 1, not 3!)
+
+───────────────────────────────────────────────────────────────
+🧪 RUN DIAGNOSTIC
+───────────────────────────────────────────────────────────────
+
+cd /Users/ievak/happy-tomato/functions
+node diagnose-advance-reminders.js
+
+(First time: download service account key from Firebase Console)
+
+───────────────────────────────────────────────────────────────
+📖 READ DOCUMENTATION
+───────────────────────────────────────────────────────────────
+
+Quick Start:  FIX_ADVANCE_REMINDER_NOW.md
+Commands:     QUICK_DEBUG_COMMANDS.md
+Deployment:   DEPLOYMENT_COMPLETE_ADVANCE_REMINDERS.md
+Full Guide:   ADVANCE_REMINDER_FIX_SUMMARY.md
+Visual:       ADVANCE_REMINDER_EXPLAINED.md
+Index:        ADVANCE_REMINDER_INDEX.md
+
+───────────────────────────────────────────────────────────────
+🎯 MOST LIKELY ISSUE
+───────────────────────────────────────────────────────────────
+
+advanceDays is 3 instead of 1 in Firestore
+
+Fix: App → Email Settings → Change to 2 → Save → Change to 1 → Save
+
+───────────────────────────────────────────────────────────────
+✨ WHAT'S NEW
+───────────────────────────────────────────────────────────────
+
+✅ Enhanced logging shows:
+   - User settings (advanceDays, reminderTime)
+   - Target date calculation
+   - All TODO dates
+   - Why emails are/aren't sent
+
+✅ Upgraded to Node.js 20
+
+✅ Diagnostic script ready to use
+
+═══════════════════════════════════════════════════════════════
+
