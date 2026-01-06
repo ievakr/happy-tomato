@@ -2,9 +2,10 @@ import React, {useEffect, useReducer, useState, useMemo} from "react";
 import GlobalContext from "./GlobalContext";
 import dayjs from "dayjs";
 import { db } from "../firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, query, where } from "firebase/firestore";
 import errorLogger from "../utils/errorLogger";
 import { PLANT_LABELS } from "../constants";
+import { useAuth } from "./AuthContext";
 
 function savedEventsReducer(state, { type, payload }) {
     switch (type) {
@@ -21,21 +22,29 @@ function savedEventsReducer(state, { type, payload }) {
     }
   }  
 
-async function fetchEvents() {
+async function fetchEvents(userId) {
     try {
-        console.log('Fetching events from Firebase...');
-        const snapshot = await getDocs(collection(db, "events"));
+        console.log('Fetching events from Firebase for user:', userId);
+        
+        // Query events filtered by userId
+        const eventsQuery = query(
+            collection(db, "events"),
+            where("userId", "==", userId)
+        );
+        
+        const snapshot = await getDocs(eventsQuery);
         const events = snapshot.docs.map(doc => {
             const data = { id: doc.id, ...doc.data() };
             console.log('Fetched event:', data);
             return data;
         });
-        console.log(`Successfully fetched ${events.length} events from Firebase`);
+        console.log(`Successfully fetched ${events.length} events from Firebase for user ${userId}`);
         return events;
     } catch (error) {
         console.error('Error fetching events from Firebase:', error);
         errorLogger.logError(error, null, 'Firebase Fetch Events', { 
             operation: 'fetch',
+            userId: userId,
             timestamp: new Date().toISOString()
         });
         return [];
@@ -43,6 +52,8 @@ async function fetchEvents() {
 }  
 
 export default function ContextWrapper(props) {
+    const { currentUser } = useAuth();
+    
     // Get responsive info to set initial view
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
     
@@ -184,12 +195,21 @@ export default function ContextWrapper(props) {
                   case "push":
                     console.log('=== ADD OPERATION DEBUG ===');
                     console.log('Event to add:', payload);
-                    const addDocRef = await addDoc(collection(db, "events"), payload);
+                    
+                    // Add userId to the event
+                    const eventWithUserId = {
+                        ...payload,
+                        userId: currentUser.uid
+                    };
+                    console.log('Event with userId:', eventWithUserId);
+                    
+                    const addDocRef = await addDoc(collection(db, "events"), eventWithUserId);
                     console.log('✅ Event added to Firebase with ID:', addDocRef.id);
                     console.log('Document path:', addDocRef.path);
                     
-                    // Update the payload with the actual Firebase-generated ID
+                    // Update the payload with the actual Firebase-generated ID and userId
                     payload.id = addDocRef.id;
+                    payload.userId = currentUser.uid;
                     console.log('Updated payload with Firebase ID:', payload);
                     break;
                   case "update":
@@ -271,22 +291,30 @@ export default function ContextWrapper(props) {
     
     useEffect(() => {
         async function loadInitialData() {
+            // Only load events if user is authenticated
+            if (!currentUser) {
+                console.log('No user authenticated, skipping event load');
+                setIsInitialLoading(false);
+                return;
+            }
+            
             // Set initial loading
             setIsInitialLoading(true);
             setIsLoading(true);
             setLoadingOperation('load');
             
             try {
-                console.log('Loading initial events...');
+                console.log('Loading initial events for user:', currentUser.uid);
                 
-                // Use retry logic for initial load as well
-                const events = await retryOperation(fetchEvents, 2);
+                // Use retry logic for initial load as well, passing userId
+                const events = await retryOperation(() => fetchEvents(currentUser.uid), 2);
                 dispatchCallEvent({ type: "load", payload: events });
                 console.log(`Loaded ${events.length} events successfully`);
             } catch (error) {
                 console.error('Failed to load initial events:', error);
                 errorLogger.logError(error, null, 'Initial Data Load', { 
                     operation: 'initial_load',
+                    userId: currentUser?.uid,
                     timestamp: new Date().toISOString()
                 });
                 
@@ -300,7 +328,7 @@ export default function ContextWrapper(props) {
         }
         
         loadInitialData();
-    }, []);
+    }, [currentUser]);
     
       
     useEffect(() => {

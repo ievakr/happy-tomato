@@ -1,10 +1,28 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import CreateEventButton from '../forms/CreateEventButton';
 import Labels from '../calendar/Labels';
 import GlobalContext from '../../context/GlobalContext';
+import EventMigration from '../settings/EventMigration';
+import { countEventsWithoutUser } from '../../utils/migrateEvents';
 
 export default function Sidebar() {
     const { showSidebar, setShowSidebar } = useContext(GlobalContext);
+    const [showMigration, setShowMigration] = useState(false);
+    const [hasUnassignedEvents, setHasUnassignedEvents] = useState(false);
+
+    useEffect(() => {
+        // Check if there are unassigned events on mount
+        const checkEvents = async () => {
+            try {
+                const count = await countEventsWithoutUser();
+                setHasUnassignedEvents(count > 0);
+            } catch (error) {
+                console.error('Error checking for unassigned events:', error);
+            }
+        };
+        
+        checkEvents();
+    }, []);
 
     return (
         <>
@@ -38,7 +56,31 @@ export default function Sidebar() {
                 </div>
                 
                 <Labels />
+
+                {/* Migration button - only show if there are unassigned events */}
+                {hasUnassignedEvents && (
+                    <div className="mt-4 pt-3 border-top">
+                        <button
+                            className="btn btn-warning w-100 btn-sm"
+                            onClick={() => setShowMigration(true)}
+                            title="Migrate or delete events without a user"
+                        >
+                            <span className="material-icons-outlined" style={{ fontSize: '1rem', verticalAlign: 'middle', marginRight: '4px' }}>
+                                warning
+                            </span>
+                            Manage Unassigned Events
+                        </button>
+                    </div>
+                )}
             </aside>
+
+            {/* Migration Modal */}
+            {showMigration && (
+                <EventMigration onClose={() => {
+                    setShowMigration(false);
+                    setHasUnassignedEvents(false);
+                }} />
+            )}
         </>
     );
 }

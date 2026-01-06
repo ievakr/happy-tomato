@@ -136,38 +136,54 @@ service cloud.firestore {
 
 ## User-Specific Data
 
-To make events user-specific, update your event creation/queries:
+Events are now automatically user-specific! The implementation includes:
 
-### When Creating Events
+✅ **Automatic userId Assignment**: When creating events, the current user's ID is automatically added
+✅ **Filtered Queries**: Events are loaded with a `where("userId", "==", currentUserId)` filter
+✅ **Privacy**: Each user only sees their own events
+
+### Migration for Existing Events
+
+If you have existing events created before authentication was added, you'll need to migrate them:
+
+1. **Look for the yellow "Manage Unassigned Events" button** in the sidebar when logged in
+2. Choose to either:
+   - **Claim Events**: Assign all unassigned events to your account
+   - **Delete Events**: Permanently remove all unassigned events
+
+See `EVENT_MIGRATION_GUIDE.md` for detailed migration instructions.
+
+### How It Works
+
+The event system has been updated:
+
+### Implementation Details
+
+**Event Creation** (`src/context/ContextWrapper.js`):
 ```javascript
-import { useAuth } from '../context/AuthContext';
-import { db } from '../firebase';
-import { collection, addDoc } from 'firebase/firestore';
-
-function createEvent(eventData) {
-  const { currentUser } = useAuth();
-  
-  return addDoc(collection(db, 'events'), {
-    ...eventData,
-    userId: currentUser.uid,  // Add user ID
-    createdAt: new Date()
-  });
-}
+// When adding an event, userId is automatically added
+case "push":
+  const eventWithUserId = {
+    ...payload,
+    userId: currentUser.uid  // Automatically added
+  };
+  await addDoc(collection(db, "events"), eventWithUserId);
 ```
 
-### When Querying Events
+**Event Loading** (`src/context/ContextWrapper.js`):
 ```javascript
-import { collection, query, where } from 'firebase/firestore';
-
-function getMyEvents() {
-  const { currentUser } = useAuth();
-  
-  return query(
-    collection(db, 'events'),
-    where('userId', '==', currentUser.uid)  // Filter by user
+// Events are filtered by userId when loading
+async function fetchEvents(userId) {
+  const eventsQuery = query(
+    collection(db, "events"),
+    where("userId", "==", userId)  // Only load user's events
   );
+  const snapshot = await getDocs(eventsQuery);
+  // ... process events
 }
 ```
+
+This means you don't need to manually add `userId` when creating events - it's handled automatically!
 
 ## Styling
 
