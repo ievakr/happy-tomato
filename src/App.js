@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useEffect } from 'react';
 import './styles/variables.css';
 import './App.css';
 import { useCalendar } from './hooks/useCalendar';
@@ -14,6 +14,8 @@ import DailyView from './components/calendar/DailyView';
 import EventModal from './components/forms/EventModal';
 import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay } from './components/common';
 import errorLogger from './utils/errorLogger';
+import { useEmailNotifications } from './hooks/useEmailNotifications';
+import notificationService from './services/notificationService';
 import 'react-tooltip/dist/react-tooltip.css';
 
 /**
@@ -22,10 +24,32 @@ import 'react-tooltip/dist/react-tooltip.css';
 function App() {
   const { currentMonth } = useCalendar();
   const { showEventModal, showSidebar, isInitialLoading, loadingOperation, currentView } = useContext(GlobalContext);
+  const emailNotifications = useEmailNotifications();
 
   const handleError = (error, errorInfo) => {
     errorLogger.logError(error, errorInfo, 'App Component');
   };
+
+  // Initialize notification service
+  useEffect(() => {
+    if (emailNotifications.emailPreferences.enabled) {
+      notificationService.start(emailNotifications);
+    } else {
+      notificationService.stop();
+    }
+    
+    return () => {
+      notificationService.stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emailNotifications.emailPreferences.enabled]);
+  
+  // Update the hook reference on EVERY render to prevent stale closures
+  useEffect(() => {
+    if (notificationService.isRunning) {
+      notificationService.updateEmailHook(emailNotifications);
+    }
+  });
 
   return (
     <ErrorBoundary

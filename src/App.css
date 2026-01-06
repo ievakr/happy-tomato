@@ -36,3 +36,24 @@
     transform: rotate(360deg);
   }
 }
+
+/* Prevent layout shifts on mobile header buttons */
+@media (max-width: 768px) {
+  .calendar-header .btn-group .btn {
+    transition: none !important;
+  }
+  
+  .calendar-header .btn-group .btn:focus,
+  .calendar-header .btn-group .btn:active,
+  .calendar-header .btn-group .btn:focus-visible {
+    box-shadow: none !important;
+    transform: none !important;
+    outline: none !important;
+  }
+  
+  /* Ensure consistent button sizing */
+  .calendar-header .btn-sm {
+    min-width: 30px;
+    min-height: 30px;
+  }
+}

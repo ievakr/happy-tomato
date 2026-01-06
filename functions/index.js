@@ -399,7 +399,7 @@ exports.sendDailyReminders = functions.pubsub
  * Runs every hour and checks if it's time to send advance reminders
  */
 exports.sendAdvanceReminders = functions.pubsub
-    .schedule("0 * * * *") // Every hour at minute 0
+    .schedule("0 * * * *") // Every hour at :00
     .timeZone("Europe/Vilnius") // Change to your timezone
     .onRun(async (context) => {
       console.log("🔍 Checking for advance reminders to send...");

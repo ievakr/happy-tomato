@@ -117,15 +117,30 @@
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .user-menu {
+    flex-shrink: 0;
+  }
+
   .user-menu-dropdown {
     min-width: 200px;
+    right: 0;
   }
 
   .user-avatar,
   .user-avatar-initials {
-    width: 32px;
-    height: 32px;
-    font-size: 13px;
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 390px) {
+  .user-avatar,
+  .user-avatar-initials {
+    width: 26px;
+    height: 26px;
+    font-size: 10px;
   }
 }
 
