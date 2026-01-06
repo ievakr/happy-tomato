@@ -20,15 +20,6 @@ function AccountSettings({ onClose }) {
       return;
     }
 
-    // Final confirmation
-    const finalConfirm = window.confirm(
-      '⚠️ FINAL WARNING: This will permanently delete your account and ALL your data. This action CANNOT be undone. Are you absolutely sure?'
-    );
-
-    if (!finalConfirm) {
-      return;
-    }
-
     try {
       setDeleting(true);
       setError('');
