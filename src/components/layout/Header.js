@@ -6,6 +6,7 @@ import { getWeekByIndex, getWeekDateRange, getCurrentWeekIndex } from '../../uti
 import { useResponsive } from '../../hooks';
 import { useEmailNotifications } from '../../hooks/useEmailNotifications';
 import EmailNotificationSettings from '../settings/EmailNotificationSettings';
+import UserMenu from '../auth/UserMenu';
 import notificationService from '../../services/notificationService';
 
 export default function Header() {
@@ -191,10 +192,10 @@ export default function Header() {
                         </div>
                         
                         {/* Right side: View buttons and settings */}
-                        <div className="d-flex align-items-center">
+                        <div className="d-flex align-items-center gap-2">
                             {/* Email notification settings button */}
                             <button 
-                                className="btn btn-sm btn-outline-secondary me-2"
+                                className="btn btn-sm btn-outline-secondary"
                                 onClick={() => setShowEmailSettings(true)}
                                 title="Email notification settings"
                                 style={{
@@ -239,6 +240,9 @@ export default function Header() {
                                     <span>{isVerySmallScreen ? 'D' : 'Day'}</span>
                                 </button>
                             </div>
+                            
+                            {/* User menu */}
+                            <UserMenu />
                         </div>
                     </div>
                     
@@ -309,10 +313,10 @@ export default function Header() {
             
             {/* Desktop controls */}
             {!isMobile && (
-                <div className="d-flex align-items-center ms-auto">
+                <div className="d-flex align-items-center ms-auto gap-2">
                     {/* Email notification settings button */}
                     <button 
-                        className="btn btn-sm btn-outline-secondary me-2"
+                        className="btn btn-sm btn-outline-secondary"
                         onClick={() => setShowEmailSettings(true)}
                         title="Email notification settings"
                         style={{
@@ -353,6 +357,9 @@ export default function Header() {
                             <span>Week</span>
                         </button>
                     </div>
+                    
+                    {/* User menu */}
+                    <UserMenu />
                 </div>
             )}
             
