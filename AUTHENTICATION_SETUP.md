@@ -10,6 +10,7 @@ This document explains the Firebase Authentication implementation in the Happy T
 ✅ User Profile Management
 ✅ Protected Routes
 ✅ User Menu with Logout
+✅ Account Deletion with Data Cleanup
 
 ## What Was Added
 
@@ -223,6 +224,30 @@ To test authentication:
 - Check that AuthProvider is wrapping your app in index.js
 - Ensure auth state listener is working in AuthContext
 
+## Account Deletion
+
+Users can permanently delete their accounts:
+
+1. Click avatar/initials in header
+2. Select "Account Settings"
+3. Navigate to "Danger Zone"
+4. Click "Delete Account"
+5. Confirm with password (or Google reauthentication)
+6. Account and all data are permanently deleted
+
+See `ACCOUNT_DELETION.md` for complete documentation.
+
+### What Gets Deleted
+- ✅ User authentication account
+- ✅ All user events
+- ✅ All user data
+
+### Security
+- Requires reauthentication before deletion
+- Email/password users must enter password
+- Google users must reauthenticate with popup
+- Cannot be undone
+
 ## Next Steps (Optional)
 
 Consider adding:
@@ -233,7 +258,7 @@ Consider adding:
 - Phone authentication
 - Custom user profiles
 - Profile picture upload
-- Account deletion
+- Data export (before deletion)
 
 ## Resources
 

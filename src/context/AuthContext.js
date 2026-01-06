@@ -7,7 +7,11 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendPasswordResetEmail,
-  updateProfile
+  updateProfile,
+  deleteUser,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  reauthenticateWithPopup
 } from 'firebase/auth';
 import { auth } from '../firebase';
 
@@ -99,6 +103,62 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Reauthenticate user (required before sensitive operations like delete)
+  async function reauthenticate(password = null) {
+    try {
+      setError(null);
+      if (!currentUser) {
+        throw new Error('No user logged in');
+      }
+
+      // Check if user signed in with Google
+      const isGoogleUser = currentUser.providerData.some(
+        provider => provider.providerId === 'google.com'
+      );
+
+      if (isGoogleUser) {
+        // Reauthenticate with Google
+        const provider = new GoogleAuthProvider();
+        await reauthenticateWithPopup(currentUser, provider);
+      } else {
+        // Reauthenticate with email/password
+        if (!password) {
+          throw new Error('Password required for reauthentication');
+        }
+        const credential = EmailAuthProvider.credential(
+          currentUser.email,
+          password
+        );
+        await reauthenticateWithCredential(currentUser, credential);
+      }
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }
+
+  // Delete user account
+  async function deleteAccount(password = null) {
+    try {
+      setError(null);
+      if (!currentUser) {
+        throw new Error('No user logged in');
+      }
+
+      // Reauthenticate first (required by Firebase for security)
+      await reauthenticate(password);
+
+      // Delete the user account
+      await deleteUser(currentUser);
+      
+      // User is automatically signed out after deletion
+      setCurrentUser(null);
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
@@ -116,6 +176,8 @@ export function AuthProvider({ children }) {
     logout,
     resetPassword,
     updateUserProfile,
+    reauthenticate,
+    deleteAccount,
     error,
     clearError: () => setError(null)
   };
