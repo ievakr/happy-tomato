@@ -31,11 +31,12 @@ service cloud.firestore {
                      resource.data.userId == request.auth.uid;
       
       // Users can create events only with their own userId
+      // The day field can be either a string (date string) or number (timestamp)
       allow create: if isAuthenticated() && 
                       isSettingOwnUserId() &&
                       request.resource.data.keys().hasAll(['userId', 'day']) &&
                       request.resource.data.userId is string &&
-                      request.resource.data.day is string;
+                      (request.resource.data.day is string || request.resource.data.day is number);
       
       // Users can update their own events, but cannot change userId
       allow update: if isAuthenticated() && 
