@@ -48,17 +48,35 @@ export default function Header() {
     }, [isMobile, currentView, switchToDailyView, switchToWeekView]);
     
     function handlePrevMonth() {
-        setMonthIndex(monthIndex - 1)
+        const newMonth = monthIndex - 1;
+        setMonthIndex(newMonth);
         // Reset week index when changing months
         if (currentView === 'week') {
             setWeekIndex(0);
         }
+        // Update selected day for daily view - preserve day of month
+        if (currentView === 'daily') {
+            const currentDay = daySelected || dayjs();
+            const dayOfMonth = currentDay.date();
+            // Try to set the same day of month, dayjs will handle invalid dates
+            const newDay = dayjs(new Date(dayjs().year(), newMonth, dayOfMonth));
+            setDaySelected(newDay);
+        }
     }
     function handleNextMonth() {
-        setMonthIndex(monthIndex + 1)
+        const newMonth = monthIndex + 1;
+        setMonthIndex(newMonth);
         // Reset week index when changing months
         if (currentView === 'week') {
             setWeekIndex(0);
+        }
+        // Update selected day for daily view - preserve day of month
+        if (currentView === 'daily') {
+            const currentDay = daySelected || dayjs();
+            const dayOfMonth = currentDay.date();
+            // Try to set the same day of month, dayjs will handle invalid dates
+            const newDay = dayjs(new Date(dayjs().year(), newMonth, dayOfMonth));
+            setDaySelected(newDay);
         }
     }
     
@@ -113,7 +131,6 @@ export default function Header() {
     function switchToMonthView() {
         setCurrentView('month');
     }
-    
 
     
     function getCurrentDisplayTitle() {
@@ -218,8 +235,39 @@ export default function Header() {
                         </div>
                     </div>
                     
-                    {/* Mobile: Second row with navigation and month title */}
-                    <div className="d-flex align-items-center justify-content-center">
+                    {/* Mobile: Month navigation row (for daily and weekly views) */}
+                    {(currentView === 'daily' || currentView === 'week') && (
+                        <div className="d-flex align-items-center justify-content-center my-2">
+                            <button 
+                                className="btn btn-sm btn-outline-danger" 
+                                onClick={handlePrevMonth}
+                                aria-label="Previous month"
+                                style={{ padding: '0.25rem 0.5rem' }}
+                            >
+                                <span className="material-icons-outlined" style={{ fontSize: '1.2rem' }}>
+                                    chevron_left
+                                </span>
+                            </button>
+                            
+                            <h6 className="mb-0 fw-bold text-center flex-grow-1 mx-2">
+                                {dayjs(new Date(dayjs().year(), monthIndex)).format("MMMM YYYY")}
+                            </h6>
+                            
+                            <button 
+                                className="btn btn-sm btn-outline-danger" 
+                                onClick={handleNextMonth}
+                                aria-label="Next month"
+                                style={{ padding: '0.25rem 0.5rem' }}
+                            >
+                                <span className="material-icons-outlined" style={{ fontSize: '1.2rem' }}>
+                                    chevron_right
+                                </span>
+                            </button>
+                        </div>
+                    )}
+                    
+                    {/* Mobile: Day/Week navigation row */}
+                    <div className="d-flex align-items-center justify-content-center mt-2">
                         <button 
                             className="btn btn-sm me-2" 
                             onClick={getNavigationHandler('prev')}

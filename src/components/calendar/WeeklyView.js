@@ -266,7 +266,7 @@ const WeeklyView = () => {
               Delete "{eventToDelete.title || eventToDelete.toDo}"?
             </p>
             <p className="mb-4 text-muted small">This action cannot be undone.</p>
-            <div className="d-flex justify-content-end gap-2">
+            <div className="d-flex gap-2">
               <button 
                 type="button" 
                 className="btn btn-sm btn-outline-secondary"
@@ -275,6 +275,7 @@ const WeeklyView = () => {
                   setEventToDelete(null);
                 }}
                 disabled={isLoading}
+                style={{ flex: '1' }}
               >
                 Cancel
               </button>
@@ -283,6 +284,7 @@ const WeeklyView = () => {
                 className="btn btn-sm btn-danger"
                 onClick={confirmDelete}
                 disabled={isLoading}
+                style={{ flex: '1' }}
               >
                 {isLoading && loadingOperation === 'delete' ? (
                   <>

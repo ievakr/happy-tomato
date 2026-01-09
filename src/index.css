@@ -266,7 +266,7 @@
 
 /* Header bottom margin */
 .calendar-header {
-    margin-bottom: 1rem;
+    margin-bottom: 0;
 }
 
 /* Mobile responsive adjustments */

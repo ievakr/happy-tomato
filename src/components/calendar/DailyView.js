@@ -27,6 +27,8 @@ const DailyView = () => {
   const [displayedMonth, setDisplayedMonth] = useState(dayjs());
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const isUserScrollingRef = useRef(false);
+  const initialLoadRef = useRef(true);
 
   // Swipe handlers for month navigation in selected day area
   const handleSwipeLeft = () => {
@@ -77,9 +79,9 @@ const DailyView = () => {
     }
   }, [allDays, displayedMonth, isMobile]);
 
-  // Scroll to current day when component mounts or current day changes
+  // Scroll to current day only on initial mount
   useEffect(() => {
-    if (scrollContainerRef.current && isMobile) {
+    if (scrollContainerRef.current && isMobile && initialLoadRef.current) {
       const currentDayIndex = allDays.findIndex(day => 
         day.format("DD-MM-YY") === currentDay.format("DD-MM-YY")
       );
@@ -90,9 +92,10 @@ const DailyView = () => {
           left: Math.max(0, scrollPosition),
           behavior: 'smooth'
         });
+        initialLoadRef.current = false;
       }
     }
-  }, [currentDay, isMobile, allDays]);
+  }, [isMobile, allDays, currentDay]);
 
   // Update displayed month when currentDay changes
   useEffect(() => {
@@ -129,6 +132,16 @@ const DailyView = () => {
     setDaySelected(day);
     setShowEventModal(true);
   };
+
+  const handleDaySelection = useCallback((day, index) => {
+    setDaySelected(day);
+    // Center the selected day in viewport
+    const scrollPosition = index * 70 - (window.innerWidth / 2) + 35;
+    scrollContainerRef.current?.scrollTo({
+      left: Math.max(0, scrollPosition),
+      behavior: 'smooth'
+    });
+  }, []);
 
   const handleEventClick = (evt, e) => {
     e.stopPropagation();
@@ -213,15 +226,7 @@ const DailyView = () => {
                 <div
                   key={day.format('YYYY-MM-DD')}
                   className={`daily-week-day text-center ${getCurrentDayClass(day)} ${isSelectedDay(day) ? 'selected-day' : ''}`}
-                  onClick={() => {
-                    setDaySelected(day);
-                    // Center the selected day in viewport
-                    const scrollPosition = index * 70 - (window.innerWidth / 2) + 35;
-                    scrollContainerRef.current?.scrollTo({
-                      left: Math.max(0, scrollPosition),
-                      behavior: 'smooth'
-                    });
-                  }}
+                  onClick={() => handleDaySelection(day, index)}
                   style={{
                     minWidth: '70px',
                     width: '70px',
@@ -270,61 +275,51 @@ const DailyView = () => {
       {/* Selected Day Info and Events */}
       <div 
         ref={isMobile ? swipeRef : null} 
-        className="selected-day-info flex-grow-1 p-3"
+        className="selected-day-info flex-grow-1 p-3 d-flex flex-column"
         style={{ 
-          touchAction: isMobile ? 'pan-y' : 'auto' // Allow vertical scrolling but handle horizontal swipes
+          touchAction: isMobile ? 'pan-y' : 'auto', // Allow vertical scrolling but handle horizontal swipes
+          overflow: 'hidden',
+          minHeight: 0
         }}
       >
-        <div className="row h-100">
-          <div className="col-12">
-            {/* Day title */}
-            <div className="mb-3">
-              <h4 className="mb-1">
-                {currentDay.format('dddd, MMMM D, YYYY')}
-              </h4>
-              {currentDay.format("DD-MM-YY") === dayjs().format("DD-MM-YY") && (
-                <small className="text-muted">Today</small>
-              )}
-            </div>
+        {/* Day title */}
+        <div className="mb-3">
+          <h4 className="mb-1">
+            {currentDay.format('dddd, MMMM D, YYYY')}
+          </h4>
+          {currentDay.format("DD-MM-YY") === dayjs().format("DD-MM-YY") && (
+            <small className="text-muted">Today</small>
+          )}
+        </div>
 
-            {/* Events for selected day */}
-            <div className="daily-events">
+        {/* Scrollable Events container */}
+        <div 
+          className="daily-events flex-grow-1"
+          style={{
+            overflowY: 'auto',
+            minHeight: 0
+          }}
+        >
               {(() => {
                 const dayEvents = getEventsForDay(currentDay);
                 
                 if (dayEvents.length === 0) {
                   return (
-                    <div>
-                      <div className="no-events text-center py-5">
-                        <div className="text-muted mb-3">
-                          <span className="material-icons-outlined" style={{ fontSize: '3rem' }}>
-                            event_available
-                          </span>
-                        </div>
-                        <p className="text-muted">No events scheduled for this day</p>
+                    <div className="no-events text-center py-5">
+                      <div className="text-muted mb-3">
+                        <span className="material-icons-outlined" style={{ fontSize: '3rem' }}>
+                          event_available
+                        </span>
                       </div>
-                      
-                      {/* Add event button - separate section */}
-                      <div className="mt-4 pt-3 border-top">
-                        <button 
-                          className="btn btn-danger w-100"
-                          onClick={() => handleDayClick(currentDay)}
-                        >
-                          <span className="material-icons-outlined me-2" style={{ fontSize: '1rem' }}>
-                            add
-                          </span>
-                          Add Event
-                        </button>
-                      </div>
+                      <p className="text-muted">No events scheduled for this day</p>
                     </div>
                   );
                 }
 
                 return (
-                  <div>
-                    <div className="events-list">
-                      <h6 className="mb-3">Events ({dayEvents.length})</h6>
-                      {dayEvents.map((evt, idx) => {
+                  <div className="events-list">
+                    <h6 className="mb-3">Events ({dayEvents.length})</h6>
+                    {dayEvents.map((evt, idx) => {
                         // Check if this is a completed todo
                         const isCompletedTodo = evt.toDo && evt.completed;
                         
@@ -392,25 +387,22 @@ const DailyView = () => {
                         </div>
                         );
                       })}
-                    </div>
-                    
-                    {/* Add event button - separate section */}
-                    <div className="mt-4 pt-3 border-top">
-                      <button 
-                        className="btn btn-danger w-100"
-                        onClick={() => handleDayClick(currentDay)}
-                      >
-                        <span className="material-icons-outlined me-2" style={{ fontSize: '1rem' }}>
-                          add
-                        </span>
-                        Add Event
-                      </button>
-                    </div>
                   </div>
                 );
               })()}
-            </div>
-          </div>
+        </div>
+        
+        {/* Add event button - always visible at bottom */}
+        <div className="mt-3 pt-3 border-top">
+          <button 
+            className="btn btn-danger w-100"
+            onClick={() => handleDayClick(currentDay)}
+          >
+            <span className="material-icons-outlined me-2" style={{ fontSize: '1rem' }}>
+              add
+            </span>
+            Add Event
+          </button>
         </div>
       </div>
 
@@ -423,7 +415,7 @@ const DailyView = () => {
               Delete "{eventToDelete.title || eventToDelete.toDo}"?
             </p>
             <p className="mb-4 text-muted small">This action cannot be undone.</p>
-            <div className="d-flex justify-content-end gap-2">
+            <div className="d-flex gap-2">
               <button 
                 type="button" 
                 className="btn btn-sm btn-outline-secondary"
@@ -432,6 +424,7 @@ const DailyView = () => {
                   setEventToDelete(null);
                 }}
                 disabled={isLoading}
+                style={{ flex: '1' }}
               >
                 Cancel
               </button>
@@ -440,6 +433,7 @@ const DailyView = () => {
                 className="btn btn-sm btn-danger"
                 onClick={confirmDelete}
                 disabled={isLoading}
+                style={{ flex: '1' }}
               >
                 {isLoading && loadingOperation === 'delete' ? (
                   <>

@@ -11,7 +11,7 @@ import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS, TODO_ACTIONS } from "../../con
 import { useRecurringActions } from "../../hooks";
 
 export default function EventModal() {
-    const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(GlobalContext);
+    const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(GlobalContext); 
     const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
     const { showError } = useToast();
     const [description, setDescription] = useState("");
@@ -379,7 +379,7 @@ export default function EventModal() {
                     <button 
                         type="submit" 
                         onClick={handleSubmit} 
-                        className="btn btn-primary w-100 w-md-auto"
+                        className="btn btn-danger w-100 w-md-auto"
                         disabled={isLoading}
                     >
                         {isLoading ? (
@@ -404,12 +404,13 @@ export default function EventModal() {
                     <div className="bg-white rounded shadow-lg p-4" style={{ maxWidth: '300px', width: '90%' }}>
                         <h6 className="mb-3">Delete Event</h6>
                         <p className="mb-4 text-muted">Are you sure you want to delete this event? This action cannot be undone.</p>
-                        <div className="d-flex justify-content-end gap-2">
+                        <div className="d-flex gap-2">
                             <button 
                                 type="button" 
                                 className="btn btn-sm btn-outline-secondary"
                                 onClick={() => setShowDeleteConfirm(false)}
                                 disabled={isLoading}
+                                style={{ flex: '1' }}
                             >
                                 Cancel
                             </button>
@@ -418,6 +419,7 @@ export default function EventModal() {
                                 className="btn btn-sm btn-danger"
                                 onClick={handleDelete}
                                 disabled={isLoading}
+                                style={{ flex: '1' }}
                             >
                                 {isLoading && loadingOperation === 'delete' ? (
                                     <>
@@ -441,12 +443,13 @@ export default function EventModal() {
                     <div className="bg-white rounded shadow-lg p-4" style={{ maxWidth: '350px', width: '90%' }}>
                         <h6 className="mb-3">Complete TO DO</h6>
                         <p className="mb-4 text-muted">Mark this TO DO as completed? This will create a completed action event and remove the TO DO from your list.</p>
-                        <div className="d-flex justify-content-end gap-2">
+                        <div className="d-flex gap-2">
                             <button 
                                 type="button" 
                                 className="btn btn-sm btn-outline-secondary"
                                 onClick={() => setShowCompleteConfirm(false)}
                                 disabled={isLoading}
+                                style={{ flex: '1' }}
                             >
                                 Cancel
                             </button>
@@ -455,6 +458,7 @@ export default function EventModal() {
                                 className="btn btn-sm btn-success"
                                 onClick={handleComplete}
                                 disabled={isLoading}
+                                style={{ flex: '1' }}
                             >
                                 {isLoading ? (
                                     <>
