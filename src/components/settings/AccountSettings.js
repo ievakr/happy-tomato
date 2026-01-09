@@ -228,7 +228,7 @@ function AccountSettings({ onClose }) {
                         Email Address
                       </label>
                       <p className="setting-description">
-                        Where to send notifications
+                        Where to send reminders
                       </p>
                     </div>
                     <input
@@ -285,7 +285,7 @@ function AccountSettings({ onClose }) {
                         Reminder Time (Hour)
                       </label>
                       <p className="setting-description">
-                        Checks every hour for reminders to send
+                        At which hour to send reminders
                       </p>
                     </div>
                     <select
