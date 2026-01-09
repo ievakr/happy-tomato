@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Button, Form, Alert, Card, Row, Col, Badge, Spinner, Accordion, Table } from 'react-bootstrap';
 import notificationService from '../../services/notificationService';
+import { useToast } from '../../context/ToastContext';
 
 /**
  * Email Notification Settings Component
@@ -21,6 +22,7 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
   const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   const emailServiceStatus = getEmailServiceStatus();
   const todoSummary = getTodoSummary();
@@ -378,6 +380,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
   const [showDebug, setShowDebug] = useState(false);
   const [debugInfo, setDebugInfo] = useState(null);
   const [isLoadingDebug, setIsLoadingDebug] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   const loadDebugInfo = () => {
     setIsLoadingDebug(true);
@@ -488,13 +491,13 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
     try {
       const success = await notificationService.sendManualReminder(type);
       if (success) {
-        alert(`Manual ${type} reminder sent successfully! Check your email.`);
+        showSuccess(`Manual ${type} reminder sent successfully! Check your email.`);
         loadDebugInfo(); // Refresh debug info
       } else {
-        alert(`Failed to send manual ${type} reminder. Check the debug info below for details.`);
+        showError(`Failed to send manual ${type} reminder. Check the debug info below for details.`);
       }
     } catch (error) {
-      alert(`Error sending manual ${type} reminder: ${error.message}`);
+      showError(`Error sending manual ${type} reminder: ${error.message}`);
     }
   };
 
@@ -581,7 +584,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                 size="sm"
                 onClick={() => {
                   resetEmailPreferences();
-                  alert('Complete reset done! All preferences and timestamps cleared. Please re-configure your settings.');
+                  showSuccess('Complete reset done! All preferences and timestamps cleared. Please re-configure your settings.');
                   loadDebugInfo();
                 }}
                 className="ms-2"
@@ -596,7 +599,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                     lastAutoReminderSent: null,
                     lastAutoAdvanceReminderSent: null
                   });
-                  alert('Cleared only automatic reminder timestamps. Manual testing now allowed.');
+                  showSuccess('Cleared only automatic reminder timestamps. Manual testing now allowed.');
                   loadDebugInfo();
                 }}
                 className="ms-1"
@@ -610,7 +613,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                   const now = new Date();
                   const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
                   forceUpdateReminderTime(currentTime);
-                  alert(`Force updated reminder time to current time: ${currentTime}`);
+                  showSuccess(`Force updated reminder time to current time: ${currentTime}`);
                   loadDebugInfo();
                 }}
                 className="ms-1"

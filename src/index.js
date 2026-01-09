@@ -5,6 +5,7 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import ContextWrapper from './context/ContextWrapper';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import { ErrorBoundary, ContextErrorBoundary, AsyncErrorBoundary } from './components/common';
 import errorLogger from './utils/errorLogger';
 import globalErrorHandler from './utils/globalErrorHandler';
@@ -33,15 +34,17 @@ root.render(
       message="The calendar application has encountered a critical error."
       onError={handleGlobalError}
     >
-      <AuthProvider>
-        <ContextErrorBoundary onError={handleContextError}>
-          <AsyncErrorBoundary onError={handleAsyncError}>
-            <ContextWrapper>
-              <App />
-            </ContextWrapper>
-          </AsyncErrorBoundary>
-        </ContextErrorBoundary>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <ContextErrorBoundary onError={handleContextError}>
+            <AsyncErrorBoundary onError={handleAsyncError}>
+              <ContextWrapper>
+                <App />
+              </ContextWrapper>
+            </AsyncErrorBoundary>
+          </ContextErrorBoundary>
+        </AuthProvider>
+      </ToastProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

@@ -6,6 +6,7 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, query, 
 import errorLogger from "../utils/errorLogger";
 import { PLANT_LABELS } from "../constants";
 import { useAuth } from "./AuthContext";
+import { useToast } from "./ToastContext";
 
 function savedEventsReducer(state, { type, payload }) {
     switch (type) {
@@ -53,6 +54,7 @@ async function fetchEvents(userId) {
 
 export default function ContextWrapper(props) {
     const { currentUser } = useAuth();
+    const { showError } = useToast();
     
     // Get responsive info to set initial view
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
@@ -267,7 +269,7 @@ export default function ContextWrapper(props) {
             
             // Show user-friendly error message with more context
             const errorMessage = getErrorMessage(error, type);
-            alert(`${errorMessage}\n\nIf this problem persists, try refreshing the page.`);
+            showError(`${errorMessage}. If this problem persists, try refreshing the page.`, 8000);
             
             // Don't update local state if Firebase operation fails for deletes
             if (type !== 'delete') {
@@ -319,7 +321,7 @@ export default function ContextWrapper(props) {
                 });
                 
                 // Show a more helpful error message for initial load failures
-                alert('Failed to load your events. Please check your internet connection and refresh the page.');
+                showError('Failed to load your events. Please check your internet connection and refresh the page.', 8000);
             } finally {
                 setIsInitialLoading(false);
                 setIsLoading(false);
@@ -328,7 +330,7 @@ export default function ContextWrapper(props) {
         }
         
         loadInitialData();
-    }, [currentUser]);
+    }, [currentUser, showError]);
     
       
     useEffect(() => {

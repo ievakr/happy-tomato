@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
 import GlobalContext from "../../context/GlobalContext";
+import { useToast } from "../../context/ToastContext";
 import CustomDropdown from "../common/CustomDropdown";
 import DatePicker from "react-widgets/DatePicker";
 import { Localization } from "react-widgets";
@@ -12,6 +13,7 @@ import { useRecurringActions } from "../../hooks";
 export default function EventModal() {
     const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(GlobalContext);
     const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
+    const { showError } = useToast();
     const [description, setDescription] = useState("");
     const [selectedLabels, setSelectedLabels] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -166,7 +168,7 @@ export default function EventModal() {
         } catch (error) {
             console.error('❌ Delete failed:', error);
             // Show user-friendly error message
-            alert('Failed to delete event. Please try again.');
+            showError('Failed to delete event. Please try again.');
         }
     }
 
