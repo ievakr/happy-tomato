@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 import dayjs from 'dayjs';
 import GlobalContext from '../context/GlobalContext';
+import { useAuth } from '../context/AuthContext';
 import { EVENT_ACTIONS, PLANT_ACTIONS, TODO_ACTIONS } from '../constants';
 import { 
   generateRecurringToDos, 
@@ -13,6 +14,7 @@ import {
  */
 export const useRecurringActions = () => {
   const { dispatchCallEvent, filteredEvents } = useContext(GlobalContext);
+  const { currentUser } = useAuth();
 
   /**
    * Create an action and generate recurring TO DOs if applicable
@@ -604,11 +606,15 @@ export const useRecurringActions = () => {
       console.log(`🎯 TARGETED DELETE: Looking for recurring todos with action "${actionName}" and labels:`, labels);
       
       // Import Firebase functions
-      const { collection, getDocs, deleteDoc, doc } = await import('firebase/firestore');
+      const { collection, getDocs, deleteDoc, doc, query, where } = await import('firebase/firestore');
       const { db } = await import('../firebase');
       
-      // Get ALL documents from Firebase
-      const snapshot = await getDocs(collection(db, "events"));
+      // Get documents from Firebase filtered by userId
+      const eventsQuery = query(
+        collection(db, "events"),
+        where("userId", "==", currentUser.uid)
+      );
+      const snapshot = await getDocs(eventsQuery);
       const allFirebaseEvents = snapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data() 
@@ -678,11 +684,15 @@ export const useRecurringActions = () => {
       console.log('🧨 NUCLEAR DELETE: Scanning Firebase for all recurring todos...');
       
       // Import Firebase functions
-      const { collection, getDocs, deleteDoc, doc } = await import('firebase/firestore');
+      const { collection, getDocs, deleteDoc, doc, query, where } = await import('firebase/firestore');
       const { db } = await import('../firebase');
       
-      // Get ALL documents from Firebase
-      const snapshot = await getDocs(collection(db, "events"));
+      // Get documents from Firebase filtered by userId
+      const eventsQuery = query(
+        collection(db, "events"),
+        where("userId", "==", currentUser.uid)
+      );
+      const snapshot = await getDocs(eventsQuery);
       const allFirebaseEvents = snapshot.docs.map(doc => ({ 
         id: doc.id, 
         ...doc.data() 

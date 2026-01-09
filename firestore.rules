@@ -26,9 +26,11 @@ service cloud.firestore {
     // ========================================
     
     match /events/{eventId} {
-      // Users can read their own events only
-      allow read: if isAuthenticated() && 
-                     resource.data.userId == request.auth.uid;
+      // Users can read their own events OR events without userId (for migration)
+      allow read: if isAuthenticated() && (
+                      resource.data.userId == request.auth.uid ||
+                      !('userId' in resource.data)
+                    );
       
       // Users can create events only with their own userId
       // The day field can be either a string (date string) or number (timestamp)
@@ -38,14 +40,17 @@ service cloud.firestore {
                       request.resource.data.userId is string &&
                       (request.resource.data.day is string || request.resource.data.day is number);
       
-      // Users can update their own events, but cannot change userId
-      allow update: if isAuthenticated() && 
-                      resource.data.userId == request.auth.uid &&
-                      userIdNotChanged();
+      // Users can update their own events OR add userId to events without one (for migration)
+      allow update: if isAuthenticated() && (
+                      (resource.data.userId == request.auth.uid && userIdNotChanged()) ||
+                      (!('userId' in resource.data) && isSettingOwnUserId())
+                    );
       
-      // Users can delete their own events only
-      allow delete: if isAuthenticated() && 
-                      resource.data.userId == request.auth.uid;
+      // Users can delete their own events OR events without userId (for cleanup)
+      allow delete: if isAuthenticated() && (
+                      resource.data.userId == request.auth.uid ||
+                      !('userId' in resource.data)
+                    );
     }
     
     // ========================================
