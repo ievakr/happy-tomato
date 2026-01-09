@@ -27,7 +27,6 @@ const DailyView = () => {
   const [displayedMonth, setDisplayedMonth] = useState(dayjs());
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const isUserScrollingRef = useRef(false);
   const initialLoadRef = useRef(true);
 
   // Swipe handlers for month navigation in selected day area
@@ -141,7 +140,7 @@ const DailyView = () => {
       left: Math.max(0, scrollPosition),
       behavior: 'smooth'
     });
-  }, []);
+  }, [setDaySelected]);
 
   const handleEventClick = (evt, e) => {
     e.stopPropagation();
