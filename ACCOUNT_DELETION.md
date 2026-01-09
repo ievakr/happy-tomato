@@ -333,3 +333,4 @@ If you encounter issues with account deletion:
 - Firebase Auth Documentation: https://firebase.google.com/docs/auth
 - GDPR Compliance: https://gdpr.eu/right-to-be-forgotten/
 
+
