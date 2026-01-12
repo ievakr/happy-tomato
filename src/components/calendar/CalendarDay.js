@@ -6,10 +6,13 @@ import { useResponsive, useRecurringActions } from '../../hooks';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
-    const { setDaySelected, setShowEventModal, filteredEvents, setSelectedEvent, setCurrentView } = useContext(GlobalContext);
+    const { setDaySelected, setShowEventModal, filteredEvents, setSelectedEvent, setCurrentView, monthIndex } = useContext(GlobalContext);
     const { isMobile } = useResponsive();
     const { isTodoEvent, isCompletedTodoAction } = useRecurringActions();
     const [dayEvents, setDayEvents] = useState([]);
+    
+    // Check if this day belongs to the currently displayed month
+    const isCurrentMonth = day.month() === monthIndex;
 
     useEffect(() => {
         const events = filteredEvents.filter(evt => dayjs(evt.day).format("DD-MM-YY") === day.format("DD-MM-YY"));
@@ -49,6 +52,12 @@ export default function CalendarDay({ day, rowIndex }) {
 
     const handleEventClick = (evt, e) => {
         e.stopPropagation();
+        
+        // Don't allow clicking on events in days from other months
+        if (!isCurrentMonth) {
+            return;
+        }
+        
         // Open event modal for editing - set selected event so delete button appears
         setSelectedEvent(evt);
         setDaySelected(day);
@@ -56,6 +65,11 @@ export default function CalendarDay({ day, rowIndex }) {
     };
 
     const handleDayClick = () => {
+        // Don't allow clicking on days from other months
+        if (!isCurrentMonth) {
+            return;
+        }
+        
         // Set the selected day for both mobile and desktop
         setDaySelected(day);
         
@@ -224,18 +238,25 @@ export default function CalendarDay({ day, rowIndex }) {
         <div className="day-cell border border-secondary d-flex flex-column" style={{ 
             height: '100%',
             maxHeight: '100%',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            opacity: isCurrentMonth ? 1 : 0.4,
+            backgroundColor: isCurrentMonth ? 'transparent' : '#f8f9fa'
         }}>
             <header className="d-flex flex-column align-items-center flex-shrink-0" style={{ padding: '4px 0' }}>
                 <div
                     className={`day-number text-center ${getCurrentDayClass()}`}
-                    style={{ width: '30px', height: '30px', lineHeight: '30px' }}
+                    style={{ 
+                        width: '30px', 
+                        height: '30px', 
+                        lineHeight: '30px',
+                        color: !isCurrentMonth && day.format("DD-MM-YY") !== dayjs().format("DD-MM-YY") ? '#adb5bd' : undefined
+                    }}
                 >
                     {day.format('DD')}
                 </div>
             </header>
             <div 
-                className="flex-grow-1 cursor-pointer position-relative" 
+                className={`flex-grow-1 position-relative ${isCurrentMonth ? 'cursor-pointer' : ''}`}
                 style={{ 
                     overflow: 'hidden',
                     overflowY: isMobile ? 'hidden' : 'auto', // Disable scroll on mobile since we're just showing count
@@ -243,7 +264,8 @@ export default function CalendarDay({ day, rowIndex }) {
                     padding: isMobile ? '0' : '2px', // Remove padding on mobile to allow full width centering
                     width: '100%', // Ensure full width
                     display: 'flex', // Make it a flex container on mobile for better control
-                    flexDirection: 'column'
+                    flexDirection: 'column',
+                    cursor: isCurrentMonth ? 'pointer' : 'default'
                 }}
                 onClick={handleDayClick}
             >

@@ -22,6 +22,32 @@ export const useRecurringActions = () => {
    */
   const createActionWithRecurringTodos = async (actionEvent) => {
     try {
+      // Determine if this is a user-created TODO with recurring config (not an action that generates TODOs)
+      const isUserTodoWithRecurring = actionEvent.userRecurringConfig && 
+                                      actionEvent.userRecurringConfig.enabled &&
+                                      actionEvent.toDo;
+      
+      if (isUserTodoWithRecurring) {
+        console.log(`📝 Creating user TODO with recurring config:`, actionEvent.userRecurringConfig);
+        console.log(`📊 actionEvent:`, actionEvent);
+        
+        // For user-created TODOs with recurring enabled:
+        // Generate ALL occurrences (including the first one) based on maxOccurrences
+        // Don't create the original event separately
+        const recurringTodos = generateRecurringToDos(actionEvent, '', 6, filteredEvents, true);
+        
+        console.log(`📝 Generated ${recurringTodos.length} recurring TODOs, creating them now...`);
+        
+        // Create each TO DO event (Firebase will assign IDs)
+        for (const todo of recurringTodos) {
+          await dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: todo });
+        }
+        
+        console.log(`✅ Created ${recurringTodos.length} recurring TODOs based on user config`);
+        return;
+      }
+      
+      // Legacy behavior for actions and TODOs without user recurring config
       // First create the main action event
       await dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: actionEvent });
       
@@ -44,7 +70,7 @@ export const useRecurringActions = () => {
         sourceItem = firstTodo;
       }
       
-      if (shouldGenerateRecurringTodos(sourceItem, dosageText)) {
+      if (shouldGenerateRecurringTodos(sourceItem, dosageText, actionEvent.userRecurringConfig)) {
         // Check if this action has been marked as having its recurring series cancelled
         if (actionEvent.recurringCancelled) {
           console.log(`🚫 Skipping recurring TODO generation - series was cancelled for: ${sourceItem}`);
@@ -52,7 +78,7 @@ export const useRecurringActions = () => {
         }
         
         // Generate recurring TO DO events, passing existing events to avoid duplicates
-        const recurringTodos = generateRecurringToDos(actionEvent, dosageText, 6, filteredEvents);
+        const recurringTodos = generateRecurringToDos(actionEvent, dosageText, 6, filteredEvents, false);
         
         // Create each TO DO event (Firebase will assign IDs)
         for (const todo of recurringTodos) {
@@ -349,11 +375,18 @@ export const useRecurringActions = () => {
    */
   const updateEventWithRecurringRecalculation = async (updatedEvent, originalEvent) => {
     try {
-      // Safety check: ensure we have the original event
+      // Safety check: ensure we have valid event data
       if (!originalEvent || !originalEvent.id) {
-        console.warn('⚠️ No original event provided, falling back to normal update');
-        await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
-        return;
+        console.error('⚠️ No original event provided or missing ID!');
+        console.error('originalEvent:', originalEvent);
+        console.error('updatedEvent:', updatedEvent);
+        throw new Error('Cannot update event: missing original event or ID');
+      }
+      
+      if (!updatedEvent || !updatedEvent.id) {
+        console.error('⚠️ Updated event is missing ID!');
+        console.error('updatedEvent:', updatedEvent);
+        throw new Error('Cannot update event: missing updated event ID');
       }
 
       console.log(`🔄 Updating event: ${originalEvent.id}`);
@@ -377,6 +410,37 @@ export const useRecurringActions = () => {
       const newDate = dayjs(updatedEvent.day);
       const dateChanged = !originalDate.isSame(newDate, 'day');
       
+      // Check if user is converting a simple TODO to a recurring one
+      const isConvertingToRecurring = !originalEvent.isRecurringTodo && 
+                                      !originalEvent.userRecurringConfig &&
+                                      updatedEvent.userRecurringConfig && 
+                                      updatedEvent.userRecurringConfig.enabled;
+      
+      if (isConvertingToRecurring) {
+        console.log('🔄 Converting simple TODO to recurring - generating series');
+        
+        // Update the original event to mark it as recurring
+        const recurringEvent = {
+          ...updatedEvent,
+          isRecurringTodo: true
+        };
+        
+        await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: recurringEvent });
+        
+        // Generate the additional occurrences using the generateRecurringToDos function
+        // Pass false for generateAllOccurrences since the first one already exists
+        const additionalTodos = generateRecurringToDos(recurringEvent, '', 6, filteredEvents, false);
+        
+        console.log(`📝 Generating ${additionalTodos.length} additional occurrences`);
+        
+        for (const todo of additionalTodos) {
+          await dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: todo });
+        }
+        
+        console.log('✅ Successfully converted to recurring TODO series');
+        return;
+      }
+      
       if (dateChanged) {
         console.log(`📅 Date changed from ${originalDate.format('YYYY-MM-DD')} to ${newDate.format('YYYY-MM-DD')} - recalculating recurring events...`);
         
@@ -386,73 +450,141 @@ export const useRecurringActions = () => {
           const sourceItem = firstAction || firstTodo;
           
           if (isRecurringTodo) {
+            // Check if this is a user-created recurring TODO (with userRecurringConfig)
+            const isUserRecurringTodo = updatedEvent.userRecurringConfig && updatedEvent.userRecurringConfig.enabled;
             
-            // For recurring TODOs: Delete OTHER recurring todos in the same series (but not this one)
-            if (firstAction || firstTodo) {
-              const actionToMatch = firstAction || firstTodo;
-
+            if (isUserRecurringTodo) {
+              console.log('🔄 Updating user-created recurring TODO - will shift subsequent events');
               
-              // Delete other recurring todos that match this action/labels but exclude this event
-              const todosToDelete = filteredEvents.filter(evt => {
-                if (!evt.isRecurringTodo || evt.completed || evt.id === originalEvent.id) return false;
+              // Calculate the date shift (how many days the event was moved)
+              const dateShift = newDate.diff(originalDate, 'day');
+              console.log(`📅 Date shift: ${dateShift} days`);
+              
+              if (firstAction || firstTodo) {
+                const actionToMatch = firstAction || firstTodo;
                 
-                // More comprehensive matching for action/todo
-                const hasMatchingAction = actionToMatch && (
-                  // Match in actions array
-                  (evt.actions && evt.actions.includes(actionToMatch)) ||
-                  // Match in toDo field
-                  (evt.toDo && evt.toDo.includes(actionToMatch)) ||
-                  // Match in title 
-                  (evt.title && evt.title.includes(actionToMatch)) ||
-                  // Also try matching the base action name (without "TO DO: " prefix)
-                  (actionToMatch.startsWith("TO DO: ") && (
-                    (evt.actions && evt.actions.includes(actionToMatch.replace("TO DO: ", ""))) ||
-                    (evt.title && evt.title.includes(actionToMatch.replace("TO DO: ", "")))
-                  ))
+                // Find ALL recurring todos in this series
+                const seriesEvents = filteredEvents.filter(evt => {
+                  if (!evt.isRecurringTodo || evt.completed) return false;
+                  
+                  // Match action/todo
+                  const hasMatchingAction = actionToMatch && (
+                    (evt.actions && evt.actions.includes(actionToMatch)) ||
+                    (evt.toDo && evt.toDo.includes(actionToMatch)) ||
+                    (evt.title && evt.title.includes(actionToMatch)) ||
+                    (actionToMatch.startsWith("TO DO: ") && (
+                      (evt.actions && evt.actions.includes(actionToMatch.replace("TO DO: ", ""))) ||
+                      (evt.title && evt.title.includes(actionToMatch.replace("TO DO: ", "")))
+                    ))
+                  );
+                  
+                  // Require exact label matching
+                  const hasMatchingLabels = 
+                    (updatedEvent.labels && evt.labels && 
+                     updatedEvent.labels.length === evt.labels.length &&
+                     updatedEvent.labels.every(label => evt.labels.includes(label))) ||
+                    ((!updatedEvent.labels || updatedEvent.labels.length === 0) && 
+                     (!evt.labels || evt.labels.length === 0));
+                  
+                  return hasMatchingAction && hasMatchingLabels;
+                }).sort((a, b) => a.day - b.day); // Sort by date
+                
+                console.log(`📋 Found ${seriesEvents.length} events in the series`);
+                
+                // Update the current event
+                await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
+                console.log(`✅ Updated current event`);
+                
+                // Find and shift all events AFTER the current one
+                const eventsToShift = seriesEvents.filter(evt => 
+                  evt.id !== updatedEvent.id && dayjs(evt.day).isAfter(originalDate)
                 );
                 
-                // Require exact label matching to avoid deleting events from different plants
-                const hasMatchingLabels = 
-                  (updatedEvent.labels && evt.labels && 
-                   updatedEvent.labels.length === evt.labels.length &&
-                   updatedEvent.labels.every(label => evt.labels.includes(label))) ||
-                  ((!updatedEvent.labels || updatedEvent.labels.length === 0) && 
-                   (!evt.labels || evt.labels.length === 0));
+                console.log(`🔄 Shifting ${eventsToShift.length} subsequent events by ${dateShift} days`);
                 
-
-                
-                return hasMatchingAction && hasMatchingLabels;
-              });
-              
-              if (todosToDelete.length > 0) {
-                const deletePromises = todosToDelete.map(todo => 
-                  dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: todo })
-                );
-                await Promise.all(deletePromises);
+                for (const evt of eventsToShift) {
+                  const shiftedEvent = {
+                    ...evt,
+                    day: dayjs(evt.day).add(dateShift, 'day').valueOf()
+                  };
+                  await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: shiftedEvent });
+                  console.log(`✅ Shifted event from ${dayjs(evt.day).format('YYYY-MM-DD')} to ${dayjs(shiftedEvent.day).format('YYYY-MM-DD')}`);
+                }
               }
-            }
-            
-            // Update this recurring TODO to the new date
-            await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
-            
-            // Generate remaining recurring todos from this updated todo (to replace the deleted ones)
-            let dosageText = PLANT_ACTIONS[firstAction];
-            if (!dosageText && firstTodo) {
-              dosageText = TODO_ACTIONS[firstTodo];
-            }
-            
-            if (shouldGenerateRecurringTodos(sourceItem, dosageText)) {
               
-              // This updated TODO becomes the new "base" for the remaining sequence
-              // Exclude the current updated event from existing events to avoid confusion
-              const existingEventsExcludingCurrent = filteredEvents.filter(evt => evt.id !== updatedEvent.id);
+              console.log('✅ User recurring TODO series update complete');
+              return; // Exit early - we've handled the entire series
               
-              // For recurring TODOs, we need to account for the original action event
-              // So we should generate fewer TODOs than for a fresh action
-              const recurringTodos = generateRecurringToDos(updatedEvent, dosageText, 6, existingEventsExcludingCurrent);
+            } else {
+              // Legacy behavior for recurring TODOs without userRecurringConfig
+              console.log('🔄 Updating legacy recurring TODO');
+              
+              // For legacy recurring TODOs: Delete OTHER recurring todos in the same series (but not this one)
+              if (firstAction || firstTodo) {
+                const actionToMatch = firstAction || firstTodo;
+
+                
+                // Delete other recurring todos that match this action/labels but exclude this event
+                const todosToDelete = filteredEvents.filter(evt => {
+                  if (!evt.isRecurringTodo || evt.completed || evt.id === originalEvent.id) return false;
+                  
+                  // More comprehensive matching for action/todo
+                  const hasMatchingAction = actionToMatch && (
+                    // Match in actions array
+                    (evt.actions && evt.actions.includes(actionToMatch)) ||
+                    // Match in toDo field
+                    (evt.toDo && evt.toDo.includes(actionToMatch)) ||
+                    // Match in title 
+                    (evt.title && evt.title.includes(actionToMatch)) ||
+                    // Also try matching the base action name (without "TO DO: " prefix)
+                    (actionToMatch.startsWith("TO DO: ") && (
+                      (evt.actions && evt.actions.includes(actionToMatch.replace("TO DO: ", ""))) ||
+                      (evt.title && evt.title.includes(actionToMatch.replace("TO DO: ", "")))
+                    ))
+                  );
+                  
+                  // Require exact label matching to avoid deleting events from different plants
+                  const hasMatchingLabels = 
+                    (updatedEvent.labels && evt.labels && 
+                     updatedEvent.labels.length === evt.labels.length &&
+                     updatedEvent.labels.every(label => evt.labels.includes(label))) ||
+                    ((!updatedEvent.labels || updatedEvent.labels.length === 0) && 
+                     (!evt.labels || evt.labels.length === 0));
+                  
+
+                  
+                  return hasMatchingAction && hasMatchingLabels;
+                });
+                
+                if (todosToDelete.length > 0) {
+                  const deletePromises = todosToDelete.map(todo => 
+                    dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: todo })
+                  );
+                  await Promise.all(deletePromises);
+                }
+              }
+              
+              // Update this recurring TODO to the new date
+              await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
+              
+              // Generate remaining recurring todos from this updated todo (to replace the deleted ones)
+              let dosageText = PLANT_ACTIONS[firstAction];
+              if (!dosageText && firstTodo) {
+                dosageText = TODO_ACTIONS[firstTodo];
+              }
+              
+              if (shouldGenerateRecurringTodos(sourceItem, dosageText, updatedEvent.userRecurringConfig)) {
+                
+                // This updated TODO becomes the new "base" for the remaining sequence
+                // Exclude the current updated event from existing events to avoid confusion
+                const existingEventsExcludingCurrent = filteredEvents.filter(evt => evt.id !== updatedEvent.id);
+                
+                // For recurring TODOs, we need to account for the original action event
+                // So we should generate fewer TODOs than for a fresh action
+                const recurringTodos = generateRecurringToDos(updatedEvent, dosageText, 6, existingEventsExcludingCurrent, false);
               
               // Filter out TODOs that would exceed the max count when including existing events
-              const recurringInfo = parseRecurringInterval(dosageText);
+              const recurringInfo = parseRecurringInterval(dosageText, updatedEvent.userRecurringConfig);
               const maxTotalEvents = recurringInfo.maxOccurrences;
               
               // Count ACTUAL existing events related to this action/labels combination
@@ -489,6 +621,7 @@ export const useRecurringActions = () => {
                 await dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: todo });
               }
               
+              }
             }
             
           } else {
@@ -511,9 +644,9 @@ export const useRecurringActions = () => {
               dosageText = TODO_ACTIONS[firstTodo];
             }
             
-            if (shouldGenerateRecurringTodos(sourceItem, dosageText)) {
+            if (shouldGenerateRecurringTodos(sourceItem, dosageText, updatedEvent.userRecurringConfig)) {
               console.log(`🔄 Generating new recurring todos with pattern: ${dosageText}`);
-              const recurringTodos = generateRecurringToDos(updatedEvent, dosageText, 6, filteredEvents);
+              const recurringTodos = generateRecurringToDos(updatedEvent, dosageText, 6, filteredEvents, false);
               
               for (const todo of recurringTodos) {
                 console.log(`➕ Creating new recurring todo: ${todo.title} on ${dayjs(todo.day).format('YYYY-MM-DD')} (Firebase will assign ID)`);

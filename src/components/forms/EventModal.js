@@ -22,6 +22,11 @@ export default function EventModal() {
     const [selectedActions, setSelectedActions] = useState([]);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+    
+    // Recurring event configuration
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [recurringInterval, setRecurringInterval] = useState(7);
+    const [recurringMaxOccurrences, setRecurringMaxOccurrences] = useState(12);
 
     // Initialize component state when modal opens
     useEffect(() => {
@@ -32,6 +37,10 @@ export default function EventModal() {
         
         // Set other values from selectedEvent if editing
         if (selectedEvent) {
+            console.log('📝 EventModal opened with selectedEvent:', selectedEvent);
+            console.log('📝 selectedEvent.id:', selectedEvent.id);
+            console.log('📝 selectedEvent type:', typeof selectedEvent.id);
+            
             setSelectedLabels(selectedEvent.labels || []);
             
             // Check if this is a TODO event (recurring or manual)
@@ -78,6 +87,24 @@ export default function EventModal() {
             }
             
             setDescription(selectedEvent.description || "");
+            
+            // Initialize recurring settings from event
+            if (selectedEvent.userRecurringConfig) {
+                // User has configured recurring settings
+                setIsRecurring(true);
+                setRecurringInterval(selectedEvent.userRecurringConfig.interval || 7);
+                setRecurringMaxOccurrences(selectedEvent.userRecurringConfig.maxOccurrences || 12);
+            } else if (selectedEvent.recurringInterval) {
+                // Legacy event with recurring pattern
+                setIsRecurring(true);
+                setRecurringInterval(selectedEvent.recurringInterval || 7);
+                setRecurringMaxOccurrences(12); // Default for legacy events
+            } else {
+                // Not recurring
+                setIsRecurring(false);
+                setRecurringInterval(7);
+                setRecurringMaxOccurrences(12);
+            }
         } else {
             // Reset for new event
             setSelectedLabels([]);
@@ -86,6 +113,9 @@ export default function EventModal() {
             setDescription("");
             setDosage("");
             setSelectedToDo([]);
+            setIsRecurring(false);
+            setRecurringInterval(7);
+            setRecurringMaxOccurrences(12);
         }
         // Reset confirmation states
         setShowDeleteConfirm(false);
@@ -95,23 +125,59 @@ export default function EventModal() {
     function handleActionSelect(selectedActionsArray) {
         setSelectedActions(selectedActionsArray);
         setTitle(selectedActionsArray.join(", "));
+        
+        // If selecting an action, clear any selected TODOs (they're mutually exclusive)
+        if (selectedActionsArray.length > 0) {
+            setSelectedToDo([]);
+            setIsRecurring(false); // Actions don't use the new recurring UI
+        }
+        
         // Set dosage based on first selected action
         if (selectedActionsArray.length === 0) {
             setDosage("");
         } else {
-            setDosage(PLANT_ACTIONS[selectedActionsArray[0]] || "");
+            const dosageText = PLANT_ACTIONS[selectedActionsArray[0]] || "";
+            setDosage(dosageText);
         }
+        // Note: Recurring config is only for TODOs, not actions
+        // Actions will use the legacy dosage text system for backward compatibility
     }
     
     function handleTodoSelect(selectedTodoArray) {
         setSelectedToDo(selectedTodoArray);
+        
+        // If selecting a TODO, clear any selected actions (they're mutually exclusive)
+        if (selectedTodoArray && (Array.isArray(selectedTodoArray) ? selectedTodoArray.length > 0 : selectedTodoArray)) {
+            setSelectedActions([]);
+        }
+        
         // Set dosage based on first selected todo item
+        let dosageText = "";
         if (Array.isArray(selectedTodoArray) && selectedTodoArray.length > 0) {
-            setDosage(TODO_ACTIONS[selectedTodoArray[0]] || "");
+            dosageText = TODO_ACTIONS[selectedTodoArray[0]] || "";
         } else if (selectedTodoArray) {
-            setDosage(TODO_ACTIONS[selectedTodoArray] || "");
-        } else {
-            setDosage("");
+            dosageText = TODO_ACTIONS[selectedTodoArray] || "";
+        }
+        
+        setDosage(dosageText);
+        
+        // Auto-populate recurring settings if dosage text contains pattern (suggests user might want recurring)
+        if (dosageText) {
+            const intervalMatch = dosageText.match(/use every (\d+) days?/i);
+            const maxOccurrencesMatch = dosageText.match(/use every (\d+) days?, (\d+) times max/i);
+            
+            if (intervalMatch) {
+                // Pre-populate with suggested values, but keep checkbox unchecked by default
+                // so user has explicit control
+                setRecurringInterval(parseInt(intervalMatch[1]));
+                
+                if (maxOccurrencesMatch) {
+                    setRecurringMaxOccurrences(parseInt(maxOccurrencesMatch[2]));
+                } else {
+                    setRecurringMaxOccurrences(12); // Default
+                }
+                // Don't auto-check the box - let user decide
+            }
         }
     }
 
@@ -186,6 +252,14 @@ export default function EventModal() {
         
         let calendarEvent;
         
+        // Build user recurring configuration if enabled
+        const userRecurringConfig = isRecurring ? {
+            enabled: true,
+            interval: recurringInterval,
+            maxOccurrences: recurringMaxOccurrences,
+            unit: 'days' // Currently only supporting days
+        } : null;
+        
         if (selectedEvent) {
             // For updates, start with the original event to preserve all properties (isRecurringTodo, completed, etc.)
             calendarEvent = {
@@ -197,8 +271,12 @@ export default function EventModal() {
                 labels: selectedLabels,
                 toDo: Array.isArray(selectedToDo) ? selectedToDo.join(", ") : selectedToDo,
                 day: selectedDate.valueOf(),
-                id: selectedEvent.id  // Ensure ID is preserved
+                id: selectedEvent.id,  // Ensure ID is preserved
+                userRecurringConfig // Store user's recurring configuration
             };
+            
+            console.log('📝 Built calendarEvent for update:', calendarEvent);
+            console.log('📝 calendarEvent.id:', calendarEvent.id);
         } else {
             // For new events, create fresh object
             calendarEvent = {
@@ -207,12 +285,22 @@ export default function EventModal() {
                 description,
                 labels: selectedLabels,
                 toDo: Array.isArray(selectedToDo) ? selectedToDo.join(", ") : selectedToDo,
-                day: selectedDate.valueOf()
+                day: selectedDate.valueOf(),
+                userRecurringConfig // Store user's recurring configuration
             };
         }
         
         try {
             if (selectedEvent) {
+                // Safety check: ensure the event has an ID
+                if (!calendarEvent.id || !selectedEvent.id) {
+                    console.error('❌ Cannot update event - missing ID!');
+                    console.error('calendarEvent:', calendarEvent);
+                    console.error('selectedEvent:', selectedEvent);
+                    showError('Cannot update event - missing ID. Please try refreshing the page.');
+                    return;
+                }
+                
                 // Update existing event - use recalculation function to handle recurring todos
                 await updateEventWithRecurringRecalculation(calendarEvent, selectedEvent);
             } else {
@@ -236,14 +324,13 @@ export default function EventModal() {
 
     return (
         <div className="position-fixed w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center" style={{ zIndex: 1055 }}>
-            <form className="event-modal bg-white rounded-lg shadow-lg mx-3" style={{ 
+            <form className="event-modal bg-white rounded-lg shadow-lg mx-3 d-flex flex-column" style={{ 
                 width: '100%', 
                 maxWidth: '400px',
                 maxHeight: '90vh',
-                overflowY: 'auto',
-                overflowX: 'visible'
+                overflow: 'hidden'
             }} onSubmit={(e) => e.preventDefault()}>
-                <header className="bg-light p-2 d-flex justify-content-between align-items-center">
+                <header className="bg-light p-2 d-flex justify-content-between align-items-center flex-shrink-0">
                     <span className="material-icons-outlined text-muted">
                         drag_handle
                     </span>
@@ -281,8 +368,8 @@ export default function EventModal() {
                         </button>
                     </div>
                 </header>
-                <div className="p-3" style={{ overflow: 'visible' }}>
-                    <div className="d-grid gap-3">
+                <div className="p-3 pb-0 flex-grow-1" style={{ overflowY: 'auto', overflowX: 'visible' }}>
+                    <div className="d-grid gap-3 pb-3">
                         {/* Action Selection */}
                         <div className="d-flex align-items-center mb-3">
                             <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
@@ -322,6 +409,63 @@ export default function EventModal() {
                                 </div>
                             )}
                         </div>
+                        
+                        {/* Recurring Event Configuration - Only for TODOs */}
+                        {(selectedToDo && (Array.isArray(selectedToDo) ? selectedToDo.length > 0 : selectedToDo)) && (
+                            <div className="mb-3">
+                                <div className="form-check">
+                                    <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        id="isRecurringCheck"
+                                        checked={isRecurring}
+                                        onChange={(e) => setIsRecurring(e.target.checked)}
+                                    />
+                                    <label className="form-check-label" htmlFor="isRecurringCheck">
+                                        <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
+                                            repeat
+                                        </span>
+                                        Make this a recurring event
+                                    </label>
+                                </div>
+                                
+                                {isRecurring && (
+                                    <div className="mt-3 p-3 bg-light rounded">
+                                        <div className="mb-3">
+                                            <label htmlFor="recurringInterval" className="form-label small text-muted">
+                                                Repeat every (days)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                className="form-control form-control-sm"
+                                                id="recurringInterval"
+                                                min="1"
+                                                max="365"
+                                                value={recurringInterval}
+                                                onChange={(e) => setRecurringInterval(parseInt(e.target.value) || 7)}
+                                            />
+                                        </div>
+                                        <div className="mb-2">
+                                            <label htmlFor="recurringMaxOccurrences" className="form-label small text-muted">
+                                                Maximum occurrences
+                                            </label>
+                                            <input
+                                                type="number"
+                                                className="form-control form-control-sm"
+                                                id="recurringMaxOccurrences"
+                                                min="1"
+                                                max="50"
+                                                value={recurringMaxOccurrences}
+                                                onChange={(e) => setRecurringMaxOccurrences(parseInt(e.target.value) || 12)}
+                                            />
+                                            <div className="form-text" style={{ fontSize: '0.7rem' }}>
+                                                Total number of times this event will occur (including the first one)
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         
                         {/* Date Selection */}
                         <div className="d-flex align-items-center mb-3">
@@ -375,7 +519,7 @@ export default function EventModal() {
                         </div>
                     </div>
                 </div>
-                <footer className="d-flex justify-content-end border-top p-3 mt-3">
+                <footer className="d-flex justify-content-end border-top p-3 flex-shrink-0">
                     <button 
                         type="submit" 
                         onClick={handleSubmit} 

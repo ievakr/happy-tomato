@@ -216,6 +216,11 @@ export default function ContextWrapper(props) {
                     break;
                   case "update":
                     console.log('Updating event in Firebase...');
+                    if (!payload.id) {
+                      console.error('❌ Cannot update event - payload.id is undefined!');
+                      console.error('Payload:', payload);
+                      throw new Error('Cannot update event: missing event ID');
+                    }
                     await updateDoc(doc(db, "events", payload.id), payload);
                     console.log('Event updated in Firebase successfully');
                     break;

@@ -26,13 +26,22 @@ export default function SmallCalendar() {
         const nowDay = dayjs().format(format);
         const currDay = day.format(format);
         const slcDay = daySelected && daySelected.format(format);
+        const isCurrentMonth = day.month() === currentMonthIdx;
+        
+        let classes = '';
+        
         if (nowDay === currDay) {
-            return 'bg-danger text-white rounded-circle';
+            classes = 'bg-danger text-white rounded-circle';
         } else if (currDay === slcDay) {
-            return "bg-warning text-danger font-weight-bold rounded-circle";
-        } else {
-            return '';
+            classes = "bg-warning text-danger font-weight-bold rounded-circle";
         }
+        
+        // Add grey styling for days not in current month
+        if (!isCurrentMonth) {
+            classes += ' text-muted';
+        }
+        
+        return classes;
     }
 
     return (
@@ -62,16 +71,23 @@ export default function SmallCalendar() {
                 ))}
                 {currentMonth.map((row, i) => (
                     <React.Fragment key={i}>
-                        {row.map((day, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => { setSmallCalendarMonth(currentMonthIdx); setDaySelected(day); }}
-                                className={`btn btn-sm p-1 d-flex align-items-center justify-content-center ${getDayClass(day)}`}
-                                style={{ width: '40px', height: '40px' }}
-                            >
-                                <span className="small">{day.format('D')}</span>
-                            </button>
-                        ))}
+                        {row.map((day, idx) => {
+                            const isCurrentMonth = day.month() === currentMonthIdx;
+                            return (
+                                <button
+                                    key={idx}
+                                    onClick={() => { setSmallCalendarMonth(currentMonthIdx); setDaySelected(day); }}
+                                    className={`btn btn-sm p-1 d-flex align-items-center justify-content-center ${getDayClass(day)}`}
+                                    style={{ 
+                                        width: '40px', 
+                                        height: '40px',
+                                        opacity: isCurrentMonth ? 1 : 0.4
+                                    }}
+                                >
+                                    <span className="small">{day.format('D')}</span>
+                                </button>
+                            );
+                        })}
                     </React.Fragment>
                 ))}
             </div>

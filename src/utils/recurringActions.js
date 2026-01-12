@@ -1,11 +1,22 @@
 import dayjs from 'dayjs';
 
 /**
- * Parse dosage text to extract recurring interval information
+ * Parse dosage text or user config to extract recurring interval information
  * @param {string} dosageText - Text like "Use every 7 days" or "Use every 14 days"
+ * @param {Object} userRecurringConfig - User-defined recurring configuration
  * @returns {Object} - {interval: number, unit: string, maxOccurrences: number}
  */
-export const parseRecurringInterval = (dosageText) => {
+export const parseRecurringInterval = (dosageText, userRecurringConfig = null) => {
+  // Priority 1: Use user-defined configuration if available
+  if (userRecurringConfig && userRecurringConfig.enabled) {
+    return {
+      interval: userRecurringConfig.interval || 7,
+      unit: userRecurringConfig.unit || 'days',
+      maxOccurrences: userRecurringConfig.maxOccurrences || 12
+    };
+  }
+  
+  // Priority 2: Fall back to parsing dosage text for backward compatibility
   if (!dosageText) return null;
   
   const patterns = [
@@ -53,10 +64,11 @@ export const parseRecurringInterval = (dosageText) => {
  * @param {string} dosageText - The dosage/recurring instruction
  * @param {number} futureMonths - How many months ahead to generate events (default: 6)
  * @param {Array} existingEvents - Optional array of existing events to avoid duplicates
+ * @param {boolean} generateAllOccurrences - If true, generate all occurrences including the first one (for user-created TODOs). If false, generate maxOccurrences-1 (for actions that spawn TODOs)
  * @returns {Array} - Array of TO DO events to be created
  */
-export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6, existingEvents = []) => {
-  const recurringInfo = parseRecurringInterval(dosageText);
+export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6, existingEvents = [], generateAllOccurrences = false) => {
+  const recurringInfo = parseRecurringInterval(dosageText, actionEvent.userRecurringConfig);
   
   if (!recurringInfo || recurringInfo.interval === 0) {
     return []; // No recurring events for "use once" or invalid patterns
@@ -105,13 +117,24 @@ export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6
   const startDate = dayjs(actionEvent.day);
   const endDate = startDate.add(futureMonths, 'months');
   
-  let currentDate = startDate.add(recurringInfo.interval, recurringInfo.unit);
-  let occurrenceCount = 0;
+  // For user-created TODOs with recurring, generate ALL occurrences starting from the selected date
+  // For actions that spawn TODOs, generate maxOccurrences-1 (the action itself is occurrence #1)
+  let currentDate;
+  let todosToGenerate;
   
-  // The original event counts as the first occurrence, so we generate (maxOccurrences - 1) additional todos
-  const additionalOccurrences = recurringInfo.maxOccurrences - 1;
+  if (generateAllOccurrences) {
+    currentDate = startDate; // Start from the selected date itself
+    todosToGenerate = recurringInfo.maxOccurrences; // Generate all occurrences
+    console.log(`📊 User TODO recurring generation: maxOccurrences=${recurringInfo.maxOccurrences}, will generate ${todosToGenerate} TODOs starting from ${startDate.format('DD-MM-YY')}`);
+  } else {
+    currentDate = startDate.add(recurringInfo.interval, recurringInfo.unit); // Start from next interval
+    todosToGenerate = recurringInfo.maxOccurrences - 1; // Generate additional todos
+    console.log(`📊 Action recurring TODO generation: maxOccurrences=${recurringInfo.maxOccurrences}, will generate ${todosToGenerate} additional TODOs`);
+  }
   
-  while (currentDate.isBefore(endDate) && occurrenceCount < additionalOccurrences) {
+  let todosCreated = 0;
+  
+  while (currentDate.isBefore(endDate) && todosCreated < todosToGenerate) {
     // Check if a TODO already exists for this date and action combination
     const currentDateStr = currentDate.format("DD-MM-YY");
     const actionToMatch = actionEvent.actions && actionEvent.actions.length > 0 
@@ -165,21 +188,31 @@ export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6
         labels: actionEvent.labels || [],
         day: currentDate.valueOf(),
         isRecurringTodo: true,
-        originalActionId: actionEvent.originalActionId || actionEvent.id, // Preserve original action reference
         recurringInterval: recurringInfo.interval,
         recurringUnit: recurringInfo.unit,
         completed: false,
-        createdFromAction: true
+        createdFromAction: true,
+        // Only include userRecurringConfig if it exists
+        ...(actionEvent.userRecurringConfig && { userRecurringConfig: actionEvent.userRecurringConfig })
       };
       
+      // Only add originalActionId if it exists (for legacy recurring TODOs generated from actions)
+      // For user-created recurring TODOs, this field is not needed
+      if (actionEvent.originalActionId || (actionEvent.id && !generateAllOccurrences)) {
+        todoEvent.originalActionId = actionEvent.originalActionId || actionEvent.id;
+      }
+      
       todos.push(todoEvent);
+      todosCreated++;
+      console.log(`✅ Created TODO ${todosCreated}/${todosToGenerate} for ${currentDateStr}`);
     } else {
       console.log(`⏭️ Skipping TODO creation for ${currentDateStr} - TODO already exists:`, existingTodoForDate.title);
     }
     
     currentDate = currentDate.add(recurringInfo.interval, recurringInfo.unit);
-    occurrenceCount++;
   }
+  
+  console.log(`📊 Recurring TODO generation complete: created ${todosCreated} TODOs (target was ${todosToGenerate})`);
   
   return todos;
 };
@@ -205,9 +238,21 @@ export const convertTodoToAction = (todoEvent) => {
  * Check if an action should generate recurring TO DOs
  * @param {string} actionName - Name of the action
  * @param {string} dosageText - The dosage text
+ * @param {Object} userRecurringConfig - User-defined recurring configuration
  * @returns {boolean}
  */
-export const shouldGenerateRecurringTodos = (actionName, dosageText) => {
+export const shouldGenerateRecurringTodos = (actionName, dosageText, userRecurringConfig = null) => {
+  // If user explicitly configured recurring settings, use that
+  if (userRecurringConfig && userRecurringConfig.enabled) {
+    return true;
+  }
+  
+  // If user explicitly disabled recurring
+  if (userRecurringConfig && !userRecurringConfig.enabled) {
+    return false;
+  }
+  
+  // Fall back to legacy dosage text parsing for backward compatibility
   if (!dosageText) return false;
   
   // Don't generate for one-time actions
