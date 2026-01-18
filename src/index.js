@@ -9,11 +9,20 @@ import { ToastProvider } from './context/ToastContext';
 import { ErrorBoundary, ContextErrorBoundary, AsyncErrorBoundary } from './components/common';
 import errorLogger from './utils/errorLogger';
 import globalErrorHandler from './utils/globalErrorHandler';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Initialize global error handling
 globalErrorHandler.init();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false
+    }
+  }
+});
 
 const handleGlobalError = (error, errorInfo) => {
   errorLogger.logError(error, errorInfo, 'Global Error Boundary');
@@ -34,17 +43,19 @@ root.render(
       message="The calendar application has encountered a critical error."
       onError={handleGlobalError}
     >
-      <ToastProvider>
-        <AuthProvider>
-          <ContextErrorBoundary onError={handleContextError}>
-            <AsyncErrorBoundary onError={handleAsyncError}>
-              <ContextWrapper>
-                <App />
-              </ContextWrapper>
-            </AsyncErrorBoundary>
-          </ContextErrorBoundary>
-        </AuthProvider>
-      </ToastProvider>
+      <QueryClientProvider client={queryClient}>
+        <ToastProvider>
+          <AuthProvider>
+            <ContextErrorBoundary onError={handleContextError}>
+              <AsyncErrorBoundary onError={handleAsyncError}>
+                <ContextWrapper>
+                  <App />
+                </ContextWrapper>
+              </AsyncErrorBoundary>
+            </ContextErrorBoundary>
+          </AuthProvider>
+        </ToastProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

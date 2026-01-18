@@ -1,4 +1,4 @@
-import React, {useEffect, useReducer, useState, useMemo} from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import CalendarContext from "./CalendarContext";
 import EventContext from "./EventContext";
 import LayoutContext from "./LayoutContext";
@@ -9,21 +9,7 @@ import errorLogger from "../utils/errorLogger";
 import { PLANT_LABELS } from "../constants";
 import { useAuth } from "./AuthContext";
 import { useToast } from "./ToastContext";
-
-function savedEventsReducer(state, { type, payload }) {
-    switch (type) {
-      case "push":
-        return [...state, payload];
-      case "update":
-        return state.map(evt => evt.id === payload.id ? payload : evt);
-        case "delete":
-        return state.filter(evt => evt.id !== payload.id);                    
-      case "load":
-        return payload;
-      default:
-        throw new Error();
-    }
-  }  
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 async function fetchEvents(userId) {
     try {
@@ -50,13 +36,14 @@ async function fetchEvents(userId) {
             userId: userId,
             timestamp: new Date().toISOString()
         });
-        return [];
+        throw error;
     }
 }  
 
 export default function ContextWrapper(props) {
     const { currentUser } = useAuth();
     const { showError } = useToast();
+    const queryClient = useQueryClient();
     
     // Get responsive info to set initial view
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 0);
@@ -79,11 +66,9 @@ export default function ContextWrapper(props) {
     const [showEventModal, setShowEventModal] = useState(false)
     const [selectedEvent, setSelectedEvent] = useState(null)
     const [labels, setLabels] = useState([])
-    const [savedEvents, dispatchCallEvent] = useReducer(savedEventsReducer, [])
     const [dosage, setDosage] = useState("");
     const [showSidebar, setShowSidebar] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-    const [isInitialLoading, setIsInitialLoading] = useState(true)
     const [loadingOperation, setLoadingOperation] = useState(null)
     const [currentView, setCurrentView] = useState(getInitialView())
     const [weekIndex, setWeekIndex] = useState(0)
@@ -92,6 +77,29 @@ export default function ContextWrapper(props) {
     const [operationQueue, setOperationQueue] = useState([])
     const [isProcessingOperation, setIsProcessingOperation] = useState(false)
     
+    const eventsQueryKey = ['events', currentUser?.uid];
+    const eventsQuery = useQuery({
+        queryKey: eventsQueryKey,
+        queryFn: () => fetchEvents(currentUser.uid),
+        enabled: !!currentUser,
+        retry: 2,
+        retryDelay: (attempt) => Math.pow(2, attempt) * 1000,
+        onError: (error) => {
+            console.error('Failed to load initial events:', error);
+            errorLogger.logError(error, null, 'Initial Data Load', { 
+                operation: 'initial_load',
+                userId: currentUser?.uid,
+                timestamp: new Date().toISOString()
+            });
+            showError('Failed to load your events. Please check your internet connection and refresh the page.', 8000);
+        }
+    });
+
+    const savedEvents = currentUser ? (eventsQuery.data || []) : [];
+    const isInitialLoading = !!currentUser && eventsQuery.isLoading;
+    const resolvedLoadingOperation = loadingOperation || (isInitialLoading ? 'load' : null);
+    const resolvedIsLoading = isLoading || isInitialLoading;
+
     const filteredEvents = useMemo(() => {
         // If no labels are set up yet, show all events
         if (labels.length === 0) {
@@ -178,25 +186,11 @@ export default function ContextWrapper(props) {
         }
     }
 
-    async function handleEventDispatch({type, payload}) {
-        // Prevent concurrent operations to avoid conflicts
-        if (isProcessingOperation) {
-            console.log('Operation already in progress, queuing new operation:', { type, payload });
-            setOperationQueue(prev => [...prev, { type, payload }]);
-            return;
-        }
-
-        setIsProcessingOperation(true);
-        setIsLoading(true);
-        setLoadingOperation(type);
-        
-        try {
-            console.log(`Starting ${type} operation for event:`, payload);
-            
-            // Wrap Firebase operations in retry logic
-            await retryOperation(async () => {
+    const eventMutation = useMutation({
+        mutationFn: async ({ type, payload }) => {
+            return retryOperation(async () => {
                 switch (type) {
-                  case "push":
+                  case "push": {
                     console.log('=== ADD OPERATION DEBUG ===');
                     console.log('Event to add:', payload);
                     
@@ -211,11 +205,13 @@ export default function ContextWrapper(props) {
                     console.log('✅ Event added to Firebase with ID:', addDocRef.id);
                     console.log('Document path:', addDocRef.path);
                     
-                    // Update the payload with the actual Firebase-generated ID and userId
-                    payload.id = addDocRef.id;
-                    payload.userId = currentUser.uid;
-                    console.log('Updated payload with Firebase ID:', payload);
-                    break;
+                    const updatedPayload = {
+                        ...payload,
+                        id: addDocRef.id,
+                        userId: currentUser.uid
+                    };
+                    return { type, payload: updatedPayload };
+                  }
                   case "update":
                     console.log('Updating event in Firebase...');
                     if (!payload.id) {
@@ -225,8 +221,8 @@ export default function ContextWrapper(props) {
                     }
                     await updateDoc(doc(db, "events", payload.id), payload);
                     console.log('Event updated in Firebase successfully');
-                    break;
-                  case "delete":
+                    return { type, payload };
+                  case "delete": {
                     console.log('=== DELETE OPERATION DEBUG ===');
                     console.log('Event to delete:', payload);
                     console.log('Event ID to delete:', payload.id);
@@ -255,14 +251,60 @@ export default function ContextWrapper(props) {
                         // This handles cases where events exist locally but not in Firebase due to sync issues
                         console.log('Proceeding with local cleanup since document was not found in Firebase');
                     }
-                    break;
+                    return { type, payload };
+                  }
                   default:
-                    break;
+                    return { type, payload };
                 }
             });
+        }
+    });
+
+    const updateEventCache = (type, payload) => {
+        if (!currentUser) {
+            return;
+        }
+
+        queryClient.setQueryData(eventsQueryKey, (existing = []) => {
+            switch (type) {
+              case "push":
+                return [...existing, payload];
+              case "update":
+                return existing.map(evt => evt.id === payload.id ? payload : evt);
+              case "delete":
+                return existing.filter(evt => evt.id !== payload.id);
+              default:
+                return existing;
+            }
+        });
+    };
+
+    async function handleEventDispatch({type, payload}) {
+        // Prevent concurrent operations to avoid conflicts
+        if (isProcessingOperation) {
+            console.log('Operation already in progress, queuing new operation:', { type, payload });
+            setOperationQueue(prev => [...prev, { type, payload }]);
+            return;
+        }
+
+        if (!currentUser) {
+            showError('Please sign in to manage events.', 6000);
+            return;
+        }
+
+        setIsProcessingOperation(true);
+        setIsLoading(true);
+        setLoadingOperation(type);
+        
+        try {
+            console.log(`Starting ${type} operation for event:`, payload);
             
-            // Local state update only after Firebase operation completes
-            dispatchCallEvent({ type, payload });
+            const result = await eventMutation.mutateAsync({ type, payload });
+            const updatedPayload = result?.payload || payload;
+
+            // Local cache update only after Firebase operation completes
+            updateEventCache(type, updatedPayload);
+            queryClient.invalidateQueries({ queryKey: eventsQueryKey });
             console.log(`${type} operation completed successfully`);
         } catch (error) {
             console.error(`Error performing ${type} operation:`, error);
@@ -280,7 +322,7 @@ export default function ContextWrapper(props) {
             
             // Don't update local state if Firebase operation fails for deletes
             if (type !== 'delete') {
-                dispatchCallEvent({ type, payload });
+                updateEventCache(type, payload);
             }
         } finally {
             setIsLoading(false);
@@ -299,45 +341,10 @@ export default function ContextWrapper(props) {
     }; 
     
     useEffect(() => {
-        async function loadInitialData() {
-            // Only load events if user is authenticated
-            if (!currentUser) {
-                console.log('No user authenticated, skipping event load');
-                setIsInitialLoading(false);
-                return;
-            }
-            
-            // Set initial loading
-            setIsInitialLoading(true);
-            setIsLoading(true);
-            setLoadingOperation('load');
-            
-            try {
-                console.log('Loading initial events for user:', currentUser.uid);
-                
-                // Use retry logic for initial load as well, passing userId
-                const events = await retryOperation(() => fetchEvents(currentUser.uid), 2);
-                dispatchCallEvent({ type: "load", payload: events });
-                console.log(`Loaded ${events.length} events successfully`);
-            } catch (error) {
-                console.error('Failed to load initial events:', error);
-                errorLogger.logError(error, null, 'Initial Data Load', { 
-                    operation: 'initial_load',
-                    userId: currentUser?.uid,
-                    timestamp: new Date().toISOString()
-                });
-                
-                // Show a more helpful error message for initial load failures
-                showError('Failed to load your events. Please check your internet connection and refresh the page.', 8000);
-            } finally {
-                setIsInitialLoading(false);
-                setIsLoading(false);
-                setLoadingOperation(null);
-            }
+        if (!currentUser) {
+            queryClient.removeQueries({ queryKey: ['events'] });
         }
-        
-        loadInitialData();
-    }, [currentUser, showError]);
+    }, [currentUser, queryClient]);
     
       
     useEffect(() => {
@@ -408,10 +415,10 @@ export default function ContextWrapper(props) {
                 filteredEvents, 
                 dosage, 
                 setDosage, 
-                isLoading, 
+                isLoading: resolvedIsLoading, 
                 setIsLoading,
                 isInitialLoading,
-                loadingOperation
+                loadingOperation: resolvedLoadingOperation
             }}>
                 <LayoutContext.Provider value={{
                     showSidebar, 
