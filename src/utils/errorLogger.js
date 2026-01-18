@@ -3,8 +3,6 @@
  * Centralized error logging and reporting
  */
 
-import { captureError, setSentryUser } from './sentry';
-
 class ErrorLogger {
   constructor() {
     this.errorQueue = [];
@@ -29,8 +27,6 @@ class ErrorLogger {
    * @param {Object} additionalData - Additional context data
    */
   logError(error, errorInfo = null, context = 'Unknown', additionalData = {}) {
-    const userId = this.getUserId();
-    const sessionId = this.getSessionId();
     const errorLog = {
       timestamp: new Date().toISOString(),
       error: {
@@ -46,8 +42,8 @@ class ErrorLogger {
       userAgent: navigator.userAgent,
       url: window.location.href,
       additionalData,
-      userId,
-      sessionId,
+      userId: this.getUserId(), // Get user ID if available
+      sessionId: this.getSessionId(),
       buildVersion: process.env.REACT_APP_VERSION || 'unknown'
     };
 
@@ -91,31 +87,20 @@ class ErrorLogger {
    */
   async sendToErrorService(errorLog) {
     try {
-      setSentryUser(errorLog.userId);
-
-      const sentryError = new Error(
-        errorLog.error?.message || 'Unknown error'
-      );
-      sentryError.name = errorLog.error?.name || 'Error';
-      sentryError.stack = errorLog.error?.stack;
-
-      captureError(sentryError, {
-        tags: {
-          context: errorLog.context
+      // Replace with your actual error reporting service
+      // Example: Sentry, LogRocket, or custom endpoint
+      console.log('Would send to error service:', errorLog);
+      
+      // Uncomment and configure for your error service
+      /*
+      await fetch('/api/errors', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        extras: {
-          additionalData: errorLog.additionalData,
-          sessionId: errorLog.sessionId,
-          buildVersion: errorLog.buildVersion,
-          userAgent: errorLog.userAgent,
-          url: errorLog.url
-        },
-        contexts: errorLog.errorInfo ? {
-          react: {
-            componentStack: errorLog.errorInfo.componentStack
-          }
-        } : undefined
+        body: JSON.stringify(errorLog),
       });
+      */
     } catch (e) {
       console.error('Failed to send error to service:', e);
       // Add back to queue for retry

@@ -271,17 +271,6 @@ async sendToErrorService(errorLog) {
 }
 ```
 
-### Sentry Integration
-Sentry is supported out of the box.
-
-- Frontend: set `REACT_APP_SENTRY_DSN` (and optionally `REACT_APP_VERSION`)
-- Functions: set `sentry.dsn` via `firebase functions:config:set`
-
-Example:
-```
-firebase functions:config:set sentry.dsn="https://examplePublicKey@o0.ingest.sentry.io/0"
-```
-
 ## Testing Error Boundaries
 
 ### Manual Testing
