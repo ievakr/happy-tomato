@@ -16,7 +16,7 @@ This directory contains comprehensive unit tests for all custom React hooks used
 
 ### Test Wrapper
 
-A custom test wrapper is provided in `src/test-utils/test-wrapper.js` to wrap hooks that depend on `GlobalContext`:
+A custom test wrapper is provided in `src/test-utils/test-wrapper.js` to wrap hooks that depend on the app contexts:
 
 ```javascript
 import { createWrapper } from '../test-utils/test-wrapper';
@@ -62,7 +62,7 @@ npm test -- --coverage --watchAll=false
 
 ### Testing Hooks with Context
 
-Hooks that use `GlobalContext` require the wrapper:
+Hooks that use the shared contexts require the wrapper:
 
 ```javascript
 describe('useEmailNotifications', () => {
@@ -165,7 +165,7 @@ Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 For each failing test:
 
-1. Check if the hook uses `GlobalContext`
+1. Check if the hook uses one of the shared contexts
 2. If yes, ensure the test uses `createWrapper()` with appropriate context values
 3. If the test needs specific `filteredEvents`, pass them to `createWrapper()`
 4. Remove any `React.useContext.mockReturnValue()` calls
@@ -221,7 +221,7 @@ Target coverage for each hook:
 ### useCalendar
 - ⚠️ Month initialization
 - ⚠️ Month navigation
-- ⚠️ Integration with GlobalContext
+- ⚠️ Integration with shared contexts
 
 ### useEvents
 - ⚠️ CRUD operations (create, read, update, delete)

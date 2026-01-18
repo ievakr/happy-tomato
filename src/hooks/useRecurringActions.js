@@ -1,6 +1,6 @@
 import { useContext } from 'react';
 import dayjs from 'dayjs';
-import GlobalContext from '../context/GlobalContext';
+import EventContext from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { EVENT_ACTIONS, PLANT_ACTIONS, TODO_ACTIONS } from '../constants';
 import { 
@@ -13,7 +13,7 @@ import {
  * Custom hook for managing recurring actions and TO DO completion
  */
 export const useRecurringActions = () => {
-  const { dispatchCallEvent, filteredEvents } = useContext(GlobalContext);
+  const { dispatchCallEvent, filteredEvents } = useContext(EventContext);
   const { currentUser } = useAuth();
 
   /**

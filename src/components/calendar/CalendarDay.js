@@ -1,12 +1,14 @@
 import React, { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import GlobalContext from '../../context/GlobalContext';
+import CalendarContext from '../../context/CalendarContext';
+import EventContext from '../../context/EventContext';
 import { PLANT_LABELS, UI_CONSTANTS } from '../../constants';
 import { useResponsive, useRecurringActions } from '../../hooks';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
-    const { setDaySelected, setShowEventModal, filteredEvents, setSelectedEvent, setCurrentView, monthIndex } = useContext(GlobalContext);
+    const { setDaySelected, setCurrentView, monthIndex } = useContext(CalendarContext);
+    const { setShowEventModal, filteredEvents, setSelectedEvent } = useContext(EventContext);
     const { isMobile } = useResponsive();
     const { isTodoEvent, isCompletedTodoAction } = useRecurringActions();
     const [dayEvents, setDayEvents] = useState([]);

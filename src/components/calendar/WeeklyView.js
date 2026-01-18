@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import GlobalContext from '../../context/GlobalContext';
+import CalendarContext from '../../context/CalendarContext';
+import EventContext from '../../context/EventContext';
 import { getWeekByIndex, getWeekDateRange, getDayHeaders } from '../../utils';
 import { useResponsive, useSwipeGestures } from '../../hooks';
 import { PLANT_LABELS } from '../../constants';
@@ -13,15 +14,17 @@ const WeeklyView = () => {
     weekIndex, 
     setMonthIndex,
     setWeekIndex,
-    filteredEvents, 
-    setDaySelected, 
-    setShowEventModal, 
+    setDaySelected
+  } = useContext(CalendarContext);
+  const {
+    filteredEvents,
+    setShowEventModal,
     setSelectedEvent,
     isInitialLoading,
     dispatchCallEvent,
     isLoading,
     loadingOperation
-  } = useContext(GlobalContext);
+  } = useContext(EventContext);
   
   const { isMobile } = useResponsive();
   const [currentWeek, setCurrentWeek] = useState([]);

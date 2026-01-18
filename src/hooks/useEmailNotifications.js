@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext, useCallback } from 'react';
-import GlobalContext from '../context/GlobalContext';
+import EventContext from '../context/EventContext';
 import emailService from '../services/emailService';
 import dayjs from 'dayjs';
 import { db } from '../firebase';
@@ -9,7 +9,7 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
  * Custom hook for managing email notifications for TODOs
  */
 export const useEmailNotifications = () => {
-  const { filteredEvents, savedEvents } = useContext(GlobalContext);
+  const { filteredEvents, savedEvents } = useContext(EventContext);
   
   // IMPORTANT: For email notifications, we should check ALL events, not just filtered ones
   // The filteredEvents may be empty if labels are unchecked, but we still need to send reminders

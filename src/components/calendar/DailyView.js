@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState, useRef, useCallback } from 'react';
 import dayjs from 'dayjs';
-import GlobalContext from '../../context/GlobalContext';
+import CalendarContext from '../../context/CalendarContext';
+import EventContext from '../../context/EventContext';
 import { getDayHeaders } from '../../utils';
 import { useResponsive, useSwipeGestures } from '../../hooks';
 import { PLANT_LABELS } from '../../constants';
@@ -10,17 +11,19 @@ import '../../index.css';
 const DailyView = () => {
   const { 
     daySelected,
-    filteredEvents, 
-    setDaySelected, 
-    setShowEventModal, 
+    setDaySelected,
+    monthIndex,
+    setMonthIndex
+  } = useContext(CalendarContext);
+  const {
+    filteredEvents,
+    setShowEventModal,
     setSelectedEvent,
     isInitialLoading,
     dispatchCallEvent,
     isLoading,
-    loadingOperation,
-    monthIndex,
-    setMonthIndex
-  } = useContext(GlobalContext);
+    loadingOperation
+  } = useContext(EventContext);
   
   const { isMobile } = useResponsive();
   const scrollContainerRef = useRef(null);

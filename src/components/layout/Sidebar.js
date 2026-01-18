@@ -1,12 +1,12 @@
 import React, { useContext, useState, useEffect } from 'react';
 import CreateEventButton from '../forms/CreateEventButton';
 import Labels from '../calendar/Labels';
-import GlobalContext from '../../context/GlobalContext';
+import LayoutContext from '../../context/LayoutContext';
 import EventMigration from '../settings/EventMigration';
 import { countEventsWithoutUser } from '../../utils/migrateEvents';
 
 export default function Sidebar() {
-    const { showSidebar, setShowSidebar } = useContext(GlobalContext);
+    const { showSidebar, setShowSidebar } = useContext(LayoutContext);
     const [showMigration, setShowMigration] = useState(false);
     const [hasUnassignedEvents, setHasUnassignedEvents] = useState(false);
 

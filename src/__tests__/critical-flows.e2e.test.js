@@ -13,7 +13,8 @@ import dayjs from 'dayjs';
 
 // Import components to test
 import EventModal from '../components/forms/EventModal';
-import GlobalContext from '../context/GlobalContext';
+import CalendarContext from '../context/CalendarContext';
+import EventContext from '../context/EventContext';
 import { PLANT_LABELS, TODO_ITEMS } from '../constants';
 
 // Mock Firebase
@@ -59,9 +60,8 @@ jest.mock('../hooks', () => ({
   }),
 }));
 
-// Helper to create context value
-const createContextValue = (overrides = {}) => ({
-  daySelected: dayjs(),
+// Helper to create context values
+const createEventContextValue = (overrides = {}) => ({
   setShowEventModal: jest.fn(),
   dispatchCallEvent: jest.fn(),
   selectedEvent: null,
@@ -72,17 +72,26 @@ const createContextValue = (overrides = {}) => ({
   ...overrides,
 });
 
+const createCalendarContextValue = (overrides = {}) => ({
+  daySelected: dayjs(),
+  setDaySelected: jest.fn(),
+  ...overrides,
+});
+
 // Helper to render EventModal with context
 const renderEventModal = (contextValue = {}) => {
-  const value = createContextValue(contextValue);
+  const eventValue = createEventContextValue(contextValue);
+  const calendarValue = createCalendarContextValue();
   
   return {
     ...render(
-      <GlobalContext.Provider value={value}>
-        <EventModal />
-      </GlobalContext.Provider>
+      <CalendarContext.Provider value={calendarValue}>
+        <EventContext.Provider value={eventValue}>
+          <EventModal />
+        </EventContext.Provider>
+      </CalendarContext.Provider>
     ),
-    contextValue: value,
+    contextValue: eventValue,
   };
 };
 

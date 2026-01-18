@@ -14,7 +14,7 @@ jest.mock('../utils', () => ({
   ])
 }));
 
-jest.mock('../context/GlobalContext', () => ({
+jest.mock('../context/CalendarContext', () => ({
   __esModule: true,
   default: {
     monthIndex: 0

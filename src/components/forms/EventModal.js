@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
-import GlobalContext from "../../context/GlobalContext";
+import CalendarContext from "../../context/CalendarContext";
+import EventContext from "../../context/EventContext";
 import { useToast } from "../../context/ToastContext";
 import CustomDropdown from "../common/CustomDropdown";
 import DatePicker from "react-widgets/DatePicker";
@@ -11,7 +12,8 @@ import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS, TODO_ACTIONS } from "../../con
 import { useRecurringActions } from "../../hooks";
 
 export default function EventModal() {
-    const { setShowEventModal, daySelected, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(GlobalContext); 
+    const { daySelected } = useContext(CalendarContext);
+    const { setShowEventModal, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(EventContext); 
     const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
     const { showError } = useToast();
     const [description, setDescription] = useState("");

@@ -236,9 +236,9 @@ The tests verify that the application properly tracks loading states:
 - `isInitialLoading` - Boolean indicating if initial data load is in progress
 - `loadingOperation` - String indicating the type of operation ('load', 'push', 'update', 'delete')
 
-## Integration with GlobalContext
+## Integration with EventContext
 
-All Firebase operations are integrated into the GlobalContext, making them available throughout the application:
+All Firebase operations are integrated into the EventContext, making them available throughout the application:
 
 ```javascript
 const {
@@ -247,7 +247,7 @@ const {
   isLoading,            // Loading state
   isInitialLoading,     // Initial load state
   loadingOperation      // Current operation type
-} = useContext(GlobalContext);
+} = useContext(EventContext);
 ```
 
 ## Coverage

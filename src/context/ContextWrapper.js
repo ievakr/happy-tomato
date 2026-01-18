@@ -1,5 +1,7 @@
 import React, {useEffect, useReducer, useState, useMemo} from "react";
-import GlobalContext from "./GlobalContext";
+import CalendarContext from "./CalendarContext";
+import EventContext from "./EventContext";
+import LayoutContext from "./LayoutContext";
 import dayjs from "dayjs";
 import { db } from "../firebase";
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, query, where } from "firebase/firestore";
@@ -379,31 +381,13 @@ export default function ContextWrapper(props) {
 
 
     return (
-        <GlobalContext.Provider value={{
+        <CalendarContext.Provider value={{
             monthIndex, 
             setMonthIndex, 
             smallCalendarMonth, 
             setSmallCalendarMonth, 
             daySelected, 
-            setDaySelected, 
-            showEventModal, 
-            setShowEventModal, 
-            dispatchCallEvent: handleEventDispatch, 
-            savedEvents, 
-            selectedEvent, 
-            setSelectedEvent, 
-            labels, 
-            setLabels, 
-            updateLabel, 
-            filteredEvents, 
-            dosage, 
-            setDosage, 
-            showSidebar, 
-            setShowSidebar, 
-            isLoading, 
-            setIsLoading,
-            isInitialLoading,
-            loadingOperation,
+            setDaySelected,
             currentView,
             setCurrentView,
             weekIndex,
@@ -411,7 +395,31 @@ export default function ContextWrapper(props) {
             currentDayIndex,
             setCurrentDayIndex
         }}>
-            {props.children}
-        </GlobalContext.Provider>
-    )
+            <EventContext.Provider value={{
+                showEventModal, 
+                setShowEventModal, 
+                dispatchCallEvent: handleEventDispatch, 
+                savedEvents, 
+                selectedEvent, 
+                setSelectedEvent, 
+                labels, 
+                setLabels, 
+                updateLabel, 
+                filteredEvents, 
+                dosage, 
+                setDosage, 
+                isLoading, 
+                setIsLoading,
+                isInitialLoading,
+                loadingOperation
+            }}>
+                <LayoutContext.Provider value={{
+                    showSidebar, 
+                    setShowSidebar
+                }}>
+                    {props.children}
+                </LayoutContext.Provider>
+            </EventContext.Provider>
+        </CalendarContext.Provider>
+    );
 }

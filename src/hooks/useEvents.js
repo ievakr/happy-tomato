@@ -1,6 +1,7 @@
 import { useContext } from 'react';
 import dayjs from 'dayjs';
-import GlobalContext from '../context/GlobalContext';
+import CalendarContext from '../context/CalendarContext';
+import EventContext from '../context/EventContext';
 import { DATE_FORMATS, EVENT_ACTIONS } from '../constants';
 
 /**
@@ -12,9 +13,9 @@ export const useEvents = () => {
     dispatchCallEvent,
     selectedEvent,
     setSelectedEvent,
-    setDaySelected,
     setShowEventModal
-  } = useContext(GlobalContext);
+  } = useContext(EventContext);
+  const { setDaySelected } = useContext(CalendarContext);
 
   /**
    * Get events for a specific day

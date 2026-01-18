@@ -1,9 +1,9 @@
 import React, { useContext, useMemo } from "react";
-import GlobalContext from "../../context/GlobalContext";
+import EventContext from "../../context/EventContext";
 import { EventListSkeleton, CustomDropdown } from "../common";
 
 export default function Labels() {
-    const { labels, setLabels, isInitialLoading } = useContext(GlobalContext);
+    const { labels, setLabels, isInitialLoading } = useContext(EventContext);
     
     // Get all available label options
     const labelOptions = useMemo(() => {

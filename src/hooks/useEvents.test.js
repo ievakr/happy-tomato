@@ -1,39 +1,32 @@
 import { renderHook, act } from '@testing-library/react';
 import { useEvents } from './useEvents';
 import dayjs from 'dayjs';
-import { EVENT_ACTIONS, DATE_FORMATS } from '../constants';
+import { EVENT_ACTIONS } from '../constants';
 import { createWrapper } from '../test-utils/test-wrapper';
-
-// Mock dependencies
-jest.mock('../context/GlobalContext', () => ({
-  __esModule: true,
-  default: {
-    filteredEvents: [],
-    dispatchCallEvent: jest.fn(),
-    selectedEvent: null,
-    setSelectedEvent: jest.fn(),
-    setDaySelected: jest.fn(),
-    setShowEventModal: jest.fn()
-  }
-}));
-
-jest.mock('react', () => ({
-  ...jest.requireActual('react'),
-  useContext: jest.fn(() => ({
-    filteredEvents: [],
-    dispatchCallEvent: jest.fn(),
-    selectedEvent: null,
-    setSelectedEvent: jest.fn(),
-    setDaySelected: jest.fn(),
-    setShowEventModal: jest.fn()
-  }))
-}));
 
 describe('useEvents', () => {
   let mockDispatch;
   let mockSetSelectedEvent;
   let mockSetDaySelected;
   let mockSetShowEventModal;
+  const renderUseEvents = (eventOverrides = {}, calendarOverrides = {}) => (
+    renderHook(() => useEvents(), {
+      wrapper: createWrapper({
+        event: {
+          filteredEvents: [],
+          dispatchCallEvent: mockDispatch,
+          selectedEvent: null,
+          setSelectedEvent: mockSetSelectedEvent,
+          setShowEventModal: mockSetShowEventModal,
+          ...eventOverrides
+        },
+        calendar: {
+          setDaySelected: mockSetDaySelected,
+          ...calendarOverrides
+        }
+      })
+    })
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -41,16 +34,6 @@ describe('useEvents', () => {
     mockSetSelectedEvent = jest.fn();
     mockSetDaySelected = jest.fn();
     mockSetShowEventModal = jest.fn();
-
-    const React = require('react');
-    React.useContext.mockReturnValue({
-      filteredEvents: [],
-      dispatchCallEvent: mockDispatch,
-      selectedEvent: null,
-      setSelectedEvent: mockSetSelectedEvent,
-      setDaySelected: mockSetDaySelected,
-      setShowEventModal: mockSetShowEventModal
-    });
   });
 
   describe('getEventsForDay', () => {
@@ -58,8 +41,7 @@ describe('useEvents', () => {
       const today = dayjs();
       const tomorrow = today.add(1, 'day');
       
-      const React = require('react');
-      React.useContext.mockReturnValue({
+      const { result } = renderUseEvents({
         filteredEvents: [
           {
             id: '1',
@@ -76,15 +58,8 @@ describe('useEvents', () => {
             title: 'Event 3',
             day: today.toISOString()
           }
-        ],
-        dispatchCallEvent: mockDispatch,
-        selectedEvent: null,
-        setSelectedEvent: mockSetSelectedEvent,
-        setDaySelected: mockSetDaySelected,
-        setShowEventModal: mockSetShowEventModal
+        ]
       });
-
-      const { result } = renderHook(() => useEvents(), { wrapper: createWrapper() });
       const events = result.current.getEventsForDay(today);
 
       expect(events).toHaveLength(2);
@@ -94,23 +69,15 @@ describe('useEvents', () => {
     test('should return empty array when no events for day', () => {
       const today = dayjs();
       
-      const React = require('react');
-      React.useContext.mockReturnValue({
+      const { result } = renderUseEvents({
         filteredEvents: [
           {
             id: '1',
             title: 'Event 1',
             day: today.add(1, 'day').toISOString()
           }
-        ],
-        dispatchCallEvent: mockDispatch,
-        selectedEvent: null,
-        setSelectedEvent: mockSetSelectedEvent,
-        setDaySelected: mockSetDaySelected,
-        setShowEventModal: mockSetShowEventModal
+        ]
       });
-
-      const { result } = renderHook(() => useEvents(), { wrapper: createWrapper() });
       const events = result.current.getEventsForDay(today);
 
       expect(events).toHaveLength(0);
@@ -119,7 +86,7 @@ describe('useEvents', () => {
 
   describe('createEvent', () => {
     test('should create a new event with generated ID', () => {
-      const { result } = renderHook(() => useEvents(), { wrapper: createWrapper() });
+      const { result } = renderUseEvents();
       
       const eventData = {
         title: 'New Event',
@@ -143,7 +110,7 @@ describe('useEvents', () => {
     });
 
     test('should generate unique timestamp-based ID', () => {
-      const { result } = renderHook(() => useEvents(), { wrapper: createWrapper() });
+      const { result } = renderUseEvents();
       
       const now = Date.now();
       jest.spyOn(Date, 'now').mockReturnValue(now);
@@ -170,7 +137,7 @@ describe('useEvents', () => {
 
   describe('updateEvent', () => {
     test('should update an existing event', () => {
-      const { result } = renderHook(() => useEvents(), { wrapper: createWrapper() });
+      const { result } = renderUseEvents();
       
       const eventData = {
         id: '123',
@@ -192,7 +159,7 @@ describe('useEvents', () => {
 
   describe('deleteEvent', () => {
     test('should delete an event', () => {
-      const { result } = renderHook(() => useEvents(), { wrapper: createWrapper() });
+      const { result } = renderUseEvents();
       
       const event = {
         id: '123',
@@ -213,7 +180,7 @@ describe('useEvents', () => {
 
   describe('openEventModal', () => {
     test('should open event modal for a specific day', () => {
-      const { result } = renderHook(() => useEvents(), { wrapper: createWrapper() });
+      const { result } = renderUseEvents();
       const today = dayjs();
 
       act(() => {
@@ -227,7 +194,7 @@ describe('useEvents', () => {
 
   describe('editEvent', () => {
     test('should open modal for editing an existing event', () => {
-      const { result } = renderHook(() => useEvents(), { wrapper: createWrapper() });
+      const { result } = renderUseEvents();
       
       const event = {
         id: '123',
@@ -251,17 +218,7 @@ describe('useEvents', () => {
         { id: '2', title: 'Event 2' }
       ];
 
-      const React = require('react');
-      React.useContext.mockReturnValue({
-        filteredEvents: mockEvents,
-        dispatchCallEvent: mockDispatch,
-        selectedEvent: null,
-        setSelectedEvent: mockSetSelectedEvent,
-        setDaySelected: mockSetDaySelected,
-        setShowEventModal: mockSetShowEventModal
-      });
-
-      const { result } = renderHook(() => useEvents(), { wrapper: createWrapper() });
+      const { result } = renderUseEvents({ filteredEvents: mockEvents });
 
       expect(result.current.filteredEvents).toEqual(mockEvents);
     });
@@ -274,17 +231,7 @@ describe('useEvents', () => {
         title: 'Selected Event'
       };
 
-      const React = require('react');
-      React.useContext.mockReturnValue({
-        filteredEvents: [],
-        dispatchCallEvent: mockDispatch,
-        selectedEvent: mockSelectedEvent,
-        setSelectedEvent: mockSetSelectedEvent,
-        setDaySelected: mockSetDaySelected,
-        setShowEventModal: mockSetShowEventModal
-      });
-
-      const { result } = renderHook(() => useEvents(), { wrapper: createWrapper() });
+      const { result } = renderUseEvents({ selectedEvent: mockSelectedEvent });
 
       expect(result.current.selectedEvent).toEqual(mockSelectedEvent);
     });

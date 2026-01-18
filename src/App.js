@@ -2,7 +2,9 @@ import React, { useContext, useEffect } from 'react';
 import './styles/variables.css';
 import './App.css';
 import { useCalendar } from './hooks/useCalendar';
-import GlobalContext from './context/GlobalContext';
+import CalendarContext from './context/CalendarContext';
+import EventContext from './context/EventContext';
+import LayoutContext from './context/LayoutContext';
 import { getLoadingMessage } from './utils';
 import AuthWrapper from './components/auth/AuthWrapper';
 import Header from './components/layout/Header';
@@ -23,7 +25,9 @@ import 'react-tooltip/dist/react-tooltip.css';
  */
 function App() {
   const { currentMonth } = useCalendar();
-  const { showEventModal, showSidebar, isInitialLoading, loadingOperation, currentView } = useContext(GlobalContext);
+  const { showEventModal, isInitialLoading, loadingOperation } = useContext(EventContext);
+  const { showSidebar } = useContext(LayoutContext);
+  const { currentView } = useContext(CalendarContext);
   const emailNotifications = useEmailNotifications();
 
   const handleError = (error, errorInfo) => {

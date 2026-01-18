@@ -8,7 +8,7 @@
 import { render, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import ContextWrapper from '../context/ContextWrapper';
-import GlobalContext from '../context/GlobalContext';
+import EventContext from '../context/EventContext';
 import dayjs from 'dayjs';
 
 // Mock Firebase modules
@@ -88,7 +88,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -119,7 +119,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -146,7 +146,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -188,7 +188,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -240,7 +240,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -281,7 +281,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -348,7 +348,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -405,7 +405,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -477,7 +477,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -538,7 +538,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -602,7 +602,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -651,7 +651,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -694,7 +694,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -736,7 +736,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -792,7 +792,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -841,7 +841,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -895,7 +895,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -937,7 +937,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -984,7 +984,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 
@@ -1031,7 +1031,7 @@ describe('Firebase Integration Tests', () => {
 
       let contextValue;
       const TestComponent = () => {
-        contextValue = React.useContext(GlobalContext);
+        contextValue = React.useContext(EventContext);
         return null;
       };
 

@@ -1,7 +1,8 @@
 import dayjs from 'dayjs';
 import React, { useContext, useEffect, useCallback } from 'react';
 import logo from '../../assets/logo.png';
-import GlobalContext from '../../context/GlobalContext';
+import CalendarContext from '../../context/CalendarContext';
+import LayoutContext from '../../context/LayoutContext';
 import { getWeekByIndex, getWeekDateRange, getCurrentWeekIndex } from '../../utils';
 import { useResponsive } from '../../hooks';
 import UserMenu from '../auth/UserMenu';
@@ -10,15 +11,14 @@ export default function Header() {
     const {
         monthIndex, 
         setMonthIndex, 
-        showSidebar, 
-        setShowSidebar, 
         currentView, 
         setCurrentView, 
         weekIndex, 
         setWeekIndex,
         daySelected,
         setDaySelected
-    } = useContext(GlobalContext);
+    } = useContext(CalendarContext);
+    const { showSidebar, setShowSidebar } = useContext(LayoutContext);
     const { isMobile } = useResponsive();
     
     const switchToWeekView = useCallback(() => {
