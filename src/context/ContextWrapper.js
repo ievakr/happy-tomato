@@ -95,7 +95,11 @@ export default function ContextWrapper(props) {
         }
     });
 
-    const savedEvents = currentUser ? (eventsQuery.data || []) : [];
+    // Memoize savedEvents to ensure stable reference for hook dependencies (fixes ESLint exhaustive-deps warning)
+    const savedEvents = useMemo(() => {
+        return currentUser ? (eventsQuery.data || []) : [];
+    }, [currentUser, eventsQuery.data]);
+    
     const isInitialLoading = !!currentUser && eventsQuery.isLoading;
     const resolvedLoadingOperation = loadingOperation || (isInitialLoading ? 'load' : null);
     const resolvedIsLoading = isLoading || isInitialLoading;
