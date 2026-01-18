@@ -1,5 +1,6 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
+const Sentry = require("@sentry/node");
 const sgMail = require("@sendgrid/mail");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
@@ -15,6 +16,41 @@ dayjs.extend(isSameOrBefore);
 dayjs.tz.setDefault("Europe/Vilnius");
 
 admin.initializeApp();
+
+const sentryDsn = (functions.config().sentry &&
+  functions.config().sentry.dsn) || process.env.SENTRY_DSN;
+const sentryRelease = functions.config().sentry &&
+  functions.config().sentry.release;
+const sentryEnabled = Boolean(sentryDsn);
+
+if (sentryEnabled) {
+  Sentry.init({
+    dsn: sentryDsn,
+    environment: process.env.NODE_ENV,
+    release: sentryRelease,
+  });
+
+  process.on("unhandledRejection", (reason) => {
+    const error = reason instanceof Error ?
+      reason :
+      new Error(reason?.toString() || "Unhandled promise rejection");
+    Sentry.captureException(error);
+  });
+
+  process.on("uncaughtException", (error) => {
+    Sentry.captureException(error);
+  });
+}
+
+function reportFunctionError(error, context) {
+  if (!sentryEnabled) return;
+  Sentry.withScope((scope) => {
+    if (context) {
+      scope.setContext("function", context);
+    }
+    Sentry.captureException(error);
+  });
+}
 
 /**
  * Format TODO list for email
@@ -256,6 +292,11 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
     if (error.response) {
       console.error("SendGrid error details:", error.response.body);
     }
+    reportFunctionError(error, {
+      functionName: "sendEmail",
+      userEmail,
+      reminderType,
+    });
     return false;
   }
 }
@@ -390,6 +431,9 @@ exports.sendDailyReminders = functions.pubsub
         return null;
       } catch (error) {
         console.error("❌ Error in sendDailyReminders:", error);
+        reportFunctionError(error, {
+          functionName: "sendDailyReminders",
+        });
         return null;
       }
     });
@@ -590,6 +634,9 @@ exports.sendAdvanceReminders = functions.pubsub
         return null;
       } catch (error) {
         console.error("❌ Error in sendAdvanceReminders:", error);
+        reportFunctionError(error, {
+          functionName: "sendAdvanceReminders",
+        });
         return null;
       }
     });

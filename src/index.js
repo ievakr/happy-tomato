@@ -9,7 +9,11 @@ import { ToastProvider } from './context/ToastContext';
 import { ErrorBoundary, ContextErrorBoundary, AsyncErrorBoundary } from './components/common';
 import errorLogger from './utils/errorLogger';
 import globalErrorHandler from './utils/globalErrorHandler';
+import { initSentry } from './utils/sentry';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Initialize Sentry before other error handlers
+initSentry();
 
 // Initialize global error handling
 globalErrorHandler.init();
