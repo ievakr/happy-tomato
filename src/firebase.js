@@ -1,6 +1,6 @@
 // src/firebase.js
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { enableIndexedDbPersistence, getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -35,5 +35,17 @@ if (missingEnvVars.length > 0) {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+enableIndexedDbPersistence(db).catch((error) => {
+    if (error.code === 'failed-precondition') {
+        console.warn('Firestore persistence disabled: multiple tabs open.');
+        return;
+    }
+    if (error.code === 'unimplemented') {
+        console.warn('Firestore persistence unavailable in this browser.');
+        return;
+    }
+    console.warn('Firestore persistence error:', error);
+});
 
 export { db, auth };

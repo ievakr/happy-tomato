@@ -4,7 +4,7 @@ import EventContext from "./EventContext";
 import LayoutContext from "./LayoutContext";
 import dayjs from "dayjs";
 import { db } from "../firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc, query, where } from "firebase/firestore";
+import { collection, getDocs, getDocsFromCache, addDoc, updateDoc, deleteDoc, doc, getDoc, query, where } from "firebase/firestore";
 import errorLogger from "../utils/errorLogger";
 import { PLANT_LABELS } from "../constants";
 import { useAuth } from "./AuthContext";
@@ -30,6 +30,17 @@ async function fetchEvents(userId) {
         console.log(`Successfully fetched ${events.length} events from Firebase for user ${userId}`);
         return events;
     } catch (error) {
+        if (!navigator.onLine) {
+            try {
+                const cacheSnapshot = await getDocsFromCache(eventsQuery);
+                const cachedEvents = cacheSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.warn('Offline: returning cached events from Firestore.');
+                return cachedEvents;
+            } catch (cacheError) {
+                console.warn('Offline cache read failed:', cacheError);
+            }
+        }
+
         console.error('Error fetching events from Firebase:', error);
         errorLogger.logError(error, null, 'Firebase Fetch Events', { 
             operation: 'fetch',
