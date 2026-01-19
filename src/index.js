@@ -10,6 +10,9 @@ import { ErrorBoundary, ContextErrorBoundary, AsyncErrorBoundary } from './compo
 import errorLogger from './utils/errorLogger';
 import globalErrorHandler from './utils/globalErrorHandler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { persistQueryClient } from '@tanstack/react-query-persist-client';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import { register as registerServiceWorker } from './serviceWorkerRegistration';
 
 // Initialize global error handling
 globalErrorHandler.init();
@@ -23,6 +26,19 @@ const queryClient = new QueryClient({
     }
   }
 });
+
+if (typeof window !== 'undefined') {
+  const persister = createSyncStoragePersister({
+    storage: window.localStorage,
+    key: 'happy-tomato-react-query'
+  });
+
+  persistQueryClient({
+    queryClient,
+    persister,
+    maxAge: 1000 * 60 * 60 * 24
+  });
+}
 
 const handleGlobalError = (error, errorInfo) => {
   errorLogger.logError(error, errorInfo, 'Global Error Boundary');
@@ -64,3 +80,4 @@ root.render(
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
+registerServiceWorker();

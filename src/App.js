@@ -2,6 +2,8 @@ import React, { useContext, useEffect } from 'react';
 import './styles/variables.css';
 import './App.css';
 import { useCalendar } from './hooks/useCalendar';
+import useOnlineStatus from './hooks/useOnlineStatus';
+import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
 import CalendarContext from './context/CalendarContext';
 import EventContext from './context/EventContext';
 import LayoutContext from './context/LayoutContext';
@@ -14,7 +16,7 @@ import CalendarGrid from './components/calendar/CalendarGrid';
 import WeeklyView from './components/calendar/WeeklyView';
 import DailyView from './components/calendar/DailyView';
 import EventModal from './components/forms/EventModal';
-import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay } from './components/common';
+import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay, OfflineBanner, ServiceWorkerUpdateBanner } from './components/common';
 import errorLogger from './utils/errorLogger';
 import { useEmailNotifications } from './hooks/useEmailNotifications';
 import notificationService from './services/notificationService';
@@ -29,6 +31,8 @@ function App() {
   const { showSidebar } = useContext(LayoutContext);
   const { currentView } = useContext(CalendarContext);
   const emailNotifications = useEmailNotifications();
+  const isOnline = useOnlineStatus();
+  const { updateReady, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
 
   const handleError = (error, errorInfo) => {
     errorLogger.logError(error, errorInfo, 'App Component');
@@ -85,6 +89,13 @@ function App() {
           className='d-flex flex-column vh-100' 
           style={{ overflow: 'hidden' }}
         >
+          {!isOnline && <OfflineBanner />}
+          {updateReady && (
+            <ServiceWorkerUpdateBanner
+              onReload={applyUpdate}
+              onDismiss={dismissUpdate}
+            />
+          )}
           {/* Application header */}
           <ComponentErrorBoundary
             componentName="Header"
