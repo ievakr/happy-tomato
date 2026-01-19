@@ -12,15 +12,13 @@ import { useToast } from "./ToastContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 async function fetchEvents(userId) {
+    const eventsQuery = query(
+        collection(db, "events"),
+        where("userId", "==", userId)
+    );
+
     try {
         console.log('Fetching events from Firebase for user:', userId);
-        
-        // Query events filtered by userId
-        const eventsQuery = query(
-            collection(db, "events"),
-            where("userId", "==", userId)
-        );
-        
         const snapshot = await getDocs(eventsQuery);
         const events = snapshot.docs.map(doc => {
             const data = { id: doc.id, ...doc.data() };
