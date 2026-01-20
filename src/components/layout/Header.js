@@ -155,7 +155,7 @@ export default function Header() {
         }
     }
     return (
-        <header className={`calendar-header px-2 px-md-4 py-2 ${isMobile ? 'd-flex flex-column' : 'd-flex align-items-center'}`}>
+        <header className={`calendar-header border-bottom bg-white px-2 px-md-4 py-2 ${isMobile ? 'd-flex flex-column' : 'd-flex align-items-center'}`}>
             {/* Mobile: First row with basic controls */}
             {isMobile ? (
                 <>
@@ -165,10 +165,6 @@ export default function Header() {
                             <button 
                                 className="sidebar-toggle btn btn-sm btn-outline-secondary me-2" 
                                 onClick={toggleSidebar}
-                                style={{
-                                    padding: '0.25rem 0.4rem',
-                                    fontSize: '0.8rem'
-                                }}
                             >
                                 <span className="material-icons-outlined" style={{ fontSize: '1.1rem' }}>
                                     menu
@@ -179,25 +175,13 @@ export default function Header() {
                         </div>
                         
                         {/* Right side: View buttons and settings */}
-                        <div className="d-flex align-items-center" style={{ gap: '0.25rem' }}>
+                        <div className="d-flex align-items-center gap-1">
                             <div className="btn-group flex-shrink-0" role="group" aria-label="Calendar view">
                                 <button 
                                     className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
                                     onClick={switchToMonthView}
                                     title="Month view"
-                                    style={{ 
-                                        padding: '0.25rem',
-                                        fontSize: '0.7rem',
-                                        lineHeight: '1',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        width: '30px',
-                                        height: '30px',
-                                        border: '1px solid',
-                                        borderColor: currentView === 'month' ? '#dc3545' : '#dc3545',
-                                        boxSizing: 'border-box'
-                                    }}
+                                    style={{ width: '30px', height: '30px' }}
                                 >
                                     <span className="material-icons-outlined" style={{ fontSize: '0.85rem', lineHeight: '1' }}>
                                         calendar_view_month
@@ -207,20 +191,7 @@ export default function Header() {
                                     className={`btn btn-sm ${currentView === 'daily' ? 'btn-danger' : 'btn-outline-danger'}`}
                                     onClick={switchToDailyView}
                                     title="Daily view"
-                                    style={{ 
-                                        padding: '0.25rem',
-                                        fontSize: '0.7rem',
-                                        lineHeight: '1',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        width: '30px',
-                                        height: '30px',
-                                        border: '1px solid',
-                                        borderColor: currentView === 'daily' ? '#dc3545' : '#dc3545',
-                                        marginLeft: '-1px',
-                                        boxSizing: 'border-box'
-                                    }}
+                                    style={{ width: '30px', height: '30px' }}
                                 >
                                     <span className="material-icons-outlined" style={{ fontSize: '0.85rem', lineHeight: '1' }}>
                                         today
@@ -242,7 +213,6 @@ export default function Header() {
                                 className="btn btn-sm btn-outline-danger" 
                                 onClick={handlePrevMonth}
                                 aria-label="Previous month"
-                                style={{ padding: '0.25rem 0.5rem' }}
                             >
                                 <span className="material-icons-outlined" style={{ fontSize: '1.2rem' }}>
                                     chevron_left
@@ -257,7 +227,6 @@ export default function Header() {
                                 className="btn btn-sm btn-outline-danger" 
                                 onClick={handleNextMonth}
                                 aria-label="Next month"
-                                style={{ padding: '0.25rem 0.5rem' }}
                             >
                                 <span className="material-icons-outlined" style={{ fontSize: '1.2rem' }}>
                                     chevron_right
@@ -269,9 +238,8 @@ export default function Header() {
                     {/* Mobile: Day/Week navigation row */}
                     <div className="d-flex align-items-center justify-content-center mt-2">
                         <button 
-                            className="btn btn-sm me-2" 
+                            className="btn btn-sm btn-light me-2" 
                             onClick={getNavigationHandler('prev')}
-                            style={{ padding: '0.25rem 0.4rem' }}
                         >
                             <span className="material-icons-outlined text-secondary" style={{ fontSize: '1rem' }}>
                                 chevron_left
@@ -283,9 +251,8 @@ export default function Header() {
                         </h2>
                         
                         <button 
-                            className="btn btn-sm ms-2" 
+                            className="btn btn-sm btn-light ms-2" 
                             onClick={getNavigationHandler('next')}
-                            style={{ padding: '0.25rem 0.4rem' }}
                         >
                             <span className="material-icons-outlined text-secondary" style={{ fontSize: '1rem' }}>
                                 chevron_right
@@ -305,9 +272,8 @@ export default function Header() {
                     {/* Current period display with navigation buttons */}
                     <div className="flex-grow-1 mx-2 d-flex align-items-center justify-content-center">
                         <button 
-                            className="btn btn-sm me-1" 
+                            className="btn btn-sm btn-light me-1" 
                             onClick={getNavigationHandler('prev')}
-                            style={{ padding: '0.25rem 0.5rem' }}
                         >
                             <span className="material-icons-outlined text-secondary" style={{ fontSize: '1.2rem' }}>
                                 chevron_left
@@ -319,9 +285,8 @@ export default function Header() {
                         </h2>
                         
                         <button 
-                            className="btn btn-sm ms-1" 
+                            className="btn btn-sm btn-light ms-1" 
                             onClick={getNavigationHandler('next')}
-                            style={{ padding: '0.25rem 0.5rem' }}
                         >
                             <span className="material-icons-outlined text-secondary" style={{ fontSize: '1.2rem' }}>
                                 chevron_right
@@ -335,12 +300,11 @@ export default function Header() {
             {!isMobile && (
                 <div className="d-flex align-items-center ms-auto gap-2">
                     {/* View switching buttons */}
-                    <div className="btn-group flex-shrink-0" role="group" aria-label="Calendar view" style={{ fontSize: '0.8rem' }}>
+                    <div className="btn-group flex-shrink-0" role="group" aria-label="Calendar view">
                         <button 
                             className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
                             onClick={switchToMonthView}
                             title="Month view"
-                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
                         >
                             <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
                                 calendar_view_month
@@ -352,7 +316,6 @@ export default function Header() {
                             className={`btn btn-sm ${currentView === 'week' ? 'btn-danger' : 'btn-outline-danger'}`}
                             onClick={switchToWeekView}
                             title="Week view"
-                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', lineHeight: '1.2' }}
                         >
                             <span className="material-icons-outlined me-1" style={{ fontSize: '0.9rem' }}>
                                 calendar_view_week

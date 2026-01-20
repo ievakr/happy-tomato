@@ -8,20 +8,9 @@ const CalendarHeader = memo(() => {
   const dayHeaders = getDayHeaders('short');
 
   return (
-    <div 
-      className="calendar-header-days d-grid border-bottom border-secondary" 
-      style={{ 
-        gridTemplateColumns: 'repeat(7, 1fr)',
-        backgroundColor: '#f8f9fa',
-        padding: '8px 0'
-      }}
-    >
+    <div className="calendar-header-days bg-light border-bottom">
       {dayHeaders.map((day, index) => (
-        <div 
-          key={index} 
-          className="text-center text-muted small fw-bold"
-          style={{ padding: '4px 0' }}
-        >
+        <div key={index} className="text-center text-muted small fw-semibold py-1">
           {day}
         </div>
       ))}

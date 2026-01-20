@@ -66,15 +66,19 @@ export default function CustomDropdown({ title, options, selectedOptions = [], o
     return (
         <>
             <div className="custom-dropdown" ref={dropdownRef}>
-                <div className="custom-dropdown__title" onClick={() => setIsOpen(!isOpen)}>
+                <button
+                    type="button"
+                    className="custom-dropdown__title form-select"
+                    onClick={() => setIsOpen(!isOpen)}
+                    aria-expanded={isOpen}
+                >
                     {getDisplayText()}
-                    <span className="custom-dropdown__arrow">{isOpen ? "▲" : "▼"}</span>
-                </div>
+                </button>
             </div>
             {isOpen && (
                 <ul 
                     ref={dropdownListRef}
-                    className="custom-dropdown__list custom-dropdown__list--overflow" 
+                    className="custom-dropdown__list custom-dropdown__list--overflow list-group" 
                     style={{ 
                         position: 'fixed',
                         top: dropdownPosition.top,
@@ -89,7 +93,7 @@ export default function CustomDropdown({ title, options, selectedOptions = [], o
                         <li 
                             key={index} 
                             onClick={() => handleOptionClick(option)}
-                            className={selectedOptions.includes(option) ? "selected" : ""}
+                            className={`list-group-item list-group-item-action ${selectedOptions.includes(option) ? "active" : ""}`}
                         >
                             {option} {selectedOptions.includes(option) && "✔"}
                         </li>

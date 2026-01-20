@@ -111,7 +111,7 @@ const WeeklyView = () => {
   if (isInitialLoading) {
     return (
       <div className="weekly-view-loading d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-                        <div className="spinner-border text-danger" role="status">
+        <div className="spinner-border text-danger" role="status">
           <span className="visually-hidden">Loading...</span>
         </div>
       </div>
@@ -135,15 +135,7 @@ const WeeklyView = () => {
 
       {/* Weekly planner grid container with horizontal scroll */}
       <div 
-        className="week-grid-container flex-grow-1"
-        style={{
-          overflowX: isMobile ? 'auto' : 'hidden',
-          overflowY: 'hidden',
-          WebkitOverflowScrolling: 'touch', // iOS smooth scrolling
-          scrollBehavior: 'smooth',
-          scrollbarWidth: 'none', // Firefox
-          msOverflowStyle: 'none' // IE
-        }}
+        className={`week-grid-container flex-grow-1 ${isMobile ? 'week-grid-scroll' : ''}`}
       >
         {/* Hide scrollbar for webkit browsers */}
         {isMobile && (
@@ -158,11 +150,7 @@ const WeeklyView = () => {
         
         {/* Weekly planner grid */}
         <div 
-          className="week-grid"
-          style={{
-            minWidth: isMobile ? '700px' : '100%', // Ensure minimum width on mobile for proper day spacing
-            height: '100%'
-          }}
+          className={`week-grid ${isMobile ? 'week-grid-mobile' : ''}`}
         >
           {currentWeek.map((day, dayIndex) => {
             const dayEvents = getEventsForDay(day);
@@ -173,9 +161,6 @@ const WeeklyView = () => {
                 key={day.format('YYYY-MM-DD')}
                 className={`week-day ${getCurrentDayClass(day)} ${!isCurrentMonth(day) ? 'other-month' : ''}`}
                 onClick={() => handleDayClick(day)}
-                style={{
-                  minWidth: isMobile ? '100px' : 'auto' // Ensure minimum width for each day on mobile
-                }}
               >
                 {/* Day header */}
                 <div className="day-header">
@@ -196,22 +181,6 @@ const WeeklyView = () => {
                           key={evt.id || idx}
                           className="event-item-weekly position-relative"
                           onClick={(e) => handleEventClick(evt, e)}
-                          style={{ 
-                            cursor: 'pointer',
-                            borderRadius: '4px',
-                            padding: '2px',
-                            transition: 'background-color 0.2s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)';
-                            const deleteBtn = e.currentTarget.querySelector('.quick-delete-btn');
-                            if (deleteBtn) deleteBtn.style.opacity = '1';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'transparent';
-                            const deleteBtn = e.currentTarget.querySelector('.quick-delete-btn');
-                            if (deleteBtn) deleteBtn.style.opacity = '0';
-                          }}
                         >
                           <EventItem 
                             event={evt} 
@@ -222,21 +191,7 @@ const WeeklyView = () => {
                           {/* Quick delete button - only show on desktop */}
                           {!isMobile && (
                             <button
-                              className="quick-delete-btn btn btn-sm position-absolute"
-                              style={{
-                                top: '2px',
-                                right: '2px',
-                                padding: '2px 4px',
-                                fontSize: '0.6rem',
-                                lineHeight: '1',
-                                opacity: '0',
-                                transition: 'opacity 0.2s ease',
-                                backgroundColor: 'rgba(220, 53, 69, 0.8)',
-                                border: 'none',
-                                borderRadius: '3px',
-                                color: 'white',
-                                zIndex: 10
-                              }}
+                              className="quick-delete-btn btn btn-sm btn-danger position-absolute"
                               onClick={(e) => handleQuickDelete(evt, e)}
                               title="Delete event"
                             >
@@ -262,47 +217,64 @@ const WeeklyView = () => {
       
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && eventToDelete && (
-        <div className="position-fixed w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center" style={{ zIndex: 1070, backgroundColor: 'rgba(0,0,0,0.3)' }}>
-          <div className="bg-white rounded shadow-lg p-4" style={{ maxWidth: '300px', width: '90%' }}>
-            <h6 className="mb-3">Delete Event</h6>
-            <p className="mb-3 text-muted">
-              Delete "{eventToDelete.title || eventToDelete.toDo}"?
-            </p>
-            <p className="mb-4 text-muted small">This action cannot be undone.</p>
-            <div className="d-flex gap-2">
-              <button 
-                type="button" 
-                className="btn btn-sm btn-outline-secondary"
-                onClick={() => {
-                  setShowDeleteConfirm(false);
-                  setEventToDelete(null);
-                }}
-                disabled={isLoading}
-                style={{ flex: '1' }}
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-sm btn-danger"
-                onClick={confirmDelete}
-                disabled={isLoading}
-                style={{ flex: '1' }}
-              >
-                {isLoading && loadingOperation === 'delete' ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status">
-                      <span className="visually-hidden">Deleting...</span>
-                    </span>
-                    Deleting...
-                  </>
-                ) : (
-                  'Delete'
-                )}
-              </button>
+        <>
+          <div className="modal fade show d-block" role="dialog" aria-modal="true">
+            <div className="modal-dialog modal-dialog-centered modal-sm">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h6 className="modal-title">Delete Event</h6>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setEventToDelete(null);
+                    }}
+                    aria-label="Close"
+                    disabled={isLoading}
+                  />
+                </div>
+                <div className="modal-body">
+                  <p className="mb-2 text-muted">
+                    Delete "{eventToDelete.title || eventToDelete.toDo}"?
+                  </p>
+                  <p className="mb-0 text-muted small">This action cannot be undone.</p>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => {
+                      setShowDeleteConfirm(false);
+                      setEventToDelete(null);
+                    }}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={confirmDelete}
+                    disabled={isLoading}
+                  >
+                    {isLoading && loadingOperation === 'delete' ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status">
+                          <span className="visually-hidden">Deleting...</span>
+                        </span>
+                        Deleting...
+                      </>
+                    ) : (
+                      'Delete'
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+          <div className="modal-backdrop fade show" />
+        </>
       )}
     </div>
   );

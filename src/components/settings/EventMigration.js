@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { migrateEventsToUser, deleteEventsWithoutUser, countEventsWithoutUser } from '../../utils/migrateEvents';
-import './EventMigration.css';
 
 /**
  * Component for migrating or cleaning up events without userId
@@ -101,77 +100,117 @@ function EventMigration({ onClose }) {
 
   if (loading) {
     return (
-      <div className="migration-overlay">
-        <div className="migration-modal">
-          <h3>Checking Events...</h3>
-          <div className="spinner"></div>
+      <>
+        <div className="modal fade show d-block" role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-body text-center py-5">
+                <div className="spinner-border text-primary mb-3" role="status">
+                  <span className="visually-hidden">Loading...</span>
+                </div>
+                <h5 className="mb-0">Checking Events...</h5>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+        <div className="modal-backdrop fade show" />
+      </>
     );
   }
 
   if (eventCount === 0) {
     return (
-      <div className="migration-overlay">
-        <div className="migration-modal">
-          <h3>✅ All Events Assigned</h3>
-          <p>All events in your database are properly assigned to users.</p>
-          <button className="btn-primary" onClick={onClose}>
-            Close
-          </button>
+      <>
+        <div className="modal fade show d-block" role="dialog" aria-modal="true">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">All Events Assigned</h5>
+                <button type="button" className="btn-close" onClick={onClose} aria-label="Close" />
+              </div>
+              <div className="modal-body">
+                <p className="mb-0">All events in your database are properly assigned to users.</p>
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-primary" onClick={onClose} type="button">
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+        <div className="modal-backdrop fade show" />
+      </>
     );
   }
 
   return (
-    <div className="migration-overlay">
-      <div className="migration-modal">
-        <h3>⚠️ Unassigned Events Found</h3>
-        
-        <div className="migration-info">
-          <p>
-            <strong>{eventCount}</strong> events in your database don't have a user assigned.
-          </p>
-          <p>
-            These are likely events created before authentication was added.
-          </p>
-        </div>
+    <>
+      <div className="modal fade show d-block" role="dialog" aria-modal="true">
+        <div className="modal-dialog modal-dialog-centered modal-lg">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h5 className="modal-title">Unassigned Events Found</h5>
+              <button type="button" className="btn-close" onClick={onClose} aria-label="Close" disabled={processing} />
+            </div>
+            <div className="modal-body">
+              <div className="alert alert-warning">
+                <strong>{eventCount}</strong> events in your database don't have a user assigned.
+                <div className="mt-2">These are likely events created before authentication was added.</div>
+              </div>
 
-        {error && <div className="migration-error">{error}</div>}
-        {message && <div className="migration-success">{message}</div>}
+              {error && <div className="alert alert-danger">{error}</div>}
+              {message && <div className="alert alert-success">{message}</div>}
 
-        <div className="migration-options">
-          <div className="option-card">
-            <h4>📥 Claim These Events</h4>
-            <p>Assign all unassigned events to your account ({currentUser?.email})</p>
-            <button
-              className="btn-primary"
-              onClick={handleMigrate}
-              disabled={processing}
-            >
-              {processing ? 'Migrating...' : 'Claim Events'}
-            </button>
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <div className="card h-100">
+                    <div className="card-body d-flex flex-column">
+                      <h6 className="card-title">Claim These Events</h6>
+                      <p className="card-text text-muted flex-grow-1">
+                        Assign all unassigned events to your account ({currentUser?.email}).
+                      </p>
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleMigrate}
+                        disabled={processing}
+                        type="button"
+                      >
+                        {processing ? 'Migrating...' : 'Claim Events'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="card h-100 border-danger">
+                    <div className="card-body d-flex flex-column">
+                      <h6 className="card-title text-danger">Delete These Events</h6>
+                      <p className="card-text text-muted flex-grow-1">
+                        Permanently remove all unassigned events from the database.
+                      </p>
+                      <button
+                        className="btn btn-danger"
+                        onClick={handleDelete}
+                        disabled={processing}
+                        type="button"
+                      >
+                        {processing ? 'Deleting...' : 'Delete Events'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline-secondary" onClick={onClose} disabled={processing} type="button">
+                Close
+              </button>
+            </div>
           </div>
-
-          <div className="option-card danger">
-            <h4>🗑️ Delete These Events</h4>
-            <p>Permanently remove all unassigned events from the database</p>
-            <button
-              className="btn-danger"
-              onClick={handleDelete}
-              disabled={processing}
-            >
-              {processing ? 'Deleting...' : 'Delete Events'}
-            </button>
-          </div>
         </div>
-
-        <button className="btn-secondary" onClick={onClose} disabled={processing}>
-          Close
-        </button>
       </div>
-    </div>
+      <div className="modal-backdrop fade show" />
+    </>
   );
 }
 

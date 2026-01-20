@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { deleteAllUserData } from '../../utils/deleteUserData';
 import { useEmailNotifications } from '../../hooks/useEmailNotifications';
-import './AccountSettings.css';
 
 function AccountSettings({ onClose }) {
   const { currentUser, deleteAccount } = useAuth();
@@ -56,275 +55,279 @@ function AccountSettings({ onClose }) {
   };
 
   return (
-    <div className="account-settings-overlay">
-      <div className="account-settings-modal">
-        <div className="account-settings-header">
-          <h2>Settings</h2>
-          <button 
-            className="close-button" 
-            onClick={onClose}
-            disabled={deleting}
-          >
-            ×
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="settings-tabs">
-          <button
-            className={`settings-tab ${activeTab === 'account' ? 'active' : ''}`}
-            onClick={() => setActiveTab('account')}
-            disabled={deleting}
-          >
-            <span className="material-icons-outlined">person</span>
-            Account
-          </button>
-          <button
-            className={`settings-tab ${activeTab === 'notifications' ? 'active' : ''}`}
-            onClick={() => setActiveTab('notifications')}
-            disabled={deleting}
-          >
-            <span className="material-icons-outlined">notifications</span>
-            Notifications
-          </button>
-        </div>
-
-        {/* Account Tab */}
-        {activeTab === 'account' && (
-          <>
-            <div className="account-info">
-          <h3>Account Information</h3>
-          <div className="info-row">
-            <span className="label">Name:</span>
-            <span className="value">{currentUser?.displayName || 'Not set'}</span>
-          </div>
-          <div className="info-row">
-            <span className="label">Email:</span>
-            <span className="value">{currentUser?.email}</span>
-          </div>
-          <div className="info-row">
-            <span className="label">Sign-in method:</span>
-            <span className="value">
-              {isGoogleUser ? 'Google' : 'Email/Password'}
-            </span>
-          </div>
-        </div>
-
-        <div className="danger-zone">
-          <h3>Account Management</h3>
-          
-          {!showDeleteConfirm ? (
-            <div className="danger-zone-content">
-              <p>
-                Permanently delete your account and all associated data.
-              </p>
+    <>
+      <div className="modal fade show d-block" role="dialog" aria-modal="true">
+        <div className="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h4 className="modal-title">Settings</h4>
               <button
-                className="btn-danger-outline"
-                onClick={() => setShowDeleteConfirm(true)}
-              >
-                Delete Account
-              </button>
+                type="button"
+                className="btn-close"
+                onClick={onClose}
+                disabled={deleting}
+                aria-label="Close"
+              />
             </div>
-          ) : (
-            <div className="delete-confirm">
-              <div className="warning-box">
-                <p><strong>⚠️ Warning: This action cannot be undone!</strong></p>
-                <p>Deleting your account will:</p>
-                <ul>
-                  <li>Permanently delete all your events and data</li>
-                  <li>Remove your account from the system</li>
-                  <li>Log you out immediately</li>
-                </ul>
-              </div>
-
-              {error && <div className="error-message">{error}</div>}
-
-              {!isGoogleUser && (
-                <div className="password-confirm">
-                  <label htmlFor="confirm-password">
-                    Enter your password to confirm:
-                  </label>
-                  <input
-                    id="confirm-password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Your password"
+            <div className="modal-body">
+              <ul className="nav nav-tabs mb-3">
+                <li className="nav-item">
+                  <button
+                    className={`nav-link ${activeTab === 'account' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('account')}
                     disabled={deleting}
-                    autoComplete="current-password"
-                  />
+                    type="button"
+                  >
+                    <span className="material-icons-outlined me-1">person</span>
+                    Account
+                  </button>
+                </li>
+                <li className="nav-item">
+                  <button
+                    className={`nav-link ${activeTab === 'notifications' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('notifications')}
+                    disabled={deleting}
+                    type="button"
+                  >
+                    <span className="material-icons-outlined me-1">notifications</span>
+                    Notifications
+                  </button>
+                </li>
+              </ul>
+
+              {activeTab === 'account' && (
+                <div className="d-grid gap-3">
+                  <div className="card">
+                    <div className="card-body">
+                      <h5 className="card-title">Account Information</h5>
+                      <div className="row g-2">
+                        <div className="col-12">
+                          <div className="d-flex justify-content-between">
+                            <span className="text-muted">Name</span>
+                            <span>{currentUser?.displayName || 'Not set'}</span>
+                          </div>
+                        </div>
+                        <div className="col-12">
+                          <div className="d-flex justify-content-between">
+                            <span className="text-muted">Email</span>
+                            <span>{currentUser?.email}</span>
+                          </div>
+                        </div>
+                        <div className="col-12">
+                          <div className="d-flex justify-content-between">
+                            <span className="text-muted">Sign-in method</span>
+                            <span>{isGoogleUser ? 'Google' : 'Email/Password'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="card border-danger">
+                    <div className="card-body">
+                      <h5 className="card-title text-danger">Account Management</h5>
+                      {!showDeleteConfirm ? (
+                        <div>
+                          <p className="text-muted">
+                            Permanently delete your account and all associated data.
+                          </p>
+                          <button
+                            className="btn btn-outline-danger"
+                            onClick={() => setShowDeleteConfirm(true)}
+                            disabled={deleting}
+                            type="button"
+                          >
+                            Delete Account
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="d-grid gap-3">
+                          <div className="alert alert-danger">
+                            <strong>Warning:</strong> This action cannot be undone.
+                            <ul className="mb-0 mt-2">
+                              <li>Permanently delete all your events and data</li>
+                              <li>Remove your account from the system</li>
+                              <li>Log you out immediately</li>
+                            </ul>
+                          </div>
+
+                          {error && <div className="alert alert-danger">{error}</div>}
+
+                          {!isGoogleUser && (
+                            <div>
+                              <label htmlFor="confirm-password" className="form-label">
+                                Enter your password to confirm
+                              </label>
+                              <input
+                                id="confirm-password"
+                                type="password"
+                                className="form-control"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Your password"
+                                disabled={deleting}
+                                autoComplete="current-password"
+                              />
+                            </div>
+                          )}
+
+                          {isGoogleUser && (
+                            <div className="alert alert-info mb-0">
+                              You'll be asked to sign in with Google to confirm deletion.
+                            </div>
+                          )}
+
+                          <div className="d-flex flex-column flex-sm-row gap-2 justify-content-end">
+                            <button
+                              className="btn btn-outline-secondary"
+                              onClick={() => {
+                                setShowDeleteConfirm(false);
+                                setPassword('');
+                                setError('');
+                              }}
+                              disabled={deleting}
+                              type="button"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              className="btn btn-danger"
+                              onClick={handleDeleteAccount}
+                              disabled={deleting || (!isGoogleUser && !password)}
+                              type="button"
+                            >
+                              {deleting ? 'Deleting...' : 'Delete My Account'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
 
-              {isGoogleUser && (
-                <div className="google-reauth-note">
-                  <p>You'll be asked to sign in with Google to confirm deletion.</p>
+              {activeTab === 'notifications' && (
+                <div className="d-grid gap-3">
+                  <div className="card">
+                    <div className="card-body">
+                      <h5 className="card-title">Email Notifications</h5>
+                      <div className="form-check form-switch">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="email-notifications"
+                          checked={emailNotifications.emailPreferences.enabled}
+                          onChange={(e) => {
+                            setSaveStatus('saving');
+                            emailNotifications.updateEmailPreferences({ 
+                              enabled: e.target.checked 
+                            });
+                            setTimeout(() => {
+                              setSaveStatus('saved');
+                              setTimeout(() => setSaveStatus(''), 2000);
+                            }, 500);
+                          }}
+                        />
+                        <label className="form-check-label" htmlFor="email-notifications">
+                          Enable email notifications
+                        </label>
+                      </div>
+
+                      {emailNotifications.emailPreferences.enabled && (
+                        <div className="d-grid gap-3 mt-3">
+                          <div>
+                            <label className="form-label" htmlFor="user-email">
+                              Email Address
+                            </label>
+                            <input
+                              id="user-email"
+                              type="email"
+                              className="form-control"
+                              value={emailNotifications.emailPreferences.userEmail}
+                              onChange={(e) => {
+                                setSaveStatus('saving');
+                                emailNotifications.updateEmailPreferences({ 
+                                  userEmail: e.target.value 
+                                });
+                                setTimeout(() => {
+                                  setSaveStatus('saved');
+                                  setTimeout(() => setSaveStatus(''), 2000);
+                                }, 500);
+                              }}
+                              placeholder="your@email.com"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="form-label" htmlFor="advance-days">
+                              Advance Notice (Days)
+                            </label>
+                            <input
+                              id="advance-days"
+                              type="number"
+                              className="form-control"
+                              value={emailNotifications.emailPreferences.advanceDays}
+                              onChange={(e) => {
+                                setSaveStatus('saving');
+                                emailNotifications.updateEmailPreferences({ 
+                                  advanceDays: parseInt(e.target.value) || 3 
+                                });
+                                setTimeout(() => {
+                                  setSaveStatus('saved');
+                                  setTimeout(() => setSaveStatus(''), 2000);
+                                }, 500);
+                              }}
+                              min="1"
+                              max="30"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="form-label" htmlFor="reminder-time">
+                              Reminder Time (Hour)
+                            </label>
+                            <select
+                              id="reminder-time"
+                              className="form-select"
+                              value={emailNotifications.emailPreferences.reminderTime || '09:00'}
+                              onChange={(e) => {
+                                setSaveStatus('saving');
+                                emailNotifications.updateEmailPreferences({ reminderTime: e.target.value });
+                                setTimeout(() => {
+                                  setSaveStatus('saved');
+                                  setTimeout(() => setSaveStatus(''), 2000);
+                                }, 500);
+                              }}
+                            >
+                              {Array.from({ length: 24 }, (_, hour) => {
+                                const timeValue = `${String(hour).padStart(2, '0')}:00`;
+                                return (
+                                  <option key={timeValue} value={timeValue}>
+                                    {timeValue}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </div>
+
+                          {saveStatus === 'saving' && (
+                            <div className="alert alert-info mb-0">Saving...</div>
+                          )}
+                          {saveStatus === 'saved' && (
+                            <div className="alert alert-success mb-0">Saved to Firestore</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              )}
-
-              <div className="delete-actions">
-                <button
-                  className="btn-cancel"
-                  onClick={() => {
-                    setShowDeleteConfirm(false);
-                    setPassword('');
-                    setError('');
-                  }}
-                  disabled={deleting}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="btn-danger"
-                  onClick={handleDeleteAccount}
-                  disabled={deleting || (!isGoogleUser && !password)}
-                >
-                  {deleting ? 'Deleting...' : 'Delete My Account'}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-          </>
-        )}
-
-        {/* Notifications Tab */}
-        {activeTab === 'notifications' && (
-          <div className="notifications-settings">
-            <h3>Email Notifications</h3>
-            
-            <div className="setting-section">
-              <div className="setting-row">
-                <div className="setting-info">
-                  <label className="setting-label">Enable Email Notifications</label>
-                  <p className="setting-description">
-                    Receive email reminders for upcoming tasks
-                  </p>
-                </div>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={emailNotifications.emailPreferences.enabled}
-                    onChange={(e) => {
-                      setSaveStatus('saving');
-                      emailNotifications.updateEmailPreferences({ 
-                        enabled: e.target.checked 
-                      });
-                      setTimeout(() => {
-                        setSaveStatus('saved');
-                        setTimeout(() => setSaveStatus(''), 2000);
-                      }, 500);
-                    }}
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
-              </div>
-
-              {emailNotifications.emailPreferences.enabled && (
-                <>
-                  <div className="setting-row">
-                    <div className="setting-info">
-                      <label className="setting-label" htmlFor="user-email">
-                        Email Address
-                      </label>
-                      <p className="setting-description">
-                        Where to send reminders
-                      </p>
-                    </div>
-                    <input
-                      id="user-email"
-                      type="email"
-                      className="setting-input"
-                      value={emailNotifications.emailPreferences.userEmail}
-                      onChange={(e) => {
-                        setSaveStatus('saving');
-                        emailNotifications.updateEmailPreferences({ 
-                          userEmail: e.target.value 
-                        });
-                        setTimeout(() => {
-                          setSaveStatus('saved');
-                          setTimeout(() => setSaveStatus(''), 2000);
-                        }, 500);
-                      }}
-                      placeholder="your@email.com"
-                    />
-                  </div>
-
-                  <div className="setting-row">
-                    <div className="setting-info">
-                      <label className="setting-label" htmlFor="advance-days">
-                        Advance Notice (Days)
-                      </label>
-                      <p className="setting-description">
-                        How many days before a task to send reminders
-                      </p>
-                    </div>
-                    <input
-                      id="advance-days"
-                      type="number"
-                      className="setting-input"
-                      value={emailNotifications.emailPreferences.advanceDays}
-                      onChange={(e) => {
-                        setSaveStatus('saving');
-                        emailNotifications.updateEmailPreferences({ 
-                          advanceDays: parseInt(e.target.value) || 3 
-                        });
-                        setTimeout(() => {
-                          setSaveStatus('saved');
-                          setTimeout(() => setSaveStatus(''), 2000);
-                        }, 500);
-                      }}
-                      min="1"
-                      max="30"
-                    />
-                  </div>
-
-                  <div className="setting-row">
-                    <div className="setting-info">
-                      <label className="setting-label" htmlFor="reminder-time">
-                        Reminder Time (Hour)
-                      </label>
-                      <p className="setting-description">
-                        At which hour to send reminders
-                      </p>
-                    </div>
-                    <select
-                      id="reminder-time"
-                      className="setting-input time-select"
-                      value={emailNotifications.emailPreferences.reminderTime || '09:00'}
-                      onChange={(e) => {
-                        setSaveStatus('saving');
-                        emailNotifications.updateEmailPreferences({ reminderTime: e.target.value });
-                        setTimeout(() => {
-                          setSaveStatus('saved');
-                          setTimeout(() => setSaveStatus(''), 2000);
-                        }, 500);
-                      }}
-                    >
-                      {Array.from({ length: 24 }, (_, hour) => {
-                        const timeValue = `${String(hour).padStart(2, '0')}:00`;
-                        return (
-                          <option key={timeValue} value={timeValue}>
-                            {timeValue}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-
-                  {saveStatus === 'saving' && (
-                    <div className="save-status saving">💾 Saving...</div>
-                  )}
-                  {saveStatus === 'saved' && (
-                    <div className="save-status saved">✓ Saved to Firestore</div>
-                  )}
-                </>
               )}
             </div>
           </div>
-        )}
+        </div>
       </div>
-    </div>
+      <div className="modal-backdrop fade show" />
+    </>
   );
 }
 

@@ -38,65 +38,70 @@ function ForgotPassword({ onBackToLogin }) {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h2 className="auth-title">Reset Password</h2>
-        <p className="auth-subtitle">
-          Enter your email and we'll send you a link to reset your password
-        </p>
-
-        {error && <div className="auth-error">{error}</div>}
-        {success && (
-          <div className="auth-success">
-            Password reset email sent! Check your inbox.
+    <div className="auth-container d-flex align-items-center justify-content-center">
+      <div className="auth-card card shadow-lg border-0">
+        <div className="card-body">
+          <div className="text-center mb-4">
+            <h2 className="auth-title h3 fw-bold mb-1">Reset Password</h2>
+            <p className="auth-subtitle mb-0">
+              Enter your email and we'll send you a link to reset your password
+            </p>
           </div>
-        )}
 
-        {!success ? (
-          <form onSubmit={handleSubmit} className="auth-form">
-            <div className="form-group">
-              <label htmlFor="email">Email</label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                disabled={loading}
-                required
-              />
+          {error && <div className="auth-error alert alert-danger">{error}</div>}
+          {success && (
+            <div className="auth-success alert alert-success">
+              Password reset email sent! Check your inbox.
             </div>
+          )}
 
-            <button
-              type="submit"
-              className="auth-button primary"
-              disabled={loading}
-            >
-              {loading ? 'Sending...' : 'Send Reset Link'}
-            </button>
-          </form>
-        ) : (
-          <button
-            type="button"
-            className="auth-button primary"
-            onClick={onBackToLogin}
-          >
-            Back to Sign In
-          </button>
-        )}
+          {!success ? (
+            <form onSubmit={handleSubmit} className="auth-form d-grid gap-3">
+              <div>
+                <label htmlFor="email" className="form-label fw-semibold">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  className="form-control form-control-lg"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  disabled={loading}
+                  required
+                />
+              </div>
 
-        {!success && (
-          <div className="auth-footer">
+              <button
+                type="submit"
+                className="btn btn-primary btn-lg w-100"
+                disabled={loading}
+              >
+                {loading ? 'Sending...' : 'Send Reset Link'}
+              </button>
+            </form>
+          ) : (
             <button
               type="button"
-              className="auth-link"
+              className="btn btn-primary btn-lg w-100"
               onClick={onBackToLogin}
-              disabled={loading}
             >
-              ← Back to Sign In
+              Back to Sign In
             </button>
-          </div>
-        )}
+          )}
+
+          {!success && (
+            <div className="auth-footer text-center mt-4">
+              <button
+                type="button"
+                className="btn btn-link p-0 fw-semibold text-decoration-none"
+                onClick={onBackToLogin}
+                disabled={loading}
+              >
+                ← Back to Sign In
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

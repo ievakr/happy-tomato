@@ -37,7 +37,7 @@ export default function Sidebar() {
             
             {/* Sidebar */}
             <aside 
-                className={`sidebar border p-3 ${showSidebar ? 'mobile-sidebar-open' : ''}`}
+                className={`sidebar border-end bg-white p-3 ${showSidebar ? 'mobile-sidebar-open' : ''}`}
                 style={{ width: '300px' }}
             >
                 {/* Mobile close button */}
@@ -55,13 +55,15 @@ export default function Sidebar() {
                     <CreateEventButton />
                 </div>
                 
-                <Labels />
+                <div className="mb-4">
+                    <Labels />
+                </div>
 
                 {/* Migration button - only show if there are unassigned events */}
                 {hasUnassignedEvents && (
                     <div className="mt-4 pt-3 border-top">
                         <button
-                            className="btn btn-warning w-100 btn-sm"
+                            className="btn btn-warning w-100"
                             onClick={() => setShowMigration(true)}
                             title="Migrate or delete events without a user"
                         >

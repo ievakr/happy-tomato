@@ -7,7 +7,6 @@ import DatePicker from "react-widgets/DatePicker";
 import { Localization } from "react-widgets";
 import { DateLocalizer } from "react-widgets/IntlLocalizer";
 import 'react-widgets/styles.css';
-import '../../styles/legacy.css';
 import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS, TODO_ACTIONS } from "../../constants";
 import { useRecurringActions } from "../../hooks";
 
@@ -325,302 +324,337 @@ export default function EventModal() {
     }
 
     return (
-        <div className="position-fixed w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center" style={{ zIndex: 1055 }}>
-            <form className="event-modal bg-white rounded-lg shadow-lg mx-3 d-flex flex-column" style={{ 
-                width: '100%', 
-                maxWidth: '400px',
-                maxHeight: '90vh',
-                overflow: 'hidden'
-            }} onSubmit={(e) => e.preventDefault()}>
-                <header className="bg-light p-2 d-flex justify-content-between align-items-center flex-shrink-0">
-                    <span className="material-icons-outlined text-muted">
-                        drag_handle
-                    </span>
-                    <div className="d-flex align-items-center">
-                        {selectedEvent && isTodoEvent(selectedEvent) && (
-                            <button
-                                type="button"
-                                className="btn btn-sm p-1 me-2"
-                                disabled={isLoading}
-                                onClick={() => setShowCompleteConfirm(true)}
-                                title="Complete TO DO"
-                            >
-                                <span className="material-icons-outlined text-success">
-                                    check_circle
-                                </span>
-                            </button>
-                        )}
-                        {selectedEvent && (
-                            <button
-                                type="button"
-                                className="btn btn-sm p-1 me-2"
-                                disabled={isLoading}
-                                onClick={() => setShowDeleteConfirm(true)}
-                                title={isTodoEvent(selectedEvent) ? "Delete TO DO" : "Delete event"}
-                            >
-                                <span className="material-icons-outlined text-muted">
-                                    delete
-                                </span>
-                            </button>
-                        )}
-                        <button type="button" className="btn btn-sm p-1" onClick={() => setShowEventModal(false)}>
-                            <span className="material-icons-outlined text-muted">
-                                close
-                            </span>
-                        </button>
-                    </div>
-                </header>
-                <div className="p-3 pb-0 flex-grow-1" style={{ overflowY: 'auto', overflowX: 'visible' }}>
-                    <div className="d-grid gap-3 pb-3">
-                        {/* Action Selection */}
-                        <div className="d-flex align-items-center mb-3">
-                            <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
-                                water_drop
-                            </span>
-                            <div className="flex-grow-1">
-                                <CustomDropdown
-                                    title="Select actions"
-                                    options={Object.keys(PLANT_ACTIONS)}
-                                    selectedOptions={selectedActions}
-                                    onSelect={handleActionSelect}
-                                />
-                            </div>
-                        </div>
-                        
-                        {/* To-Do Selection */}
-                        <div className="mb-3">
-                            <div className="d-flex align-items-center">
-                                <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
-                                    checklist
-                                </span>
-                                <div style={{ minWidth: '200px', flex: '1 1 auto' }}>
-                                    <CustomDropdown
-                                        title="Select to-do"
-                                        options={TODO_ITEMS}
-                                        selectedOptions={Array.isArray(selectedToDo) ? selectedToDo : (selectedToDo ? [selectedToDo] : [])}
-                                        onSelect={handleTodoSelect}
-                                    />
-                                </div>
-                            </div>
-                            {dosage && selectedToDo && (Array.isArray(selectedToDo) ? selectedToDo.length > 0 : selectedToDo) && (
-                                <div className="text-muted small mt-1 ms-4" style={{ fontSize: '0.75rem' }}>
-                                    <span className="material-icons-outlined me-1" style={{ fontSize: '0.7rem', verticalAlign: 'middle' }}>
-                                        schedule
+        <>
+            <div className="modal fade show d-block" role="dialog" aria-modal="true">
+                <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                    <div className="modal-content">
+                        <form onSubmit={(e) => e.preventDefault()}>
+                            <div className="modal-header">
+                                <div className="d-flex align-items-center gap-2">
+                                    <span className="material-icons-outlined text-muted">
+                                        event
                                     </span>
-                                    {dosage}
+                                    <h5 className="modal-title">
+                                        {selectedEvent ? 'Edit Event' : 'New Event'}
+                                    </h5>
                                 </div>
-                            )}
-                        </div>
-                        
-                        {/* Recurring Event Configuration - Only for TODOs */}
-                        {(selectedToDo && (Array.isArray(selectedToDo) ? selectedToDo.length > 0 : selectedToDo)) && (
-                            <div className="mb-3">
-                                <div className="form-check">
-                                    <input
-                                        className="form-check-input"
-                                        type="checkbox"
-                                        id="isRecurringCheck"
-                                        checked={isRecurring}
-                                        onChange={(e) => setIsRecurring(e.target.checked)}
+                                <div className="d-flex align-items-center gap-1">
+                                    {selectedEvent && isTodoEvent(selectedEvent) && (
+                                        <button
+                                            type="button"
+                                            className="btn btn-sm btn-outline-success"
+                                            disabled={isLoading}
+                                            onClick={() => setShowCompleteConfirm(true)}
+                                            title="Complete TO DO"
+                                        >
+                                            <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                                                check_circle
+                                            </span>
+                                        </button>
+                                    )}
+                                    {selectedEvent && (
+                                        <button
+                                            type="button"
+                                            className="btn btn-sm btn-outline-danger"
+                                            disabled={isLoading}
+                                            onClick={() => setShowDeleteConfirm(true)}
+                                            title={isTodoEvent(selectedEvent) ? "Delete TO DO" : "Delete event"}
+                                        >
+                                            <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                                                delete
+                                            </span>
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        className="btn-close"
+                                        onClick={() => setShowEventModal(false)}
+                                        aria-label="Close"
                                     />
-                                    <label className="form-check-label" htmlFor="isRecurringCheck">
-                                        <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
-                                            repeat
-                                        </span>
-                                        Make this a recurring event
-                                    </label>
                                 </div>
-                                
-                                {isRecurring && (
-                                    <div className="mt-3 p-3 bg-light rounded">
-                                        <div className="mb-3">
-                                            <label htmlFor="recurringInterval" className="form-label small text-muted">
-                                                Repeat every (days)
-                                            </label>
-                                            <input
-                                                type="number"
-                                                className="form-control form-control-sm"
-                                                id="recurringInterval"
-                                                min="1"
-                                                max="365"
-                                                value={recurringInterval}
-                                                onChange={(e) => setRecurringInterval(parseInt(e.target.value) || 7)}
-                                            />
-                                        </div>
-                                        <div className="mb-2">
-                                            <label htmlFor="recurringMaxOccurrences" className="form-label small text-muted">
-                                                Maximum occurrences
-                                            </label>
-                                            <input
-                                                type="number"
-                                                className="form-control form-control-sm"
-                                                id="recurringMaxOccurrences"
-                                                min="1"
-                                                max="50"
-                                                value={recurringMaxOccurrences}
-                                                onChange={(e) => setRecurringMaxOccurrences(parseInt(e.target.value) || 12)}
-                                            />
-                                            <div className="form-text" style={{ fontSize: '0.7rem' }}>
-                                                Total number of times this event will occur (including the first one)
-                                            </div>
-                                        </div>
+                            </div>
+                            <div className="modal-body">
+                                <div className="d-grid gap-3">
+                                    <div>
+                                        <label className="form-label d-flex align-items-center gap-2">
+                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
+                                                water_drop
+                                            </span>
+                                            Actions
+                                        </label>
+                                        <CustomDropdown
+                                            title="Select actions"
+                                            options={Object.keys(PLANT_ACTIONS)}
+                                            selectedOptions={selectedActions}
+                                            onSelect={handleActionSelect}
+                                        />
                                     </div>
-                                )}
+                                    
+                                    <div>
+                                        <label className="form-label d-flex align-items-center gap-2">
+                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
+                                                checklist
+                                            </span>
+                                            To-do
+                                        </label>
+                                        <CustomDropdown
+                                            title="Select to-do"
+                                            options={TODO_ITEMS}
+                                            selectedOptions={Array.isArray(selectedToDo) ? selectedToDo : (selectedToDo ? [selectedToDo] : [])}
+                                            onSelect={handleTodoSelect}
+                                        />
+                                        {dosage && selectedToDo && (Array.isArray(selectedToDo) ? selectedToDo.length > 0 : selectedToDo) && (
+                                            <div className="text-muted small mt-2">
+                                                <span className="material-icons-outlined me-1" style={{ fontSize: '0.75rem', verticalAlign: 'middle' }}>
+                                                    schedule
+                                                </span>
+                                                {dosage}
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {(selectedToDo && (Array.isArray(selectedToDo) ? selectedToDo.length > 0 : selectedToDo)) && (
+                                        <div className="border rounded p-3 bg-light">
+                                            <div className="form-check">
+                                                <input
+                                                    className="form-check-input"
+                                                    type="checkbox"
+                                                    id="isRecurringCheck"
+                                                    checked={isRecurring}
+                                                    onChange={(e) => setIsRecurring(e.target.checked)}
+                                                />
+                                                <label className="form-check-label" htmlFor="isRecurringCheck">
+                                                    <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
+                                                        repeat
+                                                    </span>
+                                                    Make this a recurring event
+                                                </label>
+                                            </div>
+                                            
+                                            {isRecurring && (
+                                                <div className="mt-3">
+                                                    <div className="mb-3">
+                                                        <label htmlFor="recurringInterval" className="form-label small text-muted">
+                                                            Repeat every (days)
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            className="form-control form-control-sm"
+                                                            id="recurringInterval"
+                                                            min="1"
+                                                            max="365"
+                                                            value={recurringInterval}
+                                                            onChange={(e) => setRecurringInterval(parseInt(e.target.value) || 7)}
+                                                        />
+                                                    </div>
+                                                    <div className="mb-2">
+                                                        <label htmlFor="recurringMaxOccurrences" className="form-label small text-muted">
+                                                            Maximum occurrences
+                                                        </label>
+                                                        <input
+                                                            type="number"
+                                                            className="form-control form-control-sm"
+                                                            id="recurringMaxOccurrences"
+                                                            min="1"
+                                                            max="50"
+                                                            value={recurringMaxOccurrences}
+                                                            onChange={(e) => setRecurringMaxOccurrences(parseInt(e.target.value) || 12)}
+                                                        />
+                                                        <div className="form-text">
+                                                            Total number of times this event will occur (including the first one)
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                    
+                                    <div>
+                                        <label className="form-label d-flex align-items-center gap-2">
+                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
+                                                schedule
+                                            </span>
+                                            Date
+                                        </label>
+                                        <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
+                                            <DatePicker
+                                                value={selectedDate}
+                                                onChange={(date) => setSelectedDate(date)}
+                                                defaultValue={new Date()}
+                                                valueFormat={{ dateStyle: "medium" }}
+                                                className="w-100"
+                                            />
+                                        </Localization>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="form-label d-flex align-items-center gap-2">
+                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
+                                                segment
+                                            </span>
+                                            Description
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="description"
+                                            placeholder="Add a description"
+                                            value={description}
+                                            required
+                                            className="form-control"
+                                            onChange={(e) => setDescription(e.target.value)}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="form-label d-flex align-items-center gap-2">
+                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
+                                                yard
+                                            </span>
+                                            Plants
+                                        </label>
+                                        <CustomDropdown
+                                            title="Select plants"
+                                            options={Object.values(PLANT_LABELS)} 
+                                            selectedOptions={selectedLabels || []} 
+                                            onSelect={setSelectedLabels}
+                                        />
+                                    </div>
+                                </div>
                             </div>
-                        )}
-                        
-                        {/* Date Selection */}
-                        <div className="d-flex align-items-center mb-3">
-                            <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
-                                schedule
-                            </span>
-                            <div className="flex-grow-1">
-                                <Localization
-                                    date={new DateLocalizer({ firstOfWeek: 1 })}
+                            <div className="modal-footer">
+                                <button 
+                                    type="submit" 
+                                    onClick={handleSubmit} 
+                                    className="btn btn-danger w-100"
+                                    disabled={isLoading}
                                 >
-                                    <DatePicker
-                                        value={selectedDate}
-                                        onChange={(date) => setSelectedDate(date)}
-                                        defaultValue={new Date()}
-                                        valueFormat={{ dateStyle: "medium" }}
-                                        className="w-100"
-                                    />
-                                </Localization>
+                                    {isLoading ? (
+                                        <>
+                                            <span className="spinner-border spinner-border-sm me-2" role="status">
+                                                <span className="visually-hidden">
+                                                    {loadingOperation === 'update' ? 'Updating...' : 'Saving...'}
+                                                </span>
+                                            </span>
+                                            {loadingOperation === 'update' ? 'Updating...' : 'Saving...'}
+                                        </>
+                                    ) : (
+                                        selectedEvent ? 'Update' : 'Save'
+                                    )}
+                                </button>
                             </div>
-                        </div>
-                        
-                        {/* Description */}
-                        <div className="d-flex align-items-center mb-3">
-                            <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
-                                segment
-                            </span>
-                            <input
-                                type="text"
-                                name="description"
-                                placeholder="Add a description"
-                                value={description}
-                                required
-                                className="form-control border-0 border-bottom border-secondary flex-grow-1"
-                                onChange={(e) => setDescription(e.target.value)}
-                            />
-                        </div>
-                        
-                        {/* Plant Selection */}
-                        <div className="d-flex align-items-center mb-3">
-                            <span className="material-icons-outlined text-muted me-2 flex-shrink-0">
-                                yard
-                            </span>
-                            <div className="flex-grow-1">
-                                <CustomDropdown
-                                    title="Select plants"
-                                    options={Object.values(PLANT_LABELS)} 
-                                    selectedOptions={selectedLabels || []} 
-                                    onSelect={setSelectedLabels}
-                                />
-                            </div>
-                        </div>
+                        </form>
                     </div>
                 </div>
-                <footer className="d-flex justify-content-end border-top p-3 flex-shrink-0">
-                    <button 
-                        type="submit" 
-                        onClick={handleSubmit} 
-                        className="btn btn-danger w-100 w-md-auto"
-                        disabled={isLoading}
-                    >
-                        {isLoading ? (
-                            <>
-                                <span className="spinner-border spinner-border-sm me-2" role="status">
-                                    <span className="visually-hidden">
-                                        {loadingOperation === 'update' ? 'Updating...' : 'Saving...'}
-                                    </span>
-                                </span>
-                                {loadingOperation === 'update' ? 'Updating...' : 'Saving...'}
-                            </>
-                        ) : (
-                            selectedEvent ? 'Update' : 'Save'
-                        )}
-                    </button>
-                </footer>
-            </form>
+            </div>
+            <div className="modal-backdrop fade show" />
             
-            {/* Delete Confirmation Modal */}
             {showDeleteConfirm && (
-                <div className="position-fixed w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                    <div className="bg-white rounded shadow-lg p-4" style={{ maxWidth: '300px', width: '90%' }}>
-                        <h6 className="mb-3">Delete Event</h6>
-                        <p className="mb-4 text-muted">Are you sure you want to delete this event? This action cannot be undone.</p>
-                        <div className="d-flex gap-2">
-                            <button 
-                                type="button" 
-                                className="btn btn-sm btn-outline-secondary"
-                                onClick={() => setShowDeleteConfirm(false)}
-                                disabled={isLoading}
-                                style={{ flex: '1' }}
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                type="button" 
-                                className="btn btn-sm btn-danger"
-                                onClick={handleDelete}
-                                disabled={isLoading}
-                                style={{ flex: '1' }}
-                            >
-                                {isLoading && loadingOperation === 'delete' ? (
-                                    <>
-                                        <span className="spinner-border spinner-border-sm me-2" role="status">
-                                            <span className="visually-hidden">Deleting...</span>
-                                        </span>
-                                        Deleting...
-                                    </>
-                                ) : (
-                                    'Delete'
-                                )}
-                            </button>
+                <>
+                    <div className="modal fade show d-block" role="dialog" aria-modal="true">
+                        <div className="modal-dialog modal-dialog-centered modal-sm">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h6 className="modal-title">Delete Event</h6>
+                                    <button
+                                        type="button"
+                                        className="btn-close"
+                                        onClick={() => setShowDeleteConfirm(false)}
+                                        aria-label="Close"
+                                        disabled={isLoading}
+                                    />
+                                </div>
+                                <div className="modal-body">
+                                    <p className="mb-0 text-muted">
+                                        Are you sure you want to delete this event? This action cannot be undone.
+                                    </p>
+                                </div>
+                                <div className="modal-footer">
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-outline-secondary"
+                                        onClick={() => setShowDeleteConfirm(false)}
+                                        disabled={isLoading}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-danger"
+                                        onClick={handleDelete}
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading && loadingOperation === 'delete' ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm me-2" role="status">
+                                                    <span className="visually-hidden">Deleting...</span>
+                                                </span>
+                                                Deleting...
+                                            </>
+                                        ) : (
+                                            'Delete'
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                    <div className="modal-backdrop fade show" />
+                </>
             )}
             
-            {/* Complete TO DO Confirmation Modal */}
             {showCompleteConfirm && (
-                <div className="position-fixed w-100 h-100 top-0 start-0 d-flex justify-content-center align-items-center" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.3)' }}>
-                    <div className="bg-white rounded shadow-lg p-4" style={{ maxWidth: '350px', width: '90%' }}>
-                        <h6 className="mb-3">Complete TO DO</h6>
-                        <p className="mb-4 text-muted">Mark this TO DO as completed? This will create a completed action event and remove the TO DO from your list.</p>
-                        <div className="d-flex gap-2">
-                            <button 
-                                type="button" 
-                                className="btn btn-sm btn-outline-secondary"
-                                onClick={() => setShowCompleteConfirm(false)}
-                                disabled={isLoading}
-                                style={{ flex: '1' }}
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                type="button" 
-                                className="btn btn-sm btn-success"
-                                onClick={handleComplete}
-                                disabled={isLoading}
-                                style={{ flex: '1' }}
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <span className="spinner-border spinner-border-sm me-2" role="status">
-                                            <span className="visually-hidden">Completing...</span>
-                                        </span>
-                                        Completing...
-                                    </>
-                                ) : (
-                                    'Complete'
-                                )}
-                            </button>
+                <>
+                    <div className="modal fade show d-block" role="dialog" aria-modal="true">
+                        <div className="modal-dialog modal-dialog-centered modal-sm">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h6 className="modal-title">Complete TO DO</h6>
+                                    <button
+                                        type="button"
+                                        className="btn-close"
+                                        onClick={() => setShowCompleteConfirm(false)}
+                                        aria-label="Close"
+                                        disabled={isLoading}
+                                    />
+                                </div>
+                                <div className="modal-body">
+                                    <p className="mb-0 text-muted">
+                                        Mark this TO DO as completed? This will create a completed action event and remove the TO DO from your list.
+                                    </p>
+                                </div>
+                                <div className="modal-footer">
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-outline-secondary"
+                                        onClick={() => setShowCompleteConfirm(false)}
+                                        disabled={isLoading}
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-success"
+                                        onClick={handleComplete}
+                                        disabled={isLoading}
+                                    >
+                                        {isLoading ? (
+                                            <>
+                                                <span className="spinner-border spinner-border-sm me-2" role="status">
+                                                    <span className="visually-hidden">Completing...</span>
+                                                </span>
+                                                Completing...
+                                            </>
+                                        ) : (
+                                            'Complete'
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                    <div className="modal-backdrop fade show" />
+                </>
             )}
-        </div>
+        </>
     );
 }

@@ -23,7 +23,7 @@ export default function CalendarDay({ day, rowIndex }) {
 
     function getCurrentDayClass() {
         return day.format("DD-MM-YY") === dayjs().format("DD-MM-YY")
-            ? 'bg-danger text-white rounded-circle d-flex align-items-center justify-content-center'
+            ? 'day-number-current'
             : "";
     }
 
@@ -31,15 +31,11 @@ export default function CalendarDay({ day, rowIndex }) {
         let baseClasses = "calendar-event text-xs rounded p-1 m-1 d-flex align-items-center cursor-pointer";
         
         if (isTodoEvent(evt)) {
-            // TO DO events - red style
-            return `${baseClasses} border border-danger bg-danger bg-opacity-10 text-danger-emphasis`;
+            return `${baseClasses} calendar-event--todo border border-danger bg-danger bg-opacity-10 text-danger-emphasis`;
         } else if (isCompletedTodoAction(evt)) {
-            // Completed TO DO actions - green style
-            return `${baseClasses} border border-success bg-success bg-opacity-10 text-success-emphasis`;
-        } else {
-            // Regular events - default blue style
-            return `${baseClasses} border border-primary bg-primary bg-opacity-10 text-primary-emphasis`;
+            return `${baseClasses} calendar-event--completed border border-success bg-success bg-opacity-10 text-success-emphasis`;
         }
+        return `${baseClasses} calendar-event--default border border-primary bg-primary bg-opacity-10 text-primary-emphasis`;
     }
 
     function getEventIcon(evt) {
@@ -237,37 +233,18 @@ export default function CalendarDay({ day, rowIndex }) {
     };
 
     return (
-        <div className="day-cell border border-secondary d-flex flex-column" style={{ 
-            height: '100%',
-            maxHeight: '100%',
-            overflow: 'hidden',
-            opacity: isCurrentMonth ? 1 : 0.4,
-            backgroundColor: isCurrentMonth ? 'transparent' : '#f8f9fa'
-        }}>
-            <header className="d-flex flex-column align-items-center flex-shrink-0" style={{ padding: '4px 0' }}>
+        <div className={`day-cell border border-secondary d-flex flex-column ${isCurrentMonth ? '' : 'day-cell--other'}`}>
+            <header className="d-flex flex-column align-items-center flex-shrink-0 py-1">
                 <div
-                    className={`day-number text-center ${getCurrentDayClass()}`}
-                    style={{ 
-                        width: '30px', 
-                        height: '30px', 
-                        lineHeight: '30px',
-                        color: !isCurrentMonth && day.format("DD-MM-YY") !== dayjs().format("DD-MM-YY") ? '#adb5bd' : undefined
-                    }}
+                    className={`day-number text-center ${getCurrentDayClass()} ${!isCurrentMonth ? 'text-muted' : ''}`}
                 >
                     {day.format('DD')}
                 </div>
             </header>
             <div 
-                className={`flex-grow-1 position-relative ${isCurrentMonth ? 'cursor-pointer' : ''}`}
+                className={`day-cell-body flex-grow-1 position-relative ${isCurrentMonth ? 'cursor-pointer' : ''}`}
                 style={{ 
-                    overflow: 'hidden',
-                    overflowY: isMobile ? 'hidden' : 'auto', // Disable scroll on mobile since we're just showing count
-                    maxHeight: 'calc(100% - 60px)',
-                    padding: isMobile ? '0' : '2px', // Remove padding on mobile to allow full width centering
-                    width: '100%', // Ensure full width
-                    display: 'flex', // Make it a flex container on mobile for better control
-                    flexDirection: 'column',
-                    cursor: isCurrentMonth ? 'pointer' : 'default'
+                    overflowY: isMobile ? 'hidden' : 'auto'
                 }}
                 onClick={handleDayClick}
             >

@@ -36,15 +36,8 @@ const CalendarGrid = ({ month }) => {
   return (
     <div 
       ref={swipeRef}
-      className="calendar-grid flex-grow-1 d-grid" 
-      style={{ 
-        gridTemplateColumns: 'repeat(7, 1fr)', 
-        gridTemplateRows: 'repeat(5, 1fr)',
-        height: '100%',
-        maxHeight: '100%',
-        overflow: 'hidden',
-        touchAction: isMobile ? 'pan-y' : 'auto' // Allow vertical scrolling but handle horizontal swipes
-      }}
+      className="calendar-grid flex-grow-1"
+      style={{ touchAction: isMobile ? 'pan-y' : 'auto' }}
       role="grid"
       aria-label="Calendar month view"
     >
