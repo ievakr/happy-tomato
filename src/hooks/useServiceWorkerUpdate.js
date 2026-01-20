@@ -9,20 +9,47 @@ export default function useServiceWorkerUpdate() {
       return undefined;
     }
 
+    let isMounted = true;
+
+    const handleUpdateReady = (nextRegistration) => {
+      if (!isMounted) {
+        return;
+      }
+      if (nextRegistration?.waiting && navigator.serviceWorker?.controller) {
+        setRegistration(nextRegistration);
+      }
+    };
+
     navigator.serviceWorker.ready
       .then((readyRegistration) => {
-        setRegistration(readyRegistration);
+        handleUpdateReady(readyRegistration);
+
+        readyRegistration.addEventListener('updatefound', () => {
+          const installingWorker = readyRegistration.installing;
+          if (!installingWorker) {
+            return;
+          }
+
+          installingWorker.addEventListener('statechange', () => {
+            if (installingWorker.state === 'installed') {
+              handleUpdateReady(readyRegistration);
+            }
+          });
+        });
       })
       .catch(() => undefined);
 
     const handler = (event) => {
       if (event?.detail?.registration) {
-        setRegistration(event.detail.registration);
+        handleUpdateReady(event.detail.registration);
       }
     };
 
     window.addEventListener('sw-update-ready', handler);
-    return () => window.removeEventListener('sw-update-ready', handler);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('sw-update-ready', handler);
+    };
   }, [isSupported]);
 
   const dismissUpdate = useCallback(() => {
@@ -58,7 +85,7 @@ export default function useServiceWorkerUpdate() {
 
   return {
     isSupported,
-    updateReady: Boolean(registration),
+    updateReady: Boolean(registration?.waiting),
     applyUpdate,
     dismissUpdate
   };
