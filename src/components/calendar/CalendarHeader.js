@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { getDayHeaders } from '../../utils';
 
 /**
  * Calendar header component that displays day names starting from Monday
  */
-const CalendarHeader = () => {
+const CalendarHeader = memo(() => {
   const dayHeaders = getDayHeaders('short');
 
   return (
@@ -27,6 +27,6 @@ const CalendarHeader = () => {
       ))}
     </div>
   );
-};
+});
 
 export default CalendarHeader; 

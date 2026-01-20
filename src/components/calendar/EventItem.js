@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { UI_CONSTANTS } from '../../constants';
 import { useResponsive } from '../../hooks';
 
 /**
  * Individual event item component for calendar display
  */
-const EventItem = ({ event, onClick, labelsMapping, compact = false, showTime = false, showAllIcons = false }) => {
+const EventItem = memo(({ event, onClick, labelsMapping, compact = false, showTime = false, showAllIcons = false }) => {
   const { title, toDo, labels = [], description, time } = event;
   
   const displayTitle = title || toDo;
@@ -61,12 +61,12 @@ const EventItem = ({ event, onClick, labelsMapping, compact = false, showTime = 
 
     </div>
   );
-};
+});
 
 /**
  * To-do item component with special styling
  */
-const TodoItem = ({ text, compact = false, isCompleted = false }) => (
+const TodoItem = memo(({ text, compact = false, isCompleted = false }) => (
   <div className="d-flex align-items-center w-100">
     <span className="event-item flex-grow-1" style={{
       cursor: "pointer", 
@@ -82,12 +82,12 @@ const TodoItem = ({ text, compact = false, isCompleted = false }) => (
       {text}
     </span>
   </div>
-);
+));
 
 /**
  * Event title component
  */
-const EventTitle = ({ text, compact = false }) => (
+const EventTitle = memo(({ text, compact = false }) => (
   <div className="d-flex align-items-center w-100">
     <span className="event-item flex-grow-1" style={{
       cursor: "pointer", 
@@ -98,12 +98,12 @@ const EventTitle = ({ text, compact = false }) => (
       {text}
     </span>
   </div>
-);
+));
 
 /**
  * Event icons component with responsive display
  */
-const EventIcons = ({ labels, labelsMapping, compact = false, showAllIcons = false }) => {
+const EventIcons = memo(({ labels, labelsMapping, compact = false, showAllIcons = false }) => {
   const { isMobile } = useResponsive();
   
   if (!labels || labels.length === 0) return null;
@@ -158,6 +158,6 @@ const EventIcons = ({ labels, labelsMapping, compact = false, showAllIcons = fal
       )}
     </div>
   );
-};
+});
 
 export default EventItem; 
