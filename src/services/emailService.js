@@ -29,6 +29,36 @@ class EmailService {
     }
   }
 
+  isValidEmail(email) {
+    if (typeof email !== 'string') {
+      return false;
+    }
+    const trimmed = email.trim();
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+  }
+
+  normalizeReminderType(reminderType) {
+    if (typeof reminderType !== 'string') {
+      return 'TODO Reminder';
+    }
+    const trimmed = reminderType.trim();
+    return trimmed.length > 0 ? trimmed : 'TODO Reminder';
+  }
+
+  sanitizeTodos(todos) {
+    if (!Array.isArray(todos)) {
+      return [];
+    }
+
+    return todos.filter(todo => {
+      if (!todo || typeof todo !== 'object') {
+        return false;
+      }
+      const date = new Date(todo.day);
+      return !Number.isNaN(date.getTime());
+    });
+  }
+
   /**
    * Send TODO reminder email
    * @param {Object} params - Email parameters
@@ -46,11 +76,32 @@ class EmailService {
     }
 
     try {
+      if (!params || typeof params !== 'object') {
+        console.error('❌ Invalid email parameters - expected an object');
+        return false;
+      }
+
+      if (!this.isValidEmail(params.userEmail)) {
+        console.error('❌ Invalid user email address for reminder');
+        return false;
+      }
+
+      const sanitizedTodos = this.sanitizeTodos(params.todos);
+      if (sanitizedTodos.length === 0) {
+        console.error('❌ No valid TODOs provided for reminder');
+        return false;
+      }
+
+      const reminderType = this.normalizeReminderType(params.reminderType);
+      const userName = typeof params.userName === 'string' && params.userName.trim().length > 0
+        ? params.userName.trim()
+        : 'Garden Friend';
+
       // Determine the context date based on reminder type
       let contextDate = new Date();
-      if (params.reminderType && params.reminderType.includes('Advance')) {
+      if (reminderType.includes('Advance')) {
         // Extract days from reminder type (e.g., "3-Day Advance Garden Reminder")
-        const match = params.reminderType.match(/(\d+)-Day/);
+        const match = reminderType.match(/(\d+)-Day/);
         if (match) {
           const daysAhead = parseInt(match[1], 10);
           contextDate = new Date();
@@ -60,20 +111,20 @@ class EmailService {
       
       // Create a more descriptive message based on reminder type
       let reminderMessage = '';
-      if (params.reminderType && params.reminderType.includes('Advance')) {
-        const match = params.reminderType.match(/(\d+)-Day/);
+      if (reminderType.includes('Advance')) {
+        const match = reminderType.match(/(\d+)-Day/);
         const days = match ? match[1] : '';
-        reminderMessage = `You have ${params.todos.length} task${params.todos.length !== 1 ? 's' : ''} coming up in ${days} day${days !== '1' ? 's' : ''} (${contextDate.toLocaleDateString()})`;
+        reminderMessage = `You have ${sanitizedTodos.length} task${sanitizedTodos.length !== 1 ? 's' : ''} coming up in ${days} day${days !== '1' ? 's' : ''} (${contextDate.toLocaleDateString()})`;
       } else {
-        reminderMessage = `You have ${params.todos.length} task${params.todos.length !== 1 ? 's' : ''} for today (${new Date().toLocaleDateString()})`;
+        reminderMessage = `You have ${sanitizedTodos.length} task${sanitizedTodos.length !== 1 ? 's' : ''} for today (${new Date().toLocaleDateString()})`;
       }
       
       const templateParams = {
-        to_email: params.userEmail,
-        to_name: params.userName || 'Garden Friend',
-        reminder_type: params.reminderType || 'TODO Reminder',
-        todo_count: params.todos.length,
-        todo_list: this.formatTodoList(params.todos, params.reminderType),
+        to_email: params.userEmail.trim(),
+        to_name: userName,
+        reminder_type: reminderType,
+        todo_count: sanitizedTodos.length,
+        todo_list: this.formatTodoList(sanitizedTodos, reminderType),
         today_date: new Date().toLocaleDateString(),
         context_date: contextDate.toLocaleDateString(),
         reminder_message: reminderMessage,
@@ -104,7 +155,10 @@ class EmailService {
     }
 
     return todos.map(todo => {
-      const dueDate = new Date(todo.day).toLocaleDateString();
+      const dueDateValue = new Date(todo.day);
+      const dueDate = Number.isNaN(dueDateValue.getTime())
+        ? 'Unknown date'
+        : dueDateValue.toLocaleDateString();
       
       // Get action name from various possible sources
       let actionName = '';
@@ -194,6 +248,11 @@ class EmailService {
    * @returns {Promise<boolean>} Success status
    */
   async testEmailConfiguration(testEmail) {
+    if (!this.isValidEmail(testEmail)) {
+      console.error('❌ Invalid test email address');
+      return false;
+    }
+
     const testTodos = [{
       id: 'test',
       title: 'Test TODO: Water plants',
