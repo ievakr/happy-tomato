@@ -51,6 +51,7 @@
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.0",
-    "sass": "^1.91.0"
+    "sass": "^1.91.0",
+    "source-map-explorer": "^2.5.3"
   }
 }
