@@ -1,21 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { deleteAllUserData } from '../../utils/deleteUserData';
 import { useEmailNotifications } from '../../hooks/useEmailNotifications';
 
 function AccountSettings({ onClose }) {
   const { currentUser, deleteAccount } = useAuth();
+  const { showSuccess } = useToast();
   const emailNotifications = useEmailNotifications();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState('account'); // 'account' or 'notifications'
-  const [saveStatus, setSaveStatus] = useState(''); // 'saved', 'saving', or ''
+  const [emailDraft, setEmailDraft] = useState(emailNotifications.emailPreferences);
 
   const isGoogleUser = currentUser?.providerData.some(
     provider => provider.providerId === 'google.com'
   );
+
+  const handleSaveEmailPreferences = () => {
+    emailNotifications.updateEmailPreferences(emailDraft);
+    showSuccess('Email notification settings saved.');
+  };
+
+  useEffect(() => {
+    setEmailDraft(emailNotifications.emailPreferences);
+  }, [emailNotifications.emailPreferences]);
 
   const handleDeleteAccount = async () => {
     if (!isGoogleUser && !password) {
@@ -216,24 +227,18 @@ function AccountSettings({ onClose }) {
                           className="form-check-input"
                           type="checkbox"
                           id="email-notifications"
-                          checked={emailNotifications.emailPreferences.enabled}
-                          onChange={(e) => {
-                            setSaveStatus('saving');
-                            emailNotifications.updateEmailPreferences({ 
-                              enabled: e.target.checked 
-                            });
-                            setTimeout(() => {
-                              setSaveStatus('saved');
-                              setTimeout(() => setSaveStatus(''), 2000);
-                            }, 500);
-                          }}
+                          checked={emailDraft.enabled}
+                          onChange={(e) => setEmailDraft(prev => ({
+                            ...prev,
+                            enabled: e.target.checked
+                          }))}
                         />
                         <label className="form-check-label" htmlFor="email-notifications">
                           Enable email notifications
                         </label>
                       </div>
 
-                      {emailNotifications.emailPreferences.enabled && (
+                      {emailDraft.enabled && (
                         <div className="d-grid gap-3 mt-3">
                           <div>
                             <label className="form-label" htmlFor="user-email">
@@ -243,17 +248,11 @@ function AccountSettings({ onClose }) {
                               id="user-email"
                               type="email"
                               className="form-control"
-                              value={emailNotifications.emailPreferences.userEmail}
-                              onChange={(e) => {
-                                setSaveStatus('saving');
-                                emailNotifications.updateEmailPreferences({ 
-                                  userEmail: e.target.value 
-                                });
-                                setTimeout(() => {
-                                  setSaveStatus('saved');
-                                  setTimeout(() => setSaveStatus(''), 2000);
-                                }, 500);
-                              }}
+                              value={emailDraft.userEmail}
+                              onChange={(e) => setEmailDraft(prev => ({
+                                ...prev,
+                                userEmail: e.target.value
+                              }))}
                               placeholder="your@email.com"
                             />
                           </div>
@@ -266,17 +265,11 @@ function AccountSettings({ onClose }) {
                               id="advance-days"
                               type="number"
                               className="form-control"
-                              value={emailNotifications.emailPreferences.advanceDays}
-                              onChange={(e) => {
-                                setSaveStatus('saving');
-                                emailNotifications.updateEmailPreferences({ 
-                                  advanceDays: parseInt(e.target.value) || 3 
-                                });
-                                setTimeout(() => {
-                                  setSaveStatus('saved');
-                                  setTimeout(() => setSaveStatus(''), 2000);
-                                }, 500);
-                              }}
+                              value={emailDraft.advanceDays}
+                              onChange={(e) => setEmailDraft(prev => ({
+                                ...prev,
+                                advanceDays: parseInt(e.target.value, 10) || 3
+                              }))}
                               min="1"
                               max="30"
                             />
@@ -289,15 +282,11 @@ function AccountSettings({ onClose }) {
                             <select
                               id="reminder-time"
                               className="form-select"
-                              value={emailNotifications.emailPreferences.reminderTime || '09:00'}
-                              onChange={(e) => {
-                                setSaveStatus('saving');
-                                emailNotifications.updateEmailPreferences({ reminderTime: e.target.value });
-                                setTimeout(() => {
-                                  setSaveStatus('saved');
-                                  setTimeout(() => setSaveStatus(''), 2000);
-                                }, 500);
-                              }}
+                              value={emailDraft.reminderTime || '09:00'}
+                              onChange={(e) => setEmailDraft(prev => ({
+                                ...prev,
+                                reminderTime: e.target.value
+                              }))}
                             >
                               {Array.from({ length: 24 }, (_, hour) => {
                                 const timeValue = `${String(hour).padStart(2, '0')}:00`;
@@ -309,15 +298,17 @@ function AccountSettings({ onClose }) {
                               })}
                             </select>
                           </div>
-
-                          {saveStatus === 'saving' && (
-                            <div className="alert alert-info mb-0">Saving...</div>
-                          )}
-                          {saveStatus === 'saved' && (
-                            <div className="alert alert-success mb-0">Saved to Firestore</div>
-                          )}
                         </div>
                       )}
+                      <div className="d-flex justify-content-end mt-3">
+                        <button
+                          className="btn btn-danger"
+                          type="button"
+                          onClick={handleSaveEmailPreferences}
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
