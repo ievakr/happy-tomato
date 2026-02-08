@@ -20,13 +20,20 @@ function AccountSettings({ onClose }) {
   );
 
   const handleSaveEmailPreferences = () => {
-    emailNotifications.updateEmailPreferences(emailDraft);
+    const payload = {
+      ...emailDraft,
+      userId: currentUser?.uid || emailDraft.userId
+    };
+    emailNotifications.updateEmailPreferences(payload);
     showSuccess('Email notification settings saved.');
   };
 
   useEffect(() => {
-    setEmailDraft(emailNotifications.emailPreferences);
-  }, [emailNotifications.emailPreferences]);
+    setEmailDraft({
+      ...emailNotifications.emailPreferences,
+      userId: currentUser?.uid || emailNotifications.emailPreferences.userId
+    });
+  }, [currentUser?.uid, emailNotifications.emailPreferences]);
 
   const handleDeleteAccount = async () => {
     if (!isGoogleUser && !password) {
@@ -240,6 +247,36 @@ function AccountSettings({ onClose }) {
 
                       {emailDraft.enabled && (
                         <div className="d-grid gap-3 mt-3">
+                          <div className="form-check">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              id="daily-reminder"
+                              checked={emailDraft.dailyReminder}
+                              onChange={(e) => setEmailDraft(prev => ({
+                                ...prev,
+                                dailyReminder: e.target.checked
+                              }))}
+                            />
+                            <label className="form-check-label" htmlFor="daily-reminder">
+                              Daily reminders (today + overdue)
+                            </label>
+                          </div>
+                          <div className="form-check">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              id="advance-reminders"
+                              checked={emailDraft.advanceReminders}
+                              onChange={(e) => setEmailDraft(prev => ({
+                                ...prev,
+                                advanceReminders: e.target.checked
+                              }))}
+                            />
+                            <label className="form-check-label" htmlFor="advance-reminders">
+                              Advance reminders
+                            </label>
+                          </div>
                           <div>
                             <label className="form-label" htmlFor="user-email">
                               Email Address
@@ -272,6 +309,7 @@ function AccountSettings({ onClose }) {
                               }))}
                               min="1"
                               max="30"
+                              disabled={!emailDraft.advanceReminders}
                             />
                           </div>
 
@@ -287,6 +325,7 @@ function AccountSettings({ onClose }) {
                                 ...prev,
                                 reminderTime: e.target.value
                               }))}
+                              disabled={!emailDraft.dailyReminder}
                             >
                               {Array.from({ length: 24 }, (_, hour) => {
                                 const timeValue = `${String(hour).padStart(2, '0')}:00`;

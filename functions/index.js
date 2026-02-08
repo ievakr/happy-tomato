@@ -294,7 +294,7 @@ exports.sendDailyReminders = functions.pubsub
         // Process each user
         for (const prefDoc of prefsSnapshot.docs) {
           const prefs = prefDoc.data();
-          const userId = prefDoc.id;
+          const userId = prefs.userId;
 
           // Parse reminder time
           const [reminderHour] =
@@ -322,34 +322,24 @@ exports.sendDailyReminders = functions.pubsub
             continue;
           }
 
-          // Get user's events - try by userId first,
-          // then fallback to all events
+          if (!userId) {
+            console.log(
+                `No userId stored for ${prefs.userEmail}. ` +
+                `Ask user to re-save notification settings.`,
+            );
+            continue;
+          }
+
+          // Get user's events by userId
           const eventsSnapshot = await admin.firestore()
               .collection("events")
               .where("userId", "==", userId)
               .get();
 
-          let userEvents = [];
-
-          // If no events found by userId,
-          // get all events (for backward compatibility)
-          if (eventsSnapshot.empty) {
-            console.log(
-                `No events with userId field, fetching all events...`,
-            );
-            const allEventsSnapshot = await admin.firestore()
-                .collection("events")
-                .get();
-            userEvents = allEventsSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
-          } else {
-            userEvents = eventsSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
-          }
+          const userEvents = eventsSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
 
           console.log(
               `Found ${userEvents.length} events for ${prefs.userEmail}`,
@@ -378,7 +368,7 @@ exports.sendDailyReminders = functions.pubsub
             // Update last sent timestamp
             await admin.firestore()
                 .collection("emailPreferences")
-                .doc(userId)
+                .doc(prefDoc.id)
                 .update({
                   lastAutoReminderSent: admin.firestore
                       .FieldValue.serverTimestamp(),
@@ -428,7 +418,7 @@ exports.sendAdvanceReminders = functions.pubsub
         // Process each user
         for (const prefDoc of prefsSnapshot.docs) {
           const prefs = prefDoc.data();
-          const userId = prefDoc.id;
+          const userId = prefs.userId;
 
           console.log(
               `\n👤 Checking user: ${prefs.userEmail}`,
@@ -476,34 +466,24 @@ exports.sendAdvanceReminders = functions.pubsub
             console.log(`   ✅ Never sent before`);
           }
 
-          // Get user's events - try by userId first,
-          // then fallback to all events
+          if (!userId) {
+            console.log(
+                `   ⚠️  No userId stored for ${prefs.userEmail}. ` +
+                `Ask user to re-save notification settings.`,
+            );
+            continue;
+          }
+
+          // Get user's events by userId
           const eventsSnapshot = await admin.firestore()
               .collection("events")
               .where("userId", "==", userId)
               .get();
 
-          let userEvents = [];
-
-          // If no events found by userId,
-          // get all events (for backward compatibility)
-          if (eventsSnapshot.empty) {
-            console.log(
-                `   ℹ️  No events with userId field, fetching all events...`,
-            );
-            const allEventsSnapshot = await admin.firestore()
-                .collection("events")
-                .get();
-            userEvents = allEventsSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
-          } else {
-            userEvents = eventsSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            }));
-          }
+          const userEvents = eventsSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
 
           console.log(
               `Found ${userEvents.length} events for ${prefs.userEmail}`,
@@ -578,7 +558,7 @@ exports.sendAdvanceReminders = functions.pubsub
             // Update last sent timestamp
             await admin.firestore()
                 .collection("emailPreferences")
-                .doc(userId)
+                .doc(prefDoc.id)
                 .update({
                   lastAutoAdvanceReminderSent: admin.firestore
                       .FieldValue.serverTimestamp(),
