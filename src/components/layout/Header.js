@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useCallback } from 'react';
 import logo from '../../assets/logo.png';
 import CalendarContext from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
-import { getWeekByIndex, getWeekDateRange, getCurrentWeekIndex } from '../../utils';
+import { getCurrentWeekIndex } from '../../utils';
 import { useResponsive } from '../../hooks';
 import UserMenu from '../auth/UserMenu';
 
@@ -70,48 +70,6 @@ export default function Header() {
         const newMonth = monthIndex + 1;
         applyMonthChange(newMonth);
     }
-    function handlePrevWeek() {
-        if (weekIndex > 0) {
-            setWeekIndex(weekIndex - 1);
-        } else {
-            // Go to previous month, last week
-            setMonthIndex(monthIndex - 1);
-            setWeekIndex(4); // Assume 5 weeks max
-        }
-    }
-    
-    function handleNextWeek() {
-        if (weekIndex < 4) {
-            setWeekIndex(weekIndex + 1);
-        } else {
-            // Go to next month, first week
-            setMonthIndex(monthIndex + 1);
-            setWeekIndex(0);
-        }
-    }
-    
-    function handlePrevDay() {
-        const currentDay = daySelected || dayjs();
-        const prevDay = currentDay.subtract(1, 'day');
-        setDaySelected(prevDay);
-        
-        // Update month if we went to previous month
-        if (prevDay.month() !== currentDay.month()) {
-            setMonthIndex(prevDay.month());
-        }
-    }
-    
-    function handleNextDay() {
-        const currentDay = daySelected || dayjs();
-        const nextDay = currentDay.add(1, 'day');
-        setDaySelected(nextDay);
-        
-        // Update month if we went to next month
-        if (nextDay.month() !== currentDay.month()) {
-            setMonthIndex(nextDay.month());
-        }
-    }
-    
 
     
     function toggleSidebar() {
