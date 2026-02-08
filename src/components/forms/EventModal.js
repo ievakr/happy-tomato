@@ -146,6 +146,13 @@ export default function EventModal() {
     
     function handleTodoSelect(selectedTodoArray) {
         setSelectedToDo(selectedTodoArray);
+        if (Array.isArray(selectedTodoArray)) {
+            setTitle(selectedTodoArray.join(", "));
+        } else if (selectedTodoArray) {
+            setTitle(selectedTodoArray);
+        } else {
+            setTitle("");
+        }
         
         // If selecting a TODO, clear any selected actions (they're mutually exclusive)
         if (selectedTodoArray && (Array.isArray(selectedTodoArray) ? selectedTodoArray.length > 0 : selectedTodoArray)) {
