@@ -70,13 +70,6 @@ export default function Header() {
         const newMonth = monthIndex + 1;
         applyMonthChange(newMonth);
     }
-    function handleMonthSelect(event) {
-        const newMonth = parseInt(event.target.value, 10);
-        if (!Number.isNaN(newMonth)) {
-            applyMonthChange(newMonth);
-        }
-    }
-    
     function handlePrevWeek() {
         if (weekIndex > 0) {
             setWeekIndex(weekIndex - 1);
@@ -130,27 +123,6 @@ export default function Header() {
     }
 
     
-    function getCurrentDisplayTitle() {
-        if (currentView === 'month') {
-            return dayjs(new Date(dayjs().year(), monthIndex)).format(isMobile ? "MMM YYYY" : "MMMM YYYY");
-        } else if (currentView === 'week') {
-            const week = getWeekByIndex(monthIndex, weekIndex);
-            return getWeekDateRange(week);
-        } else if (currentView === 'daily') {
-            const currentDay = daySelected || dayjs();
-            return currentDay.format(isMobile ? "MMM D, YYYY" : "MMMM D, YYYY");
-        }
-    }
-    
-    function getNavigationHandler(direction) {
-        if (currentView === 'month') {
-            return direction === 'prev' ? handlePrevMonth : handleNextMonth;
-        } else if (currentView === 'week') {
-            return direction === 'prev' ? handlePrevWeek : handleNextWeek;
-        } else if (currentView === 'daily') {
-            return direction === 'prev' ? handlePrevDay : handleNextDay;
-        }
-    }
     return (
         <header className={`calendar-header position-relative border-bottom bg-white px-2 px-md-4 py-2 ${isMobile ? 'd-flex flex-column' : 'd-flex align-items-center'}`}>
             {/* Mobile: First row with basic controls */}

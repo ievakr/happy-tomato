@@ -28,7 +28,6 @@ const DailyView = () => {
   const { isMobile } = useResponsive();
   const scrollContainerRef = useRef(null);
   const dayElementMapRef = useRef(new Map());
-  const scrollAnimationRef = useRef(null);
   const [displayedMonth, setDisplayedMonth] = useState(dayjs());
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
