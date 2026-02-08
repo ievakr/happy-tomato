@@ -329,8 +329,8 @@ export default function EventModal() {
                 <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                     <div className="modal-content">
                         <form onSubmit={(e) => e.preventDefault()}>
-                            <div className="modal-header">
-                                <div className="d-flex align-items-center gap-2">
+                            <div className="modal-header d-flex align-items-center justify-content-between">
+                                <div className="d-flex align-items-center gap-2 flex-grow-1">
                                     <span className="material-icons-outlined text-muted">
                                         event
                                     </span>
@@ -338,7 +338,7 @@ export default function EventModal() {
                                         {selectedEvent ? 'Edit Event' : 'New Event'}
                                     </h5>
                                 </div>
-                                <div className="d-flex align-items-center gap-1">
+                                <div className="d-flex align-items-center gap-1 ms-auto flex-shrink-0">
                                     {selectedEvent && isTodoEvent(selectedEvent) && (
                                         <button
                                             type="button"

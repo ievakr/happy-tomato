@@ -142,6 +142,7 @@
     text-align: center;
     transition: all 0.2s ease;
     border: 1px solid transparent;
+    min-height: 72px;
 }
 
 .daily-week-day:hover {
@@ -154,8 +155,8 @@
 }
 
 .daily-week-day.today {
-    background-color: #fff3e0;
-    border-color: #ff9800;
+    background-color: white;
+    border-color: transparent;
 }
 
 .daily-week-day.selected.today {
@@ -183,6 +184,7 @@
     font-weight: 600;
     line-height: 1;
     color: #495057;
+    margin-top: 2px;
 }
 
 .daily-week-day.selected .day-number-mini {
@@ -190,11 +192,19 @@
 }
 
 .daily-week-day.today .day-number-mini {
-    color: #ff9800;
+    color: #fff;
+    background-color: #dc3545;
+    border-radius: 999px;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .daily-week-day.selected.today .day-number-mini {
-    color: #c62828;
+    color: #fff;
+    background-color: #c82333;
 }
 
 
@@ -319,7 +329,7 @@
     .daily-week-header .d-flex {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch;
-        scroll-behavior: smooth;
+        scroll-behavior: auto;
     }
 
     .daily-week-day {

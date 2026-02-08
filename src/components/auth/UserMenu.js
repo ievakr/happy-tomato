@@ -7,7 +7,10 @@ function UserMenu() {
   const { currentUser, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState(null);
   const menuRef = useRef(null);
+  const triggerRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -22,6 +25,51 @@ function UserMenu() {
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setDropdownStyle(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!triggerRef.current || !dropdownRef.current) {
+        return;
+      }
+
+      const triggerRect = triggerRef.current.getBoundingClientRect();
+      const menuRect = dropdownRef.current.getBoundingClientRect();
+      const margin = 8;
+
+      let top = triggerRect.bottom;
+      if (top + menuRect.height > window.innerHeight - margin) {
+        top = triggerRect.top - menuRect.height;
+      }
+
+      let left = triggerRect.right - menuRect.width;
+      if (left < margin) {
+        left = margin;
+      }
+      if (left + menuRect.width > window.innerWidth - margin) {
+        left = Math.max(margin, window.innerWidth - margin - menuRect.width);
+      }
+
+      setDropdownStyle({
+        top,
+        left
+      });
+    };
+
+    const frame = window.requestAnimationFrame(updatePosition);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
     };
   }, [isOpen]);
 
@@ -54,6 +102,7 @@ function UserMenu() {
         aria-label="User menu"
         aria-expanded={isOpen}
         type="button"
+        ref={triggerRef}
       >
         {currentUser?.photoURL ? (
           <img
@@ -67,7 +116,11 @@ function UserMenu() {
       </button>
 
       {isOpen && (
-        <div className="dropdown-menu dropdown-menu-end show shadow-sm user-menu-dropdown">
+        <div
+          className="dropdown-menu dropdown-menu-end show shadow-sm user-menu-dropdown"
+          ref={dropdownRef}
+          style={dropdownStyle || undefined}
+        >
           <div className="px-3 py-2">
             <div className="fw-semibold">{currentUser?.displayName || 'User'}</div>
             <div className="text-muted small">{currentUser?.email}</div>

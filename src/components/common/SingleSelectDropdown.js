@@ -62,10 +62,14 @@ export default function SingleSelectDropdown({ title, options, selectedValue = "
     return (
         <>
             <div className="custom-dropdown" ref={dropdownRef}>
-                <div className="custom-dropdown__title" onClick={() => setIsOpen(!isOpen)}>
+                <button
+                    type="button"
+                    className="custom-dropdown__title form-select"
+                    onClick={() => setIsOpen(!isOpen)}
+                    aria-expanded={isOpen}
+                >
                     {selectedValue || title}
-                    <span className="custom-dropdown__arrow">{isOpen ? "▲" : "▼"}</span>
-                </div>
+                </button>
             </div>
             {isOpen && (
                 <ul 

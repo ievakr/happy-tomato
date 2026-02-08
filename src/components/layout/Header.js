@@ -47,8 +47,7 @@ export default function Header() {
         }
     }, [isMobile, currentView, switchToDailyView, switchToWeekView]);
     
-    function handlePrevMonth() {
-        const newMonth = monthIndex - 1;
+    function applyMonthChange(newMonth) {
         setMonthIndex(newMonth);
         // Reset week index when changing months
         if (currentView === 'week') {
@@ -63,20 +62,18 @@ export default function Header() {
             setDaySelected(newDay);
         }
     }
+    function handlePrevMonth() {
+        const newMonth = monthIndex - 1;
+        applyMonthChange(newMonth);
+    }
     function handleNextMonth() {
         const newMonth = monthIndex + 1;
-        setMonthIndex(newMonth);
-        // Reset week index when changing months
-        if (currentView === 'week') {
-            setWeekIndex(0);
-        }
-        // Update selected day for daily view - preserve day of month
-        if (currentView === 'daily') {
-            const currentDay = daySelected || dayjs();
-            const dayOfMonth = currentDay.date();
-            // Try to set the same day of month, dayjs will handle invalid dates
-            const newDay = dayjs(new Date(dayjs().year(), newMonth, dayOfMonth));
-            setDaySelected(newDay);
+        applyMonthChange(newMonth);
+    }
+    function handleMonthSelect(event) {
+        const newMonth = parseInt(event.target.value, 10);
+        if (!Number.isNaN(newMonth)) {
+            applyMonthChange(newMonth);
         }
     }
     
@@ -155,7 +152,7 @@ export default function Header() {
         }
     }
     return (
-        <header className={`calendar-header border-bottom bg-white px-2 px-md-4 py-2 ${isMobile ? 'd-flex flex-column' : 'd-flex align-items-center'}`}>
+        <header className={`calendar-header position-relative border-bottom bg-white px-2 px-md-4 py-2 ${isMobile ? 'd-flex flex-column' : 'd-flex align-items-center'}`}>
             {/* Mobile: First row with basic controls */}
             {isMobile ? (
                 <>
@@ -206,59 +203,6 @@ export default function Header() {
                         </div>
                     </div>
                     
-                    {/* Mobile: Month navigation row (for daily and weekly views) */}
-                    {(currentView === 'daily' || currentView === 'week') && (
-                        <div className="d-flex align-items-center justify-content-center my-2">
-                            <button 
-                                className="btn btn-sm btn-outline-danger" 
-                                onClick={handlePrevMonth}
-                                aria-label="Previous month"
-                            >
-                                <span className="material-icons-outlined" style={{ fontSize: '1.2rem' }}>
-                                    chevron_left
-                                </span>
-                            </button>
-                            
-                            <h6 className="mb-0 fw-bold text-center flex-grow-1 mx-2">
-                                {dayjs(new Date(dayjs().year(), monthIndex)).format("MMMM YYYY")}
-                            </h6>
-                            
-                            <button 
-                                className="btn btn-sm btn-outline-danger" 
-                                onClick={handleNextMonth}
-                                aria-label="Next month"
-                            >
-                                <span className="material-icons-outlined" style={{ fontSize: '1.2rem' }}>
-                                    chevron_right
-                                </span>
-                            </button>
-                        </div>
-                    )}
-                    
-                    {/* Mobile: Day/Week navigation row */}
-                    <div className="d-flex align-items-center justify-content-center mt-2">
-                        <button 
-                            className="btn btn-sm btn-light me-2" 
-                            onClick={getNavigationHandler('prev')}
-                        >
-                            <span className="material-icons-outlined text-secondary" style={{ fontSize: '1rem' }}>
-                                chevron_left
-                            </span>
-                        </button>
-                        
-                        <h2 className="mb-0 text-secondary fw-bold text-center fs-6 mx-3">
-                            {getCurrentDisplayTitle()}
-                        </h2>
-                        
-                        <button 
-                            className="btn btn-sm btn-light ms-2" 
-                            onClick={getNavigationHandler('next')}
-                        >
-                            <span className="material-icons-outlined text-secondary" style={{ fontSize: '1rem' }}>
-                                chevron_right
-                            </span>
-                        </button>
-                    </div>
                 </>
             ) : (
                 <>
@@ -268,27 +212,29 @@ export default function Header() {
                     <h1 className="me-2 me-md-3 mb-0 fs-4 text-secondary fw-bold">
                         Happy Tomato
                     </h1>
-                    
-                    {/* Current period display with navigation buttons */}
-                    <div className="flex-grow-1 mx-2 d-flex align-items-center justify-content-center">
-                        <button 
-                            className="btn btn-sm btn-light me-1" 
-                            onClick={getNavigationHandler('prev')}
+
+                    {/* Center month navigation */}
+                    <div className="calendar-month-nav calendar-month-nav-centered d-flex align-items-center">
+                        <button
+                            className="btn btn-sm btn-light"
+                            onClick={handlePrevMonth}
+                            aria-label="Previous month"
+                            title="Previous month"
                         >
-                            <span className="material-icons-outlined text-secondary" style={{ fontSize: '1.2rem' }}>
+                            <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
                                 chevron_left
                             </span>
                         </button>
-                        
-                        <h2 className="mb-0 text-secondary fw-bold text-center fs-5 mx-3">
-                            {getCurrentDisplayTitle()}
-                        </h2>
-                        
-                        <button 
-                            className="btn btn-sm btn-light ms-1" 
-                            onClick={getNavigationHandler('next')}
+                        <span className="calendar-month-label mx-2">
+                            {dayjs(new Date(dayjs().year(), monthIndex)).format("MMMM YYYY")}
+                        </span>
+                        <button
+                            className="btn btn-sm btn-light"
+                            onClick={handleNextMonth}
+                            aria-label="Next month"
+                            title="Next month"
                         >
-                            <span className="material-icons-outlined text-secondary" style={{ fontSize: '1.2rem' }}>
+                            <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
                                 chevron_right
                             </span>
                         </button>

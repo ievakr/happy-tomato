@@ -27,21 +27,44 @@ const DailyView = () => {
   
   const { isMobile } = useResponsive();
   const scrollContainerRef = useRef(null);
+  const dayElementMapRef = useRef(new Map());
+  const scrollAnimationRef = useRef(null);
   const [displayedMonth, setDisplayedMonth] = useState(dayjs());
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const initialLoadRef = useRef(true);
 
+  const applyMonthChange = useCallback((newMonth) => {
+    const currentDayValue = daySelected || dayjs();
+    const dayOfMonth = currentDayValue.date();
+    const newDay = dayjs(new Date(currentDayValue.year(), newMonth, dayOfMonth));
+    setMonthIndex(newMonth);
+    setDaySelected(newDay);
+  }, [daySelected, setMonthIndex, setDaySelected]);
+
+  const scrollToDay = useCallback((targetEl) => {
+    const container = scrollContainerRef.current;
+    if (!container || !targetEl) {
+      return;
+    }
+
+    const targetCenter = targetEl.offsetLeft + (targetEl.offsetWidth / 2);
+    const desiredLeft = targetCenter - (container.clientWidth / 2);
+    const maxLeft = container.scrollWidth - container.clientWidth;
+    const targetLeft = Math.max(0, Math.min(desiredLeft, maxLeft));
+    container.scrollLeft = targetLeft;
+  }, []);
+
   // Swipe handlers for month navigation in selected day area
   const handleSwipeLeft = () => {
     if (isMobile) {
-      setMonthIndex(monthIndex + 1); // Next month
+      applyMonthChange(monthIndex + 1); // Next month
     }
   };
   
   const handleSwipeRight = () => {
     if (isMobile) {
-      setMonthIndex(monthIndex - 1); // Previous month
+      applyMonthChange(monthIndex - 1); // Previous month
     }
   };
   
@@ -99,6 +122,19 @@ const DailyView = () => {
     }
   }, [isMobile, allDays, currentDay]);
 
+  // Keep the day scroller aligned when selected day changes externally
+  useEffect(() => {
+    if (!isMobile) {
+      return;
+    }
+
+    const selectedKey = currentDay.format('YYYY-MM-DD');
+    const selectedEl = dayElementMapRef.current.get(selectedKey);
+    if (selectedEl) {
+      scrollToDay(selectedEl);
+    }
+  }, [currentDay, isMobile, scrollToDay]);
+
   // Update displayed month when currentDay changes
   useEffect(() => {
     setDisplayedMonth(currentDay);
@@ -135,15 +171,25 @@ const DailyView = () => {
     setShowEventModal(true);
   };
 
-  const handleDaySelection = useCallback((day, index) => {
+  const handleDaySelection = useCallback((day, index, event) => {
     setDaySelected(day);
-    // Center the selected day in viewport
+    if (!isMobile) {
+      return;
+    }
+
+    const target = event?.currentTarget;
+    if (target) {
+      scrollToDay(target);
+      return;
+    }
+
+    // Fallback to manual centering if needed
     const scrollPosition = index * 70 - (window.innerWidth / 2) + 35;
     scrollContainerRef.current?.scrollTo({
       left: Math.max(0, scrollPosition),
       behavior: 'smooth'
     });
-  }, [setDaySelected]);
+  }, [isMobile, scrollToDay, setDaySelected]);
 
   const handleEventClick = (evt, e) => {
     e.stopPropagation();
@@ -185,6 +231,12 @@ const DailyView = () => {
     return day.format("DD-MM-YY") === currentDay.format("DD-MM-YY");
   };
 
+  const jumpToToday = useCallback(() => {
+    const today = dayjs();
+    setDaySelected(today);
+    setMonthIndex(today.month());
+  }, [setDaySelected, setMonthIndex]);
+
   if (isInitialLoading) {
     return (
       <div className="daily-view-loading d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
@@ -197,6 +249,46 @@ const DailyView = () => {
 
   return (
     <div className="daily-view flex-grow-1 d-flex flex-column">
+      {/* Mobile: Month navigation */}
+      {isMobile && (
+        <div className="position-relative py-2 bg-light">
+          <div className="d-flex align-items-center justify-content-center gap-2">
+            <button
+              className="btn btn-sm btn-light"
+              onClick={() => applyMonthChange(monthIndex - 1)}
+              aria-label="Previous month"
+              title="Previous month"
+              type="button"
+            >
+              <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                chevron_left
+              </span>
+            </button>
+            <span className="calendar-month-label">
+              {displayedMonth.format("MMMM YYYY")}
+            </span>
+            <button
+              className="btn btn-sm btn-light"
+              onClick={() => applyMonthChange(monthIndex + 1)}
+              aria-label="Next month"
+              title="Next month"
+              type="button"
+            >
+              <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                chevron_right
+              </span>
+            </button>
+          </div>
+          <button
+            className="btn btn-sm btn-outline-secondary position-absolute top-50 end-0 translate-middle-y me-2"
+            onClick={jumpToToday}
+            type="button"
+          >
+            Today
+          </button>
+        </div>
+      )}
+
       {/* Mobile: Horizontal scrollable week header */}
       {isMobile && (
         <div className="daily-week-header bg-light py-2" style={{ minHeight: '60px' }}>
@@ -220,7 +312,15 @@ const DailyView = () => {
                 <div
                   key={day.format('YYYY-MM-DD')}
                   className={`daily-week-day text-center ${getCurrentDayClass(day)} ${isSelectedDay(day) ? 'selected' : ''}`}
-                  onClick={() => handleDaySelection(day, index)}
+                  onClick={(event) => handleDaySelection(day, index, event)}
+                  ref={(node) => {
+                    const key = day.format('YYYY-MM-DD');
+                    if (node) {
+                      dayElementMapRef.current.set(key, node);
+                    } else {
+                      dayElementMapRef.current.delete(key);
+                    }
+                  }}
                 >
                   <div className="day-name-mini text-muted">
                     {dayHeaders[dayOfWeek]}
@@ -256,9 +356,9 @@ const DailyView = () => {
         >
         {/* Day title */}
         <div className="mb-3">
-          <h4 className="mb-1">
+          <h5 className="mb-1">
             {currentDay.format('dddd, MMMM D, YYYY')}
-          </h4>
+          </h5>
           {currentDay.format("DD-MM-YY") === dayjs().format("DD-MM-YY") && (
             <small className="text-muted">Today</small>
           )}

@@ -23,6 +23,8 @@
 
 .user-menu-dropdown {
   min-width: 240px;
+  position: fixed;
+  z-index: 9999;
 }
 
 @media (max-width: 768px) {
