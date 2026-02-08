@@ -13,7 +13,6 @@ export default function Header() {
         setMonthIndex, 
         currentView, 
         setCurrentView, 
-        weekIndex, 
         setWeekIndex,
         daySelected,
         setDaySelected
