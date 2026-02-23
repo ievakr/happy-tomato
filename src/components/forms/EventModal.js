@@ -7,20 +7,22 @@ import DatePicker from "react-widgets/DatePicker";
 import { Localization } from "react-widgets";
 import { DateLocalizer } from "react-widgets/IntlLocalizer";
 import 'react-widgets/styles.css';
-import { PLANT_LABELS, PLANT_ACTIONS, TODO_ITEMS, TODO_ACTIONS } from "../../constants";
-import { useRecurringActions } from "../../hooks";
+import dayjs from "dayjs";
+import { PLANT_LABELS } from "../../constants";
+import { useRecurringActions, useSavedTodos } from "../../hooks";
+import TodoCombobox from "../common/TodoCombobox";
 
 export default function EventModal() {
     const { daySelected } = useContext(CalendarContext);
-    const { setShowEventModal, dispatchCallEvent, selectedEvent, dosage, setDosage, isLoading, loadingOperation } = useContext(EventContext); 
+    const { setShowEventModal, dispatchCallEvent, selectedEvent, setDosage, isLoading, loadingOperation } = useContext(EventContext); 
     const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
+    const { savedItems: savedTodoItems, addItem: addSavedTodo, removeItem: removeSavedTodo } = useSavedTodos();
     const { showError } = useToast();
     const [description, setDescription] = useState("");
     const [selectedLabels, setSelectedLabels] = useState([]);
     const [selectedDate, setSelectedDate] = useState(new Date());
     const [title, setTitle] = useState("");
-    const [selectedToDo, setSelectedToDo] = useState([]);
-    const [selectedActions, setSelectedActions] = useState([]);
+    const [todoText, setTodoText] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
     
@@ -49,42 +51,21 @@ export default function EventModal() {
                                (selectedEvent.title && typeof selectedEvent.title === 'string' && selectedEvent.title.startsWith("TO DO:")) ||
                                selectedEvent.toDo;
             
-            if (isTodoEvent && selectedEvent.toDo) {
-                // This is a TODO event - populate TODO dropdown
-                setSelectedToDo(Array.isArray(selectedEvent.toDo) ? selectedEvent.toDo : [selectedEvent.toDo]);
-                setSelectedActions([]);
-                setTitle(selectedEvent.title || "");
-                
-                // Set dosage from TODO_ACTIONS
-                const firstTodo = Array.isArray(selectedEvent.toDo) ? selectedEvent.toDo[0] : selectedEvent.toDo;
-                setDosage(TODO_ACTIONS[firstTodo] || "");
-            } else if (isTodoEvent && selectedEvent.title && typeof selectedEvent.title === 'string' && selectedEvent.title.startsWith("TO DO:")) {
-                // This is a TODO event but might be missing toDo field - derive from title
-                setSelectedToDo([selectedEvent.title]);
-                setSelectedActions([]);
-                setTitle(selectedEvent.title);
-                
-                // Set dosage from TODO_ACTIONS
-                setDosage(TODO_ACTIONS[selectedEvent.title] || "");
+            if (isTodoEvent) {
+                const todoValue = selectedEvent.toDo 
+                    ? (Array.isArray(selectedEvent.toDo) ? selectedEvent.toDo.join(", ") : selectedEvent.toDo)
+                    : (selectedEvent.title && selectedEvent.title.startsWith("TO DO:") ? selectedEvent.title : "");
+                // Strip "TO DO: " prefix for display - we add it back on save
+                const displayTodo = todoValue.replace(/^TO DO:\s*/i, "").trim() || todoValue;
+                setTodoText(displayTodo);
+                setTitle(selectedEvent.title || todoValue);
             } else {
-                // This is a plant action event - populate actions dropdown
-                if (selectedEvent.actions && Array.isArray(selectedEvent.actions)) {
-                    setSelectedActions(selectedEvent.actions);
-                    setTitle(selectedEvent.actions.join(", "));
-                } else if (selectedEvent.title) {
-                    setSelectedActions([selectedEvent.title]);
-                    setTitle(selectedEvent.title);
-                } else {
-                    setSelectedActions([]);
-                    setTitle("");
-                }
-                setSelectedToDo([]);
-                
-                // Set dosage from PLANT_ACTIONS
-                const firstAction = selectedEvent.actions && selectedEvent.actions.length > 0 
-                    ? selectedEvent.actions[0] 
-                    : selectedEvent.title;
-                setDosage(PLANT_ACTIONS[firstAction] || "");
+                // Non-todo event (e.g. legacy action) - show content in todo field for editing
+                const legacyText = selectedEvent.actions?.length 
+                    ? selectedEvent.actions.join(", ") 
+                    : (selectedEvent.title || "");
+                setTodoText(legacyText);
+                setTitle(selectedEvent.title || legacyText);
             }
             
             setDescription(selectedEvent.description || "");
@@ -109,11 +90,10 @@ export default function EventModal() {
         } else {
             // Reset for new event
             setSelectedLabels([]);
-            setSelectedActions([]);
+            setTodoText("");
             setTitle("");
             setDescription("");
             setDosage("");
-            setSelectedToDo([]);
             setIsRecurring(false);
             setRecurringInterval(7);
             setRecurringMaxOccurrences(12);
@@ -123,70 +103,9 @@ export default function EventModal() {
         setShowCompleteConfirm(false);
     }, [selectedEvent, daySelected, setDosage]);
 
-    function handleActionSelect(selectedActionsArray) {
-        setSelectedActions(selectedActionsArray);
-        setTitle(selectedActionsArray.join(", "));
-        
-        // If selecting an action, clear any selected TODOs (they're mutually exclusive)
-        if (selectedActionsArray.length > 0) {
-            setSelectedToDo([]);
-            setIsRecurring(false); // Actions don't use the new recurring UI
-        }
-        
-        // Set dosage based on first selected action
-        if (selectedActionsArray.length === 0) {
-            setDosage("");
-        } else {
-            const dosageText = PLANT_ACTIONS[selectedActionsArray[0]] || "";
-            setDosage(dosageText);
-        }
-        // Note: Recurring config is only for TODOs, not actions
-        // Actions will use the legacy dosage text system for backward compatibility
-    }
-    
-    function handleTodoSelect(selectedTodoArray) {
-        setSelectedToDo(selectedTodoArray);
-        if (Array.isArray(selectedTodoArray)) {
-            setTitle(selectedTodoArray.join(", "));
-        } else if (selectedTodoArray) {
-            setTitle(selectedTodoArray);
-        } else {
-            setTitle("");
-        }
-        
-        // If selecting a TODO, clear any selected actions (they're mutually exclusive)
-        if (selectedTodoArray && (Array.isArray(selectedTodoArray) ? selectedTodoArray.length > 0 : selectedTodoArray)) {
-            setSelectedActions([]);
-        }
-        
-        // Set dosage based on first selected todo item
-        let dosageText = "";
-        if (Array.isArray(selectedTodoArray) && selectedTodoArray.length > 0) {
-            dosageText = TODO_ACTIONS[selectedTodoArray[0]] || "";
-        } else if (selectedTodoArray) {
-            dosageText = TODO_ACTIONS[selectedTodoArray] || "";
-        }
-        
-        setDosage(dosageText);
-        
-        // Auto-populate recurring settings if dosage text contains pattern (suggests user might want recurring)
-        if (dosageText) {
-            const intervalMatch = dosageText.match(/use every (\d+) days?/i);
-            const maxOccurrencesMatch = dosageText.match(/use every (\d+) days?, (\d+) times max/i);
-            
-            if (intervalMatch) {
-                // Pre-populate with suggested values, but keep checkbox unchecked by default
-                // so user has explicit control
-                setRecurringInterval(parseInt(intervalMatch[1]));
-                
-                if (maxOccurrencesMatch) {
-                    setRecurringMaxOccurrences(parseInt(maxOccurrencesMatch[2]));
-                } else {
-                    setRecurringMaxOccurrences(12); // Default
-                }
-                // Don't auto-check the box - let user decide
-            }
-        }
+    function handleTodoChange(value) {
+        setTodoText(value);
+        setTitle(value);
     }
 
     async function handleDelete() {
@@ -263,21 +182,24 @@ export default function EventModal() {
         // Build user recurring configuration if enabled
         const userRecurringConfig = isRecurring ? {
             enabled: true,
-            interval: recurringInterval,
-            maxOccurrences: recurringMaxOccurrences,
+            interval: Number(recurringInterval) || 7,
+            maxOccurrences: Number(recurringMaxOccurrences) || 12,
             unit: 'days' // Currently only supporting days
         } : null;
         
+        const rawTodo = todoText.trim();
+        const toDoValue = rawTodo ? (rawTodo.startsWith("TO DO:") ? rawTodo : `TO DO: ${rawTodo}`) : null;
+
         if (selectedEvent) {
             // For updates, start with the original event to preserve all properties (isRecurringTodo, completed, etc.)
             calendarEvent = {
                 ...selectedEvent,  // Preserve all original properties including isRecurringTodo
                 // Override with form updates
-                title,
-                actions: selectedActions,
+                title: toDoValue || title,
+                actions: [],  // Actions removed from UI
                 description,
                 labels: selectedLabels,
-                toDo: Array.isArray(selectedToDo) ? selectedToDo.join(", ") : selectedToDo,
+                toDo: toDoValue,
                 day: selectedDate.valueOf(),
                 id: selectedEvent.id,  // Ensure ID is preserved
                 userRecurringConfig // Store user's recurring configuration
@@ -287,14 +209,24 @@ export default function EventModal() {
             console.log('📝 calendarEvent.id:', calendarEvent.id);
         } else {
             // For new events, create fresh object
+            const eventDate = dayjs(selectedDate).startOf("day");
+            const today = dayjs().startOf("day");
+            const isPastDate = eventDate.isBefore(today);
+            const isTodo = !!toDoValue;
+
             calendarEvent = {
-                title,
-                actions: selectedActions,
+                title: toDoValue || title,
+                actions: [],
                 description,
                 labels: selectedLabels,
-                toDo: Array.isArray(selectedToDo) ? selectedToDo.join(", ") : selectedToDo,
+                toDo: toDoValue,
                 day: selectedDate.valueOf(),
-                userRecurringConfig // Store user's recurring configuration
+                completed: isTodo && isPastDate,
+                ...(isTodo && isPastDate && {
+                    completedAt: Date.now(),
+                    createdFromAction: true
+                }),
+                userRecurringConfig
             };
         }
         
@@ -311,13 +243,15 @@ export default function EventModal() {
                 
                 // Update existing event - use recalculation function to handle recurring todos
                 await updateEventWithRecurringRecalculation(calendarEvent, selectedEvent);
+                if (toDoValue) {
+                    addSavedTodo(rawTodo.replace(/^TO DO:\s*/i, "").trim() || rawTodo);
+                }
             } else {
                 // Create new event - check if we should generate recurring TO DOs
-                const hasActions = selectedActions.length > 0;
-                const hasTodos = selectedToDo && (Array.isArray(selectedToDo) ? selectedToDo.length > 0 : selectedToDo);
+                const hasTodos = !!todoText.trim();
                 
-                if (hasActions || hasTodos) {
-                    // This event might have recurring patterns, use recurring action creation
+                if (hasTodos) {
+                    addSavedTodo(rawTodo.replace(/^TO DO:\s*/i, "").trim() || rawTodo);
                     await createActionWithRecurringTodos(calendarEvent);
                 } else {
                     // This is a regular event (no actions or todos)
@@ -385,42 +319,20 @@ export default function EventModal() {
                                     <div>
                                         <label className="form-label d-flex align-items-center gap-2">
                                             <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
-                                                water_drop
-                                            </span>
-                                            Actions
-                                        </label>
-                                        <CustomDropdown
-                                            title="Select actions"
-                                            options={Object.keys(PLANT_ACTIONS)}
-                                            selectedOptions={selectedActions}
-                                            onSelect={handleActionSelect}
-                                        />
-                                    </div>
-                                    
-                                    <div>
-                                        <label className="form-label d-flex align-items-center gap-2">
-                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
                                                 checklist
                                             </span>
                                             To-do
                                         </label>
-                                        <CustomDropdown
-                                            title="Select to-do"
-                                            options={TODO_ITEMS}
-                                            selectedOptions={Array.isArray(selectedToDo) ? selectedToDo : (selectedToDo ? [selectedToDo] : [])}
-                                            onSelect={handleTodoSelect}
+                                        <TodoCombobox
+                                            value={todoText}
+                                            onChange={handleTodoChange}
+                                            placeholder="Add to-do"
+                                            savedItems={savedTodoItems}
+                                            removeItem={removeSavedTodo}
                                         />
-                                        {dosage && selectedToDo && (Array.isArray(selectedToDo) ? selectedToDo.length > 0 : selectedToDo) && (
-                                            <div className="text-muted small mt-2">
-                                                <span className="material-icons-outlined me-1" style={{ fontSize: '0.75rem', verticalAlign: 'middle' }}>
-                                                    schedule
-                                                </span>
-                                                {dosage}
-                                            </div>
-                                        )}
                                     </div>
                                     
-                                    {(selectedToDo && (Array.isArray(selectedToDo) ? selectedToDo.length > 0 : selectedToDo)) && (
+                                    {todoText.trim() && (
                                         <div className="border rounded p-3 bg-light">
                                             <div className="form-check">
                                                 <input
@@ -450,8 +362,11 @@ export default function EventModal() {
                                                             id="recurringInterval"
                                                             min="1"
                                                             max="365"
-                                                            value={recurringInterval}
-                                                            onChange={(e) => setRecurringInterval(parseInt(e.target.value) || 7)}
+                                                            value={recurringInterval === "" ? "" : recurringInterval}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                setRecurringInterval(val === "" ? "" : (parseInt(val, 10) || 7));
+                                                            }}
                                                         />
                                                     </div>
                                                     <div className="mb-2">
@@ -464,8 +379,11 @@ export default function EventModal() {
                                                             id="recurringMaxOccurrences"
                                                             min="1"
                                                             max="50"
-                                                            value={recurringMaxOccurrences}
-                                                            onChange={(e) => setRecurringMaxOccurrences(parseInt(e.target.value) || 12)}
+                                                            value={recurringMaxOccurrences === "" ? "" : recurringMaxOccurrences}
+                                                            onChange={(e) => {
+                                                                const val = e.target.value;
+                                                                setRecurringMaxOccurrences(val === "" ? "" : (parseInt(val, 10) || 12));
+                                                            }}
                                                         />
                                                         <div className="form-text">
                                                             Total number of times this event will occur (including the first one)
@@ -520,10 +438,11 @@ export default function EventModal() {
                                             Plants
                                         </label>
                                         <CustomDropdown
-                                            title="Select plants"
+                                            title="Select plant"
                                             options={Object.values(PLANT_LABELS)} 
                                             selectedOptions={selectedLabels || []} 
                                             onSelect={setSelectedLabels}
+                                            singleSelect
                                         />
                                     </div>
                                 </div>

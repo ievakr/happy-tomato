@@ -22,6 +22,12 @@ const EventItem = memo(({ event, onClick, labelsMapping, compact = false, showTi
     >
       {/* Event content */}
       <div className="d-flex align-items-center w-100">
+        {/* Checkmark icon for completed todos */}
+        {isCompletedTodo && (
+          <span className="material-icons-outlined text-success me-1" style={{ fontSize: compact ? '14px' : '18px' }}>
+            check_circle
+          </span>
+        )}
         {/* Show time if requested */}
         {showTime && time && (
           <div className="event-item-time text-muted me-1">

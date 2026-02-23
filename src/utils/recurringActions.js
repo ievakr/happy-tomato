@@ -179,6 +179,7 @@ export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6
         title = `TO DO: ${actionEvent.title}`;
       }
       
+      const isPastDate = currentDate.isBefore(dayjs().startOf("day"));
       const todoEvent = {
         // Don't pre-assign ID - let Firebase generate it to avoid ID conflicts
         title: title,
@@ -190,8 +191,9 @@ export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6
         isRecurringTodo: true,
         recurringInterval: recurringInfo.interval,
         recurringUnit: recurringInfo.unit,
-        completed: false,
+        completed: isPastDate,
         createdFromAction: true,
+        ...(isPastDate && { completedAt: Date.now() }),
         // Only include userRecurringConfig if it exists
         ...(actionEvent.userRecurringConfig && { userRecurringConfig: actionEvent.userRecurringConfig })
       };

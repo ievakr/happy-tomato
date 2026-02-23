@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 
-export default function CustomDropdown({ title, options, selectedOptions = [], onSelect, displayTitle }) {
+export default function CustomDropdown({ title, options, selectedOptions = [], onSelect, displayTitle, singleSelect = false }) {
     const [isOpen, setIsOpen] = useState(false);
     const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
     const dropdownRef = useRef(null);
@@ -45,12 +45,15 @@ export default function CustomDropdown({ title, options, selectedOptions = [], o
 
     const handleOptionClick = (option) => {
         let newSelection;
-        if (selectedOptions.includes(option)) {
+        if (singleSelect) {
+            newSelection = selectedOptions.includes(option) ? [] : [option];
+        } else if (selectedOptions.includes(option)) {
             newSelection = selectedOptions.filter(item => item !== option);
         } else {
             newSelection = [...selectedOptions, option];
         }
         onSelect(newSelection);
+        if (singleSelect) setIsOpen(false);
     };
 
     // Determine what to display in the dropdown title
