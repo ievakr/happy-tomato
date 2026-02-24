@@ -4,7 +4,6 @@ import CalendarContext from '../../context/CalendarContext';
 import EventContext from '../../context/EventContext';
 import { getDayHeaders } from '../../utils';
 import { useResponsive, useSwipeGestures } from '../../hooks';
-import { PLANT_LABELS } from '../../constants';
 import EventItem from './EventItem';
 import '../../index.css';
 
@@ -22,7 +21,8 @@ const DailyView = () => {
     isInitialLoading,
     dispatchCallEvent,
     isLoading,
-    loadingOperation
+    loadingOperation,
+    labelsMapping
   } = useContext(EventContext);
   
   const { isMobile } = useResponsive();
@@ -404,7 +404,7 @@ const DailyView = () => {
                             event={evt} 
                             compact={false}
                             showTime={true}
-                            labelsMapping={PLANT_LABELS}
+                            labelsMapping={labelsMapping || {}}
                             showAllIcons={true}
                           />
                           {/* Quick delete button */}

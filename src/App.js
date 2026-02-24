@@ -22,13 +22,14 @@ const CalendarGrid = lazy(() => import('./components/calendar/CalendarGrid'));
 const WeeklyView = lazy(() => import('./components/calendar/WeeklyView'));
 const DailyView = lazy(() => import('./components/calendar/DailyView'));
 const EventModal = lazy(() => import('./components/forms/EventModal'));
+const CreatePlantModal = lazy(() => import('./components/forms/CreatePlantModal'));
 
 /**
  * Main application component with responsive layout
  */
 function App() {
   const { currentMonth } = useCalendar();
-  const { showEventModal, isInitialLoading, loadingOperation } = useContext(EventContext);
+  const { showEventModal, showPlantModal, isInitialLoading, loadingOperation } = useContext(EventContext);
   const { showSidebar } = useContext(LayoutContext);
   const { currentView } = useContext(CalendarContext);
   const emailNotifications = useEmailNotifications();
@@ -90,6 +91,18 @@ function App() {
                 onError={handleError}
               >
                 <EventModal />
+              </ComponentErrorBoundary>
+            </Suspense>
+          )}
+          
+          {/* Create Plant modal overlay */}
+          {showPlantModal && (
+            <Suspense fallback={<LoadingOverlay text="Loading..." backdrop={true} />}>
+              <ComponentErrorBoundary
+                componentName="CreatePlantModal"
+                onError={handleError}
+              >
+                <CreatePlantModal />
               </ComponentErrorBoundary>
             </Suspense>
           )}

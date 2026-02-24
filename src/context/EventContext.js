@@ -3,6 +3,8 @@ import React from "react";
 const EventContext = React.createContext({
     showEventModal: false,
     setShowEventModal: () => {},
+    showPlantModal: false,
+    setShowPlantModal: () => {},
     dispatchCallEvent: ({ type, payload }) => {},
     savedEvents: [],
     selectedEvent: null,
@@ -11,6 +13,8 @@ const EventContext = React.createContext({
     labels: [],
     updateLabel: () => {},
     filteredEvents: [],
+    labelsMapping: {},
+    plantNames: [],
     dosage: "",
     setDosage: () => {},
     isLoading: false,

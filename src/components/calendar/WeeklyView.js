@@ -4,7 +4,6 @@ import CalendarContext from '../../context/CalendarContext';
 import EventContext from '../../context/EventContext';
 import { getWeekByIndex, getWeekDateRange, getDayHeaders } from '../../utils';
 import { useResponsive, useSwipeGestures } from '../../hooks';
-import { PLANT_LABELS } from '../../constants';
 import EventItem from './EventItem';
 import '../../index.css';
 
@@ -23,7 +22,8 @@ const WeeklyView = () => {
     isInitialLoading,
     dispatchCallEvent,
     isLoading,
-    loadingOperation
+    loadingOperation,
+    labelsMapping
   } = useContext(EventContext);
   
   const { isMobile } = useResponsive();
@@ -186,7 +186,7 @@ const WeeklyView = () => {
                             event={evt} 
                             compact={true}
                             showTime={!isMobile}
-                            labelsMapping={PLANT_LABELS}
+                            labelsMapping={labelsMapping || {}}
                           />
                           {/* Quick delete button - only show on desktop */}
                           {!isMobile && (

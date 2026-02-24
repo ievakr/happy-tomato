@@ -15,7 +15,7 @@ import dayjs from 'dayjs';
 import EventModal from '../components/forms/EventModal';
 import CalendarContext from '../context/CalendarContext';
 import EventContext from '../context/EventContext';
-import { PLANT_LABELS, TODO_ITEMS } from '../constants';
+import { TODO_ITEMS } from '../constants';
 
 // Mock Firebase
 jest.mock('../firebase', () => ({
@@ -63,12 +63,16 @@ jest.mock('../hooks', () => ({
 // Helper to create context values
 const createEventContextValue = (overrides = {}) => ({
   setShowEventModal: jest.fn(),
+  setShowPlantModal: jest.fn(),
   dispatchCallEvent: jest.fn(),
   selectedEvent: null,
   dosage: '',
   setDosage: jest.fn(),
   isLoading: false,
   loadingOperation: null,
+  labels: [{ label: 'Tomatoes', checked: true }, { label: 'Roses', checked: true }],
+  labelsMapping: { tomato: 'Tomatoes', rose: 'Roses' },
+  plantNames: ['Tomatoes', 'Roses'],
   ...overrides,
 });
 

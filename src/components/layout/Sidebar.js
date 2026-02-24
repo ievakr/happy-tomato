@@ -51,7 +51,7 @@ export default function Sidebar() {
                     </button>
                 </div>
                 
-                <div className="d-flex justify-content-center mb-4">
+                <div className="d-flex justify-content-start mb-4">
                     <CreateEventButton />
                 </div>
                 

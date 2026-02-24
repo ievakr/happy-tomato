@@ -1,19 +1,14 @@
 import React, { useContext } from 'react';
-import plusImg from '../../assets/plus.png';
-import CalendarContext from '../../context/CalendarContext';
 import EventContext from '../../context/EventContext';
-import dayjs from "dayjs";
 
 export default function CreateEventButton() {
-    const { setDaySelected } = useContext(CalendarContext);
-    const { setShowEventModal, setDosage } = useContext(EventContext);
+    const { setShowPlantModal } = useContext(EventContext);
     return (
         <button
-            onClick={() => {setDaySelected(dayjs()); setShowEventModal(true); setDosage("")}}
-            className="btn btn-outline-primary d-flex align-items-center gap-2"
+            onClick={() => setShowPlantModal(true)}
+            className="btn btn-danger d-flex align-items-center justify-content-center"
         >
-            <img src={plusImg} alt="create_event" className="create-event-icon" />
-            <span>Create</span>
+            <span>+ Create Plant</span>
         </button>
     );
 }

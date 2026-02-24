@@ -2,13 +2,13 @@ import React, { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import CalendarContext from '../../context/CalendarContext';
 import EventContext from '../../context/EventContext';
-import { PLANT_LABELS, UI_CONSTANTS } from '../../constants';
+import { UI_CONSTANTS } from '../../constants';
 import { useResponsive, useRecurringActions } from '../../hooks';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
     const { setDaySelected, setCurrentView, monthIndex } = useContext(CalendarContext);
-    const { setShowEventModal, filteredEvents, setSelectedEvent } = useContext(EventContext);
+    const { setShowEventModal, filteredEvents, setSelectedEvent, labelsMapping } = useContext(EventContext);
     const { isMobile } = useResponsive();
     const { isTodoEvent, isCompletedTodoAction } = useRecurringActions();
     const [dayEvents, setDayEvents] = useState([]);
@@ -51,11 +51,6 @@ export default function CalendarDay({ day, rowIndex }) {
     const handleEventClick = (evt, e) => {
         e.stopPropagation();
         
-        // Don't allow clicking on events in days from other months
-        if (!isCurrentMonth) {
-            return;
-        }
-        
         // Open event modal for editing - set selected event so delete button appears
         setSelectedEvent(evt);
         setDaySelected(day);
@@ -63,11 +58,6 @@ export default function CalendarDay({ day, rowIndex }) {
     };
 
     const handleDayClick = () => {
-        // Don't allow clicking on days from other months
-        if (!isCurrentMonth) {
-            return;
-        }
-        
         // Set the selected day for both mobile and desktop
         setDaySelected(day);
         
@@ -190,7 +180,7 @@ export default function CalendarDay({ day, rowIndex }) {
                                         return (
                                             <>
                                                 {visibleLabels.map((label, labelIdx) => {
-                                                    const iconClass = Object.keys(PLANT_LABELS).find(key => PLANT_LABELS[key] === label) || label;
+                                                    const iconClass = labelsMapping ? (Object.keys(labelsMapping).find(key => labelsMapping[key] === label) || label) : label;
                                                     return (
                                                         <i 
                                                             key={labelIdx} 
@@ -242,7 +232,7 @@ export default function CalendarDay({ day, rowIndex }) {
                 </div>
             </header>
             <div 
-                className={`day-cell-body flex-grow-1 position-relative ${isCurrentMonth ? 'cursor-pointer' : ''}`}
+                className="day-cell-body flex-grow-1 position-relative cursor-pointer"
                 style={{ 
                     overflowY: isMobile ? 'hidden' : 'auto'
                 }}

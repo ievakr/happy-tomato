@@ -1,19 +1,19 @@
-// Plant and garden labels
-export const PLANT_LABELS = {
-  "rose": "Roses",
-  "tomato": "Tomatoes",
+// Available vegetable/garden icons for plant creation (icon key -> display name for picker)
+export const VEGETABLE_ICONS = {
+  "rose": "Rose",
+  "tomato": "Tomato",
   "leafy-green": "Salad",
-  "cucumber": "Cucumbers",
-  "radish": "Radishes",
-  "onion": "Onions",
+  "cucumber": "Cucumber",
+  "radish": "Radish",
+  "onion": "Onion",
   "garlic-alt": "Garlic",
-  "pepper-alt": "Bell Peppers",
-  "carrot": "Carrots",
+  "pepper-alt": "Bell Pepper",
+  "carrot": "Carrot",
   "broccoli": "Broccoli",
   "watermelon": "Watermelon",
-  "strawberry": "Strawberries",
+  "strawberry": "Strawberry",
   "pumpkin": "Squash",
-  "flower": "Flowers"
+  "flower": "Flower"
 };
 
 // Plant action configurations

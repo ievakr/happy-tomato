@@ -6,7 +6,7 @@ import dayjs from "dayjs";
 import { db } from "../firebase";
 import { collection, getDocs, getDocsFromCache, addDoc, updateDoc, deleteDoc, doc, getDoc, query, where } from "firebase/firestore";
 import errorLogger from "../utils/errorLogger";
-import { PLANT_LABELS } from "../constants";
+import { usePlants } from "../hooks/usePlants";
 import { useAuth } from "./AuthContext";
 import { useToast } from "./ToastContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -73,6 +73,7 @@ export default function ContextWrapper(props) {
     const [smallCalendarMonth, setSmallCalendarMonth] = useState(null)
     const [daySelected, setDaySelected] = useState(dayjs())
     const [showEventModal, setShowEventModal] = useState(false)
+    const [showPlantModal, setShowPlantModal] = useState(false)
     const [selectedEvent, setSelectedEvent] = useState(null)
     const [labels, setLabels] = useState([])
     const [dosage, setDosage] = useState("");
@@ -86,6 +87,7 @@ export default function ContextWrapper(props) {
     const [operationQueue, setOperationQueue] = useState([])
     const [isProcessingOperation, setIsProcessingOperation] = useState(false)
     
+    const { plants, labelsMapping } = usePlants(currentUser?.uid);
     const eventsQueryKey = ['events', currentUser?.uid];
     const eventsQuery = useQuery({
         queryKey: eventsQueryKey,
@@ -362,16 +364,10 @@ export default function ContextWrapper(props) {
       
     useEffect(() => {
         setLabels((prevLabels) => {
-            // Include all available plant labels from constants
-            const allAvailableLabels = Object.values(PLANT_LABELS);
+            // Use only plant names from user's plants (Firestore)
+            const plantLabels = plants.map(p => p.name);
             
-            // Also collect labels from existing events in case there are custom ones
-            const eventLabels = savedEvents.flatMap(evt => evt.labels || []);
-            
-            // Combine both and get unique labels
-            const uniqueLabels = [...new Set([...allAvailableLabels, ...eventLabels])];
-            
-            return uniqueLabels.map(label => {
+            return plantLabels.map(label => {
                 const currentLabel = prevLabels.find(lbl => lbl.label === label)
                 return {
                     label,
@@ -380,7 +376,7 @@ export default function ContextWrapper(props) {
             })
         })
     }, 
-    [savedEvents])
+    [plants])
     useEffect(() => {
         if(smallCalendarMonth !== null){
             setMonthIndex(smallCalendarMonth)
@@ -418,6 +414,8 @@ export default function ContextWrapper(props) {
             <EventContext.Provider value={{
                 showEventModal, 
                 setShowEventModal, 
+                showPlantModal, 
+                setShowPlantModal, 
                 dispatchCallEvent: handleEventDispatch, 
                 savedEvents, 
                 selectedEvent, 
@@ -426,6 +424,8 @@ export default function ContextWrapper(props) {
                 setLabels, 
                 updateLabel, 
                 filteredEvents, 
+                labelsMapping,
+                plantNames: plants.map(p => p.name),
                 dosage, 
                 setDosage, 
                 isLoading: resolvedIsLoading, 

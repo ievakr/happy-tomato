@@ -54,6 +54,29 @@ service cloud.firestore {
     }
     
     // ========================================
+    // PLANTS COLLECTION
+    // ========================================
+    
+    match /plants/{plantId} {
+      // Users can read their own plants
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Users can create their own plants
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid &&
+                      request.resource.data.keys().hasAll(['userId', 'name', 'icon']) &&
+                      request.resource.data.userId is string &&
+                      request.resource.data.name is string &&
+                      request.resource.data.icon is string;
+      
+      // Users can update their own plants
+      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      
+      // Users can delete their own plants
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+    
+    // ========================================
     // EMAIL PREFERENCES COLLECTION
     // ========================================
     

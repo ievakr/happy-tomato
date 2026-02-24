@@ -8,13 +8,12 @@ import { Localization } from "react-widgets";
 import { DateLocalizer } from "react-widgets/IntlLocalizer";
 import 'react-widgets/styles.css';
 import dayjs from "dayjs";
-import { PLANT_LABELS } from "../../constants";
 import { useRecurringActions, useSavedTodos } from "../../hooks";
 import TodoCombobox from "../common/TodoCombobox";
 
 export default function EventModal() {
     const { daySelected } = useContext(CalendarContext);
-    const { setShowEventModal, dispatchCallEvent, selectedEvent, setDosage, isLoading, loadingOperation } = useContext(EventContext); 
+    const { setShowEventModal, dispatchCallEvent, selectedEvent, setDosage, isLoading, loadingOperation, plantNames } = useContext(EventContext); 
     const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
     const { savedItems: savedTodoItems, addItem: addSavedTodo, removeItem: removeSavedTodo } = useSavedTodos();
     const { showError } = useToast();
@@ -439,7 +438,7 @@ export default function EventModal() {
                                         </label>
                                         <CustomDropdown
                                             title="Select plant"
-                                            options={Object.values(PLANT_LABELS)} 
+                                            options={plantNames || []} 
                                             selectedOptions={selectedLabels || []} 
                                             onSelect={setSelectedLabels}
                                             singleSelect
