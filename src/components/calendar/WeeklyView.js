@@ -23,7 +23,7 @@ const WeeklyView = () => {
     dispatchCallEvent,
     isLoading,
     loadingOperation,
-    labelsMapping
+    plantsById
   } = useContext(EventContext);
   
   const { isMobile } = useResponsive();
@@ -186,7 +186,7 @@ const WeeklyView = () => {
                             event={evt} 
                             compact={true}
                             showTime={!isMobile}
-                            labelsMapping={labelsMapping || {}}
+                            plantsById={plantsById || {}}
                           />
                           {/* Quick delete button - only show on desktop */}
                           {!isMobile && (

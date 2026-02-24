@@ -70,9 +70,17 @@ const createEventContextValue = (overrides = {}) => ({
   setDosage: jest.fn(),
   isLoading: false,
   loadingOperation: null,
-  labels: [{ label: 'Tomatoes', checked: true }, { label: 'Roses', checked: true }],
-  labelsMapping: { tomato: 'Tomatoes', rose: 'Roses' },
-  plantNames: ['Tomatoes', 'Roses'],
+  labels: [
+    { label: 'plant1', displayName: 'Tomatoes - Cherry', checked: true },
+    { label: 'plant2', displayName: 'Roses - Hybrid', checked: true }
+  ],
+  plantNames: ['Tomatoes - Cherry', 'Roses - Hybrid'],
+  plantsById: {
+    plant1: { id: 'plant1', category: 'Tomatoes', variety: 'Cherry', icon: 'tomato' },
+    plant2: { id: 'plant2', category: 'Roses', variety: 'Hybrid', icon: 'rose' }
+  },
+  displayNameToPlantId: { 'Tomatoes - Cherry': 'plant1', 'Roses - Hybrid': 'plant2' },
+  plantIdToDisplayName: { plant1: 'Tomatoes - Cherry', plant2: 'Roses - Hybrid' },
   ...overrides,
 });
 

@@ -10,14 +10,16 @@ export default function CreatePlantModal() {
     const { currentUser } = useAuth();
     const { addPlant, addPlantMutation } = usePlants(currentUser?.uid);
     const { showError, showSuccess } = useToast();
-    const [plantName, setPlantName] = useState('');
+    const [plantCategory, setPlantCategory] = useState('');
+    const [plantVariety, setPlantVariety] = useState('');
     const [selectedIcon, setSelectedIcon] = useState('tomato');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const trimmedName = plantName.trim();
-        if (!trimmedName) {
-            showError('Please enter a plant name.');
+        const trimmedCategory = plantCategory.trim();
+        const trimmedVariety = plantVariety.trim();
+        if (!trimmedCategory) {
+            showError('Please enter a plant category.');
             return;
         }
         if (!currentUser) {
@@ -25,9 +27,10 @@ export default function CreatePlantModal() {
             return;
         }
         try {
-            await addPlant(trimmedName, selectedIcon);
+            await addPlant(trimmedCategory, trimmedVariety || '', selectedIcon);
             showSuccess('Plant created successfully!');
-            setPlantName('');
+            setPlantCategory('');
+            setPlantVariety('');
             setSelectedIcon('tomato');
             setShowPlantModal(false);
         } catch (error) {
@@ -37,7 +40,8 @@ export default function CreatePlantModal() {
     };
 
     const handleClose = () => {
-        setPlantName('');
+        setPlantCategory('');
+        setPlantVariety('');
         setSelectedIcon('tomato');
         setShowPlantModal(false);
     };
@@ -70,17 +74,32 @@ export default function CreatePlantModal() {
                                     <div>
                                         <label className="form-label d-flex align-items-center gap-2">
                                             <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
-                                                label
+                                                category
                                             </span>
-                                            Plant name
+                                            Plant Category
                                         </label>
                                         <input
                                             type="text"
                                             className="form-control"
-                                            placeholder="e.g. Cherry Tomatoes"
-                                            value={plantName}
-                                            onChange={(e) => setPlantName(e.target.value)}
+                                            placeholder="e.g. Tomatoes"
+                                            value={plantCategory}
+                                            onChange={(e) => setPlantCategory(e.target.value)}
                                             autoFocus
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="form-label d-flex align-items-center gap-2">
+                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
+                                                label
+                                            </span>
+                                            Plant Variety
+                                        </label>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="e.g. Cherry"
+                                            value={plantVariety}
+                                            onChange={(e) => setPlantVariety(e.target.value)}
                                         />
                                     </div>
                                     <div>
@@ -129,7 +148,7 @@ export default function CreatePlantModal() {
                                 <button
                                     type="submit"
                                     className="btn btn-danger"
-                                    disabled={isLoading || !plantName.trim()}
+                                    disabled={isLoading || !plantCategory.trim()}
                                 >
                                     {isLoading ? (
                                         <>

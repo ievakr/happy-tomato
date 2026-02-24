@@ -22,7 +22,7 @@ const DailyView = () => {
     dispatchCallEvent,
     isLoading,
     loadingOperation,
-    labelsMapping
+    plantsById
   } = useContext(EventContext);
   
   const { isMobile } = useResponsive();
@@ -404,7 +404,7 @@ const DailyView = () => {
                             event={evt} 
                             compact={false}
                             showTime={true}
-                            labelsMapping={labelsMapping || {}}
+                            plantsById={plantsById || {}}
                             showAllIcons={true}
                           />
                           {/* Quick delete button */}

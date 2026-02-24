@@ -74,6 +74,7 @@ export default function ContextWrapper(props) {
     const [daySelected, setDaySelected] = useState(dayjs())
     const [showEventModal, setShowEventModal] = useState(false)
     const [showPlantModal, setShowPlantModal] = useState(false)
+    const [showManagePlantsModal, setShowManagePlantsModal] = useState(false)
     const [selectedEvent, setSelectedEvent] = useState(null)
     const [labels, setLabels] = useState([])
     const [dosage, setDosage] = useState("");
@@ -87,7 +88,7 @@ export default function ContextWrapper(props) {
     const [operationQueue, setOperationQueue] = useState([])
     const [isProcessingOperation, setIsProcessingOperation] = useState(false)
     
-    const { plants, labelsMapping } = usePlants(currentUser?.uid);
+    const { plants, plantNames, plantsById, displayNameToPlantId, plantIdToDisplayName } = usePlants(currentUser?.uid);
     const eventsQueryKey = ['events', currentUser?.uid];
     const eventsQuery = useQuery({
         queryKey: eventsQueryKey,
@@ -364,19 +365,17 @@ export default function ContextWrapper(props) {
       
     useEffect(() => {
         setLabels((prevLabels) => {
-            // Use only plant names from user's plants (Firestore)
-            const plantLabels = plants.map(p => p.name);
-            
-            return plantLabels.map(label => {
-                const currentLabel = prevLabels.find(lbl => lbl.label === label)
+            // Use plant IDs for filtering; displayName for dropdown
+            return plants.map(p => {
+                const currentLabel = prevLabels.find(lbl => lbl.label === p.id);
                 return {
-                    label,
-                    checked : currentLabel ? currentLabel.checked : true,
-                }
-            })
-        })
-    }, 
-    [plants])
+                    label: p.id,
+                    displayName: p.variety ? `${p.category} - ${p.variety}` : p.category,
+                    checked: currentLabel ? currentLabel.checked : true,
+                };
+            });
+        });
+    }, [plants]);
     useEffect(() => {
         if(smallCalendarMonth !== null){
             setMonthIndex(smallCalendarMonth)
@@ -416,6 +415,8 @@ export default function ContextWrapper(props) {
                 setShowEventModal, 
                 showPlantModal, 
                 setShowPlantModal, 
+                showManagePlantsModal, 
+                setShowManagePlantsModal, 
                 dispatchCallEvent: handleEventDispatch, 
                 savedEvents, 
                 selectedEvent, 
@@ -424,8 +425,10 @@ export default function ContextWrapper(props) {
                 setLabels, 
                 updateLabel, 
                 filteredEvents, 
-                labelsMapping,
-                plantNames: plants.map(p => p.name),
+                plantsById: plantsById || {},
+                plantNames: plantNames || [],
+                displayNameToPlantId: displayNameToPlantId || {},
+                plantIdToDisplayName: plantIdToDisplayName || {},
                 dosage, 
                 setDosage, 
                 isLoading: resolvedIsLoading, 

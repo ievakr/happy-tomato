@@ -5,7 +5,7 @@ import { useResponsive } from '../../hooks';
 /**
  * Individual event item component for calendar display
  */
-const EventItem = memo(({ event, onClick, labelsMapping, compact = false, showTime = false, showAllIcons = false }) => {
+const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, showTime = false, showAllIcons = false }) => {
   const { title, toDo, labels = [], description, time } = event;
   
   const displayTitle = title || toDo;
@@ -50,7 +50,7 @@ const EventItem = memo(({ event, onClick, labelsMapping, compact = false, showTi
           )}
           
           {/* Event labels/icons */}
-          <EventIcons labels={labels} labelsMapping={labelsMapping} compact={compact} showAllIcons={showAllIcons} />
+          <EventIcons labels={labels} plantsById={plantsById} compact={compact} showAllIcons={showAllIcons} />
         </div>
       </div>
       
@@ -82,9 +82,9 @@ const EventTitle = memo(({ text, compact = false }) => (
 ));
 
 /**
- * Event icons component with responsive display
+ * Event icons component with responsive display - shows icon + variety name
  */
-const EventIcons = memo(({ labels, labelsMapping, compact = false, showAllIcons = false }) => {
+const EventIcons = memo(({ labels, plantsById = {}, compact = false, showAllIcons = false }) => {
   const { isMobile } = useResponsive();
   
   if (!labels || labels.length === 0) return null;
@@ -109,16 +109,20 @@ const EventIcons = memo(({ labels, labelsMapping, compact = false, showAllIcons 
       flexWrap: isMobile ? 'nowrap' : 'wrap'
     }}>
       {visibleLabels.map((label, index) => {
-        const iconClass = Object.keys(labelsMapping).find(
-          key => labelsMapping[key] === label
-        ) || label;
+        const plant = plantsById[label];
+        const iconClass = plant?.icon || 'leaf';
+        const displayText = plant?.variety || (plant ? '' : label);
+        const title = plant ? (plant.variety ? `${plant.category} - ${plant.variety}` : plant.category) : label;
         
         return (
-          <i 
-            key={index} 
-            className={`event-icons fi fi-rr-${iconClass} ${compact ? 'event-icons-compact' : ''}`} 
-            title={label}
-          />
+          <span key={index} className="d-inline-flex align-items-center me-1" title={title}>
+            <i 
+              className={`event-icons fi fi-rr-${iconClass} ${compact ? 'event-icons-compact' : ''}`} 
+            />
+            {!compact && displayText && (
+              <span className="ms-1" style={{ fontSize: '0.75em' }}>{displayText}</span>
+            )}
+          </span>
         );
       })}
       {hasMoreLabels && (

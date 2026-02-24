@@ -8,7 +8,7 @@ import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
     const { setDaySelected, setCurrentView, monthIndex } = useContext(CalendarContext);
-    const { setShowEventModal, filteredEvents, setSelectedEvent, labelsMapping } = useContext(EventContext);
+    const { setShowEventModal, filteredEvents, setSelectedEvent, plantsById } = useContext(EventContext);
     const { isMobile } = useResponsive();
     const { isTodoEvent, isCompletedTodoAction } = useRecurringActions();
     const [dayEvents, setDayEvents] = useState([]);
@@ -180,20 +180,15 @@ export default function CalendarDay({ day, rowIndex }) {
                                         return (
                                             <>
                                                 {visibleLabels.map((label, labelIdx) => {
-                                                    const iconClass = labelsMapping ? (Object.keys(labelsMapping).find(key => labelsMapping[key] === label) || label) : label;
+                                                    const plant = plantsById?.[label];
+                                                    const iconClass = plant?.icon || 'leaf';
+                                                    const displayText = plant?.variety || (plant ? '' : label);
+                                                    const title = plant ? (plant.variety ? `${plant.category} - ${plant.variety}` : plant.category) : label;
                                                     return (
-                                                        <i 
-                                                            key={labelIdx} 
-                                                            className={`event-icons fi fi-rr-${iconClass}`} 
-                                                            style={{ 
-                                                                fontSize: "12px", 
-                                                                cursor: "pointer", 
-                                                                minWidth: "12px", 
-                                                                marginRight: "1px", 
-                                                                lineHeight: "1"
-                                                            }}
-                                                            title={label}
-                                                        />
+                                                        <span key={labelIdx} className="d-inline-flex align-items-center me-1" title={title} style={{ fontSize: "12px", lineHeight: "1" }}>
+                                                            <i className={`event-icons fi fi-rr-${iconClass}`} style={{ minWidth: "12px", marginRight: "2px" }} />
+                                                            {displayText && <span style={{ fontSize: "0.6rem" }}>{displayText}</span>}
+                                                        </span>
                                                     );
                                                 })}
                                                 {hasMoreLabels && (
@@ -223,7 +218,10 @@ export default function CalendarDay({ day, rowIndex }) {
     };
 
     return (
-        <div className={`day-cell border border-secondary d-flex flex-column ${isCurrentMonth ? '' : 'day-cell--other'}`}>
+        <div 
+            className={`day-cell border border-secondary d-flex flex-column cursor-pointer ${isCurrentMonth ? '' : 'day-cell--other'}`}
+            onClick={handleDayClick}
+        >
             <header className="d-flex flex-column align-items-center flex-shrink-0 py-1">
                 <div
                     className={`day-number text-center ${getCurrentDayClass()} ${!isCurrentMonth ? 'text-muted' : ''}`}
@@ -232,11 +230,10 @@ export default function CalendarDay({ day, rowIndex }) {
                 </div>
             </header>
             <div 
-                className="day-cell-body flex-grow-1 position-relative cursor-pointer"
+                className="day-cell-body flex-grow-1 position-relative"
                 style={{ 
                     overflowY: isMobile ? 'hidden' : 'auto'
                 }}
-                onClick={handleDayClick}
             >
                 {isMobile ? renderMobileEventCount() : renderDesktopEvents()}
             </div>

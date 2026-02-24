@@ -5,21 +5,21 @@ import { EventListSkeleton, CustomDropdown } from "../common";
 export default function Labels() {
     const { labels, setLabels, isInitialLoading } = useContext(EventContext);
     
-    // Get all available label options
+    // Get display names for dropdown options
     const labelOptions = useMemo(() => {
-        return labels.map(lbl => lbl.label);
+        return labels.map(lbl => lbl.displayName || lbl.label);
     }, [labels]);
     
-    // Get currently selected (checked) labels
+    // Get currently selected (checked) display names
     const selectedLabels = useMemo(() => {
-        return labels.filter(lbl => lbl.checked).map(lbl => lbl.label);
+        return labels.filter(lbl => lbl.checked).map(lbl => lbl.displayName || lbl.label);
     }, [labels]);
     
-    // Handle label selection from dropdown
-    const handleLabelSelect = (selectedLabelNames) => {
+    // Handle label selection from dropdown (selectedDisplayNames)
+    const handleLabelSelect = (selectedDisplayNames) => {
         const updatedLabels = labels.map(lbl => ({
             ...lbl,
-            checked: selectedLabelNames.includes(lbl.label)
+            checked: selectedDisplayNames.includes(lbl.displayName || lbl.label)
         }));
         setLabels(updatedLabels);
     };

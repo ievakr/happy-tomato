@@ -2,11 +2,13 @@ import React, { useContext, useState, useEffect } from 'react';
 import CreateEventButton from '../forms/CreateEventButton';
 import Labels from '../calendar/Labels';
 import LayoutContext from '../../context/LayoutContext';
+import EventContext from '../../context/EventContext';
 import EventMigration from '../settings/EventMigration';
 import { countEventsWithoutUser } from '../../utils/migrateEvents';
 
 export default function Sidebar() {
     const { showSidebar, setShowSidebar } = useContext(LayoutContext);
+    const { setShowManagePlantsModal } = useContext(EventContext);
     const [showMigration, setShowMigration] = useState(false);
     const [hasUnassignedEvents, setHasUnassignedEvents] = useState(false);
 
@@ -57,6 +59,19 @@ export default function Sidebar() {
                 
                 <div className="mb-4">
                     <Labels />
+                </div>
+
+                <div className="mb-4">
+                    <button
+                        type="button"
+                        className="btn btn-outline-secondary w-100"
+                        onClick={() => setShowManagePlantsModal(true)}
+                    >
+                        <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
+                            eco
+                        </span>
+                        Manage Plants
+                    </button>
                 </div>
 
                 {/* Migration button - only show if there are unassigned events */}

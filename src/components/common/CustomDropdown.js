@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 export default function CustomDropdown({ title, options, selectedOptions = [], onSelect, displayTitle, singleSelect = false }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -66,43 +67,52 @@ export default function CustomDropdown({ title, options, selectedOptions = [], o
         return selectedOptions.length ? selectedOptions.join(", ") : title;
     };
 
+    const dropdownList = isOpen && (
+        <ul
+            ref={dropdownListRef}
+            className="custom-dropdown__list custom-dropdown__list--overflow list-group"
+            style={{
+                position: 'fixed',
+                top: dropdownPosition.top,
+                left: dropdownPosition.left,
+                width: Math.max(dropdownPosition.width, 200),
+                maxHeight: "200px",
+                overflowY: "auto",
+                zIndex: 10000
+            }}
+        >
+            {options.map((option, index) => (
+                <li
+                    key={index}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleOptionClick(option);
+                    }}
+                    className={`list-group-item list-group-item-action ${selectedOptions.includes(option) ? "active" : ""}`}
+                >
+                    {option} {selectedOptions.includes(option) && "✔"}
+                </li>
+            ))}
+        </ul>
+    );
+
     return (
         <>
             <div className="custom-dropdown" ref={dropdownRef}>
                 <button
                     type="button"
                     className="custom-dropdown__title form-select"
-                    onClick={() => setIsOpen(!isOpen)}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        setIsOpen(!isOpen);
+                    }}
                     aria-expanded={isOpen}
                 >
                     {getDisplayText()}
                 </button>
             </div>
-            {isOpen && (
-                <ul 
-                    ref={dropdownListRef}
-                    className="custom-dropdown__list custom-dropdown__list--overflow list-group" 
-                    style={{ 
-                        position: 'fixed',
-                        top: dropdownPosition.top,
-                        left: dropdownPosition.left,
-                        width: dropdownPosition.width,
-                        maxHeight: "200px", 
-                        overflowY: "auto",
-                        zIndex: 9999
-                    }}
-                >
-                    {options.map((option, index) => (
-                        <li 
-                            key={index} 
-                            onClick={() => handleOptionClick(option)}
-                            className={`list-group-item list-group-item-action ${selectedOptions.includes(option) ? "active" : ""}`}
-                        >
-                            {option} {selectedOptions.includes(option) && "✔"}
-                        </li>
-                    ))}
-                </ul>
-            )}
+            {dropdownList && createPortal(dropdownList, document.body)}
         </>
     );
 }

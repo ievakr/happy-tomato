@@ -2,18 +2,18 @@ import React, { useContext, useState, useEffect } from "react";
 import CalendarContext from "../../context/CalendarContext";
 import EventContext from "../../context/EventContext";
 import { useToast } from "../../context/ToastContext";
-import CustomDropdown from "../common/CustomDropdown";
 import DatePicker from "react-widgets/DatePicker";
 import { Localization } from "react-widgets";
 import { DateLocalizer } from "react-widgets/IntlLocalizer";
 import 'react-widgets/styles.css';
 import dayjs from "dayjs";
+import CustomDropdown from "../common/CustomDropdown";
 import { useRecurringActions, useSavedTodos } from "../../hooks";
 import TodoCombobox from "../common/TodoCombobox";
 
 export default function EventModal() {
     const { daySelected } = useContext(CalendarContext);
-    const { setShowEventModal, dispatchCallEvent, selectedEvent, setDosage, isLoading, loadingOperation, plantNames } = useContext(EventContext); 
+    const { setShowEventModal, dispatchCallEvent, selectedEvent, setDosage, isLoading, loadingOperation, plantNames, displayNameToPlantId, plantIdToDisplayName } = useContext(EventContext); 
     const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
     const { savedItems: savedTodoItems, addItem: addSavedTodo, removeItem: removeSavedTodo } = useSavedTodos();
     const { showError } = useToast();
@@ -43,7 +43,11 @@ export default function EventModal() {
             console.log('📝 selectedEvent.id:', selectedEvent.id);
             console.log('📝 selectedEvent type:', typeof selectedEvent.id);
             
-            setSelectedLabels(selectedEvent.labels || []);
+            // Convert plant IDs to display names for dropdown (legacy: keep as-is)
+            const labelDisplayNames = (selectedEvent.labels || []).map(
+                id => (plantIdToDisplayName && plantIdToDisplayName[id]) || id
+            );
+            setSelectedLabels(labelDisplayNames);
             
             // Check if this is a TODO event (recurring or manual)
             const isTodoEvent = selectedEvent.isRecurringTodo || 
@@ -100,7 +104,7 @@ export default function EventModal() {
         // Reset confirmation states
         setShowDeleteConfirm(false);
         setShowCompleteConfirm(false);
-    }, [selectedEvent, daySelected, setDosage]);
+    }, [selectedEvent, daySelected, setDosage, plantIdToDisplayName]);
 
     function handleTodoChange(value) {
         setTodoText(value);
@@ -189,6 +193,11 @@ export default function EventModal() {
         const rawTodo = todoText.trim();
         const toDoValue = rawTodo ? (rawTodo.startsWith("TO DO:") ? rawTodo : `TO DO: ${rawTodo}`) : null;
 
+        // Convert display names to plant IDs for storage (legacy names kept as-is)
+        const labelsToSave = (selectedLabels || []).map(
+            dn => (displayNameToPlantId && displayNameToPlantId[dn]) || dn
+        );
+
         if (selectedEvent) {
             // For updates, start with the original event to preserve all properties (isRecurringTodo, completed, etc.)
             calendarEvent = {
@@ -197,7 +206,7 @@ export default function EventModal() {
                 title: toDoValue || title,
                 actions: [],  // Actions removed from UI
                 description,
-                labels: selectedLabels,
+                labels: labelsToSave,
                 toDo: toDoValue,
                 day: selectedDate.valueOf(),
                 id: selectedEvent.id,  // Ensure ID is preserved
@@ -217,7 +226,7 @@ export default function EventModal() {
                 title: toDoValue || title,
                 actions: [],
                 description,
-                labels: selectedLabels,
+                labels: labelsToSave,
                 toDo: toDoValue,
                 day: selectedDate.valueOf(),
                 completed: isTodo && isPastDate,
@@ -438,8 +447,8 @@ export default function EventModal() {
                                         </label>
                                         <CustomDropdown
                                             title="Select plant"
-                                            options={plantNames || []} 
-                                            selectedOptions={selectedLabels || []} 
+                                            options={plantNames || []}
+                                            selectedOptions={selectedLabels || []}
                                             onSelect={setSelectedLabels}
                                             singleSelect
                                         />
