@@ -20,6 +20,8 @@ import dayjs from 'dayjs';
 jest.mock('../firebase', () => ({
   auth: {},
   db: {},
+  functions: {},
+  httpsCallable: jest.fn(() => jest.fn(() => Promise.resolve({ data: { success: true } }))),
 }));
 
 // Mock email service
@@ -27,15 +29,12 @@ jest.mock('../services/emailService', () => ({
   __esModule: true,
   default: {
     sendTodoReminder: jest.fn(() => Promise.resolve(true)),
-    sendEventReminder: jest.fn(() => Promise.resolve(true)),
-    initEmailService: jest.fn(),
-    isReady: jest.fn(() => false),
+    testEmailConfiguration: jest.fn(() => Promise.resolve(true)),
+    isReady: jest.fn(() => true),
     getConfigurationStatus: jest.fn(() => ({ 
-      isConfigured: false,
-      serviceId: false,
-      templateId: false,
-      publicKey: false,
-      missingVars: ['REACT_APP_EMAILJS_SERVICE_ID', 'REACT_APP_EMAILJS_TEMPLATE_ID', 'REACT_APP_EMAILJS_PUBLIC_KEY']
+      isConfigured: true,
+      provider: 'SendGrid via Firebase Cloud Functions',
+      missingVars: []
     })),
   }
 }));

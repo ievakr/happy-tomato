@@ -97,14 +97,13 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
             {!isEmailServiceReady() && (
               <Alert variant="warning">
                 <h6>Email service not configured</h6>
-                <p className="mb-2">To enable email notifications, you need to set up EmailJS. Missing:</p>
+                <p className="mb-2">To enable email notifications, configure SendGrid in Firebase Functions:</p>
                 <ul className="mb-0">
-                  {emailServiceStatus.missingVars.map(varName => (
-                    <li key={varName}><code>{varName}</code></li>
-                  ))}
+                  <li><code>firebase functions:config:set sendgrid.api_key="..."</code></li>
+                  <li><code>firebase functions:config:set sendgrid.from_email="..."</code></li>
                 </ul>
                 <small className="text-muted">
-                  Please check the setup instructions in your project documentation.
+                  See project documentation for setup instructions.
                 </small>
               </Alert>
             )}
@@ -422,7 +421,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
       issues.push("No email address configured");
     }
     if (!isEmailServiceReady()) {
-      issues.push("Email service not configured (missing environment variables)");
+      issues.push("Email service not configured (check SendGrid in Firebase Functions)");
     }
     if (!serviceStatus.isRunning) {
       issues.push("Notification service is not running");

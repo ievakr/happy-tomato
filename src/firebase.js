@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { enableIndexedDbPersistence, getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
 const firebaseConfig = {
     apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -48,4 +49,6 @@ enableIndexedDbPersistence(db).catch((error) => {
     console.warn('Firestore persistence error:', error);
 });
 
-export { db, auth };
+const functions = getFunctions(app);
+
+export { db, auth, functions, httpsCallable };

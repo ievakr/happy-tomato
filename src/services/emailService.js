@@ -1,32 +1,13 @@
 /**
  * Email Service for TODO Reminders
- * Using EmailJS for client-side email sending
+ * Uses Firebase Cloud Functions with SendGrid for server-side email sending
  */
 
-import emailjs from '@emailjs/browser';
+import { functions, httpsCallable } from '../firebase';
 
 class EmailService {
   constructor() {
-    this.serviceId = process.env.REACT_APP_EMAILJS_SERVICE_ID;
-    this.templateId = process.env.REACT_APP_EMAILJS_TEMPLATE_ID;
-    this.publicKey = process.env.REACT_APP_EMAILJS_PUBLIC_KEY;
-    this.isConfigured = false;
-    
-    this.checkConfiguration();
-  }
-
-  checkConfiguration() {
-    this.isConfigured = !!(this.serviceId && this.templateId && this.publicKey);
-    
-    if (!this.isConfigured) {
-      console.warn('EmailJS not configured. Please set environment variables:');
-      console.warn('- REACT_APP_EMAILJS_SERVICE_ID');
-      console.warn('- REACT_APP_EMAILJS_TEMPLATE_ID');
-      console.warn('- REACT_APP_EMAILJS_PUBLIC_KEY');
-    } else {
-      // Initialize EmailJS
-      emailjs.init(this.publicKey);
-    }
+    this.sendTodoReminderEmail = httpsCallable(functions, 'sendTodoReminderEmail');
   }
 
   isValidEmail(email) {
@@ -60,7 +41,7 @@ class EmailService {
   }
 
   /**
-   * Send TODO reminder email
+   * Send TODO reminder email via Firebase Cloud Function
    * @param {Object} params - Email parameters
    * @param {string} params.userEmail - Recipient email address
    * @param {string} params.userName - Recipient name (optional)
@@ -69,12 +50,6 @@ class EmailService {
    * @returns {Promise<boolean>} Success status
    */
   async sendTodoReminder(params) {
-
-    if (!this.isConfigured) {
-      console.error('❌ EmailJS not configured - cannot send email');
-      return false;
-    }
-
     try {
       if (!params || typeof params !== 'object') {
         console.error('❌ Invalid email parameters - expected an object');
@@ -97,46 +72,14 @@ class EmailService {
         ? params.userName.trim()
         : 'Garden Friend';
 
-      // Determine the context date based on reminder type
-      let contextDate = new Date();
-      if (reminderType.includes('Advance')) {
-        // Extract days from reminder type (e.g., "3-Day Advance Garden Reminder")
-        const match = reminderType.match(/(\d+)-Day/);
-        if (match) {
-          const daysAhead = parseInt(match[1], 10);
-          contextDate = new Date();
-          contextDate.setDate(contextDate.getDate() + daysAhead);
-        }
-      }
-      
-      // Create a more descriptive message based on reminder type
-      let reminderMessage = '';
-      if (reminderType.includes('Advance')) {
-        const match = reminderType.match(/(\d+)-Day/);
-        const days = match ? match[1] : '';
-        reminderMessage = `You have ${sanitizedTodos.length} task${sanitizedTodos.length !== 1 ? 's' : ''} coming up in ${days} day${days !== '1' ? 's' : ''} (${contextDate.toLocaleDateString()})`;
-      } else {
-        reminderMessage = `You have ${sanitizedTodos.length} task${sanitizedTodos.length !== 1 ? 's' : ''} for today (${new Date().toLocaleDateString()})`;
-      }
-      
-      const templateParams = {
-        to_email: params.userEmail.trim(),
-        to_name: userName,
-        reminder_type: reminderType,
-        todo_count: sanitizedTodos.length,
-        todo_list: this.formatTodoList(sanitizedTodos, reminderType),
-        today_date: new Date().toLocaleDateString(),
-        context_date: contextDate.toLocaleDateString(),
-        reminder_message: reminderMessage,
-        app_name: 'Happy Tomato Garden Planner'
-      };
+      const { data } = await this.sendTodoReminderEmail({
+        userEmail: params.userEmail.trim(),
+        userName,
+        todos: sanitizedTodos,
+        reminderType
+      });
 
-      await emailjs.send(
-        this.serviceId,
-        this.templateId,
-        templateParams
-      );
-      return true;
+      return data?.success === true;
     } catch (error) {
       console.error('❌ Failed to send email:', error);
       return false;
@@ -271,10 +214,11 @@ class EmailService {
 
   /**
    * Check if email service is configured and ready
+   * Uses Firebase Cloud Functions with SendGrid - no client-side config needed
    * @returns {boolean} Configuration status
    */
   isReady() {
-    return this.isConfigured;
+    return true;
   }
 
   /**
@@ -283,15 +227,9 @@ class EmailService {
    */
   getConfigurationStatus() {
     return {
-      isConfigured: this.isConfigured,
-      serviceId: !!this.serviceId,
-      templateId: !!this.templateId,
-      publicKey: !!this.publicKey,
-      missingVars: [
-        !this.serviceId && 'REACT_APP_EMAILJS_SERVICE_ID',
-        !this.templateId && 'REACT_APP_EMAILJS_TEMPLATE_ID',
-        !this.publicKey && 'REACT_APP_EMAILJS_PUBLIC_KEY'
-      ].filter(Boolean)
+      isConfigured: true,
+      provider: 'SendGrid via Firebase Cloud Functions',
+      missingVars: []
     };
   }
 }

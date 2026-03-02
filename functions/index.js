@@ -261,6 +261,66 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
 }
 
 /**
+ * Callable Cloud Function: Send TODO reminder email
+ * Called by client for test emails and when app is open at reminder time
+ * @param {Object} data - Call data (userEmail, userName, todos, reminderType)
+ * @param {Object} context - Firebase call context (auth, etc.)
+ * @return {Promise<{success: boolean}>}
+ */
+const sendTodoReminderEmailHandler = async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated to send reminder emails",
+    );
+  }
+
+  const {userEmail, userName, todos, reminderType} = data || {};
+
+  if (!userEmail || typeof userEmail !== "string") {
+    throw new functions.https.HttpsError(
+        "invalid-argument",
+        "userEmail is required",
+    );
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(userEmail.trim())) {
+    throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Invalid email address",
+    );
+  }
+
+  if (!todos || !Array.isArray(todos) || todos.length === 0) {
+    throw new functions.https.HttpsError(
+        "invalid-argument",
+        "todos array with at least one item required",
+    );
+  }
+
+  const reminderTypeStr =
+    typeof reminderType === "string" && reminderType.trim() ?
+      reminderType.trim() :
+      "TODO Reminder";
+
+  const userNameStr = typeof userName === "string" && userName.trim() ?
+    userName.trim() :
+    "Garden Friend";
+
+  const success = await sendEmail(
+      userEmail.trim(),
+      userNameStr,
+      todos,
+      reminderTypeStr,
+  );
+
+  return {success};
+};
+exports.sendTodoReminderEmail =
+  functions.https.onCall(sendTodoReminderEmailHandler);
+
+/**
  * Cloud Function: Send Daily Reminders
  * Runs every hour and checks if it's time to send reminders
  */
