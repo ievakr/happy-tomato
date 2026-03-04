@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, Suspense, lazy } from 'react';
+import { createPortal } from 'react-dom';
 import './styles/variables.css';
 import './App.css';
 import { useCalendar } from './hooks/useCalendar';
@@ -84,8 +85,8 @@ function App() {
             />
           )}
 
-          {/* Event modal overlay */}
-          {showEventModal && (
+          {/* Event modal overlay - render in portal to escape overflow constraints */}
+          {showEventModal && createPortal(
             <Suspense fallback={<LoadingOverlay text="Loading event details..." backdrop={true} />}>
               <ComponentErrorBoundary
                 componentName="EventModal"
@@ -93,7 +94,8 @@ function App() {
               >
                 <EventModal />
               </ComponentErrorBoundary>
-            </Suspense>
+            </Suspense>,
+            document.body
           )}
           
           {/* Create Plant modal overlay */}

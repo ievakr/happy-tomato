@@ -274,7 +274,7 @@ export default function EventModal() {
 
     return (
         <>
-            <div className="modal fade show d-block" role="dialog" aria-modal="true">
+            <div className="modal fade show d-block event-modal" role="dialog" aria-modal="true">
                 <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                     <div className="modal-content">
                         <form onSubmit={(e) => e.preventDefault()}>

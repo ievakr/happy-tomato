@@ -79,9 +79,20 @@ class EmailService {
         reminderType
       });
 
-      return data?.success === true;
+      if (data?.success !== true) {
+        console.error('❌ Email callable returned success:', data?.success, data);
+        return false;
+      }
+      return true;
     } catch (error) {
-      console.error('❌ Failed to send email:', error);
+      const code = error?.code || error?.message;
+      const details = error?.details || error?.message;
+      console.error('❌ Failed to send email:', {
+        code,
+        message: error?.message,
+        details,
+        fullError: error
+      });
       return false;
     }
   }

@@ -459,8 +459,14 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   opacity: 0.7;
 }
 
-/* Modal overflow handling */
+/* Modal overflow handling - allow DatePicker calendar to overflow */
 .event-modal {
+  overflow: visible !important;
+}
+.event-modal .modal-dialog,
+.event-modal .modal-content,
+.event-modal .modal-body,
+.event-modal .modal-body .d-grid {
   overflow: visible !important;
 }
 
