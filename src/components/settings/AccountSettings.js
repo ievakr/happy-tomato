@@ -325,7 +325,7 @@ function AccountSettings({ onClose }) {
                                 ...prev,
                                 reminderTime: e.target.value
                               }))}
-                              disabled={!emailDraft.dailyReminder}
+                              disabled={!emailDraft.dailyReminder && !emailDraft.advanceReminders}
                             >
                               {Array.from({ length: 24 }, (_, hour) => {
                                 const timeValue = `${String(hour).padStart(2, '0')}:00`;

@@ -84,27 +84,27 @@ service cloud.firestore {
     // EMAIL PREFERENCES COLLECTION
     // ========================================
     
+    // User owns the emailPreferences doc if email or userId matches
+    function ownsEmailPrefs(doc) {
+      return (doc.userEmail != null && doc.userEmail == request.auth.token.email) ||
+             (doc.userId != null && doc.userId == request.auth.uid);
+    }
+    
     match /emailPreferences/{docId} {
-      // Users can read their own preferences
-      // Primary check: userEmail field matches authenticated user's email
-      // This is more reliable than matching sanitized document IDs
-      allow read: if isAuthenticated() && 
-                     resource.data.userEmail == request.auth.token.email;
+      // Users can read their own preferences (by email or userId)
+      allow read: if isAuthenticated() && ownsEmailPrefs(resource.data);
       
       // Users can create their own preferences
-      // Ensure the userEmail field matches the authenticated user
-      allow create: if isAuthenticated() && 
-                       request.resource.data.userEmail == request.auth.token.email &&
-                       request.resource.data.userEmail is string;
+      allow create: if isAuthenticated() &&
+                       request.resource.data.userEmail is string &&
+                       (request.resource.data.userEmail == request.auth.token.email ||
+                        request.resource.data.userId == request.auth.uid);
       
       // Users can update their own preferences
-      // Check that the existing document belongs to them
-      allow update: if isAuthenticated() && 
-                       resource.data.userEmail == request.auth.token.email;
+      allow update: if isAuthenticated() && ownsEmailPrefs(resource.data);
       
       // Users can delete their own preferences
-      allow delete: if isAuthenticated() && 
-                       resource.data.userEmail == request.auth.token.email;
+      allow delete: if isAuthenticated() && ownsEmailPrefs(resource.data);
     }
     
     // ========================================
