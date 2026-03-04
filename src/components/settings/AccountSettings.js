@@ -22,7 +22,9 @@ function AccountSettings({ onClose }) {
   const handleSaveEmailPreferences = () => {
     const payload = {
       ...emailDraft,
-      userId: currentUser?.uid || emailDraft.userId
+      userId: currentUser?.uid || emailDraft.userId,
+      // Use auth email when logged in so it matches Firestore rules
+      ...(currentUser?.email && { userEmail: currentUser.email })
     };
     emailNotifications.updateEmailPreferences(payload);
     showSuccess('Email notification settings saved.');
@@ -31,9 +33,11 @@ function AccountSettings({ onClose }) {
   useEffect(() => {
     setEmailDraft({
       ...emailNotifications.emailPreferences,
-      userId: currentUser?.uid || emailNotifications.emailPreferences.userId
+      userId: currentUser?.uid || emailNotifications.emailPreferences.userId,
+      // Use auth email when logged in so it matches Firestore rules
+      ...(currentUser?.email && { userEmail: currentUser.email })
     });
-  }, [currentUser?.uid, emailNotifications.emailPreferences]);
+  }, [currentUser?.uid, currentUser?.email, emailNotifications.emailPreferences]);
 
   const handleDeleteAccount = async () => {
     if (!isGoogleUser && !password) {
@@ -291,6 +295,8 @@ function AccountSettings({ onClose }) {
                                 userEmail: e.target.value
                               }))}
                               placeholder="your@email.com"
+                              readOnly={!!currentUser?.email}
+                              title={currentUser?.email ? 'Uses your account email' : undefined}
                             />
                           </div>
 
