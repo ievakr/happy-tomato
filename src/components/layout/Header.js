@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useCallback } from 'react';
 import logo from '../../assets/logo.png';
 import CalendarContext from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
-import { getCurrentWeekIndex } from '../../utils';
+import { getCurrentWeekIndex, getWeekByIndex, getWeekDateRange } from '../../utils';
 import { useResponsive } from '../../hooks';
 import UserMenu from '../auth/UserMenu';
 
@@ -13,6 +13,7 @@ export default function Header() {
         setMonthIndex, 
         currentView, 
         setCurrentView, 
+        weekIndex,
         setWeekIndex,
         daySelected,
         setDaySelected
@@ -79,6 +80,25 @@ export default function Header() {
         setCurrentView('month');
     }
 
+    const handlePrevWeek = () => {
+        if (weekIndex > 0) {
+            setWeekIndex(weekIndex - 1);
+        } else {
+            setMonthIndex(monthIndex - 1);
+            setWeekIndex(4);
+        }
+    };
+
+    const handleNextWeek = () => {
+        if (weekIndex < 4) {
+            setWeekIndex(weekIndex + 1);
+        } else {
+            setMonthIndex(monthIndex + 1);
+            setWeekIndex(0);
+        }
+    };
+
+    const currentWeek = getWeekByIndex(monthIndex, weekIndex);
     
     return (
         <header className={`calendar-header position-relative border-bottom bg-white px-2 px-md-4 py-2 ${isMobile ? 'd-flex flex-column' : 'd-flex align-items-center'}`}>
@@ -142,31 +162,61 @@ export default function Header() {
                         Happy Tomato
                     </h1>
 
-                    {/* Center month navigation */}
+                    {/* Center navigation - week or month */}
                     <div className="calendar-month-nav calendar-month-nav-centered d-flex align-items-center">
-                        <button
-                            className="btn btn-sm btn-light"
-                            onClick={handlePrevMonth}
-                            aria-label="Previous month"
-                            title="Previous month"
-                        >
-                            <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-                                chevron_left
-                            </span>
-                        </button>
-                        <span className="calendar-month-label mx-2">
-                            {dayjs(new Date(dayjs().year(), monthIndex)).format("MMMM YYYY")}
-                        </span>
-                        <button
-                            className="btn btn-sm btn-light"
-                            onClick={handleNextMonth}
-                            aria-label="Next month"
-                            title="Next month"
-                        >
-                            <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-                                chevron_right
-                            </span>
-                        </button>
+                        {currentView === 'week' ? (
+                            <>
+                                <button
+                                    className="btn btn-sm btn-light"
+                                    onClick={handlePrevWeek}
+                                    aria-label="Previous week"
+                                    title="Previous week"
+                                >
+                                    <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                                        chevron_left
+                                    </span>
+                                </button>
+                                <span className="calendar-month-label mx-2">
+                                    {getWeekDateRange(currentWeek)}
+                                </span>
+                                <button
+                                    className="btn btn-sm btn-light"
+                                    onClick={handleNextWeek}
+                                    aria-label="Next week"
+                                    title="Next week"
+                                >
+                                    <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                                        chevron_right
+                                    </span>
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    className="btn btn-sm btn-light"
+                                    onClick={handlePrevMonth}
+                                    aria-label="Previous month"
+                                    title="Previous month"
+                                >
+                                    <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                                        chevron_left
+                                    </span>
+                                </button>
+                                <span className="calendar-month-label mx-2">
+                                    {dayjs(new Date(dayjs().year(), monthIndex)).format("MMMM YYYY")}
+                                </span>
+                                <button
+                                    className="btn btn-sm btn-light"
+                                    onClick={handleNextMonth}
+                                    aria-label="Next month"
+                                    title="Next month"
+                                >
+                                    <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                                        chevron_right
+                                    </span>
+                                </button>
+                            </>
+                        )}
                     </div>
                 </>
             )}

@@ -15,6 +15,24 @@ const WeeklyView = () => {
     setWeekIndex,
     setDaySelected
   } = useContext(CalendarContext);
+
+  const handlePrevWeek = () => {
+    if (weekIndex > 0) {
+      setWeekIndex(weekIndex - 1);
+    } else {
+      setMonthIndex(monthIndex - 1);
+      setWeekIndex(4);
+    }
+  };
+
+  const handleNextWeek = () => {
+    if (weekIndex < 4) {
+      setWeekIndex(weekIndex + 1);
+    } else {
+      setMonthIndex(monthIndex + 1);
+      setWeekIndex(0);
+    }
+  };
   const {
     filteredEvents,
     setShowEventModal,
@@ -126,11 +144,33 @@ const WeeklyView = () => {
         touchAction: isMobile ? 'pan-y' : 'auto' // Allow vertical scrolling but handle horizontal swipes
       }}
     >
-      {/* Week date range header */}
-      <div className="week-header text-center py-2 border-bottom bg-light">
-        <h3 className="mb-0 fs-6 text-muted">
+      {/* Week date range header with navigation */}
+      <div className="week-header d-flex align-items-center justify-content-center gap-2 py-2 border-bottom bg-light">
+        <button
+          type="button"
+          className="btn btn-sm btn-light"
+          onClick={handlePrevWeek}
+          aria-label="Previous week"
+          title="Previous week"
+        >
+          <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+            chevron_left
+          </span>
+        </button>
+        <h3 className="mb-0 fs-6 text-muted flex-grow-1 text-center">
           {getWeekDateRange(currentWeek)}
         </h3>
+        <button
+          type="button"
+          className="btn btn-sm btn-light"
+          onClick={handleNextWeek}
+          aria-label="Next week"
+          title="Next week"
+        >
+          <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+            chevron_right
+          </span>
+        </button>
       </div>
 
       {/* Weekly planner grid container with horizontal scroll */}
