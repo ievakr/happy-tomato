@@ -5,8 +5,8 @@ import { deleteAllUserData } from '../../utils/deleteUserData';
 import { useEmailNotifications } from '../../hooks/useEmailNotifications';
 
 function AccountSettings({ onClose }) {
-  const { currentUser, deleteAccount } = useAuth();
-  const { showSuccess } = useToast();
+  const { currentUser, deleteAccount, updateUserProfile } = useAuth();
+  const { showSuccess, showError } = useToast();
   const emailNotifications = useEmailNotifications();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [password, setPassword] = useState('');
@@ -14,6 +14,8 @@ function AccountSettings({ onClose }) {
   const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState('account'); // 'account' or 'notifications'
   const [emailDraft, setEmailDraft] = useState(emailNotifications.emailPreferences);
+  const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const isGoogleUser = currentUser?.providerData.some(
     provider => provider.providerId === 'google.com'
@@ -25,8 +27,8 @@ function AccountSettings({ onClose }) {
       userId: currentUser?.uid || emailDraft.userId,
       // Use auth email when logged in so it matches Firestore rules
       ...(currentUser?.email && { userEmail: currentUser.email }),
-      // Use display name when logged in (e.g. from Google sign-in)
-      ...(currentUser?.displayName && { userName: currentUser.displayName })
+      // Use display name for email personalization
+      userName: currentUser?.displayName || emailDraft.userName
     };
     emailNotifications.updateEmailPreferences(payload);
     showSuccess('Email notification settings saved.');
@@ -38,10 +40,35 @@ function AccountSettings({ onClose }) {
       userId: currentUser?.uid || emailNotifications.emailPreferences.userId,
       // Use auth email when logged in so it matches Firestore rules
       ...(currentUser?.email && { userEmail: currentUser.email }),
-      // Use display name when logged in (e.g. from Google sign-in)
-      ...(currentUser?.displayName && { userName: currentUser.displayName })
+      // Use display name for email personalization
+      userName: currentUser?.displayName || emailNotifications.emailPreferences.userName
     });
   }, [currentUser?.uid, currentUser?.email, currentUser?.displayName, emailNotifications.emailPreferences]);
+
+  useEffect(() => {
+    setDisplayName(currentUser?.displayName || '');
+  }, [currentUser?.displayName]);
+
+  const handleSaveProfile = async () => {
+    if (!currentUser) return;
+    setSavingProfile(true);
+    try {
+      const newName = displayName.trim() || null;
+      await updateUserProfile({ displayName: newName });
+      // Sync name to email preferences so it's used in reminder emails
+      emailNotifications.updateEmailPreferences({
+        ...emailNotifications.emailPreferences,
+        userId: currentUser.uid,
+        userEmail: currentUser.email || emailNotifications.emailPreferences.userEmail,
+        userName: newName || currentUser.displayName
+      });
+      showSuccess('Profile updated.');
+    } catch (err) {
+      showError(err.message || 'Failed to update profile');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const handleDeleteAccount = async () => {
     if (!isGoogleUser && !password) {
@@ -128,10 +155,25 @@ function AccountSettings({ onClose }) {
                       <h5 className="card-title">Account Information</h5>
                       <div className="row g-2">
                         <div className="col-12">
-                          <div className="d-flex justify-content-between">
-                            <span className="text-muted">Name</span>
-                            <span>{currentUser?.displayName || 'Not set'}</span>
+                          <label className="form-label text-muted">Name</label>
+                          <div className="d-flex gap-2">
+                            <input
+                              type="text"
+                              className="form-control"
+                              value={displayName}
+                              onChange={(e) => setDisplayName(e.target.value)}
+                              placeholder="Your name"
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={handleSaveProfile}
+                              disabled={savingProfile || displayName === (currentUser?.displayName || '')}
+                            >
+                              {savingProfile ? 'Saving...' : 'Save'}
+                            </button>
                           </div>
+                          <small className="text-muted">Used in email greetings</small>
                         </div>
                         <div className="col-12">
                           <div className="d-flex justify-content-between">
@@ -284,22 +326,6 @@ function AccountSettings({ onClose }) {
                             <label className="form-check-label" htmlFor="advance-reminders">
                               Advance reminders
                             </label>
-                          </div>
-                          <div>
-                            <label className="form-label" htmlFor="user-name">
-                              Your Name
-                            </label>
-                            <input
-                              id="user-name"
-                              type="text"
-                              className="form-control"
-                              value={emailDraft.userName || ''}
-                              onChange={(e) => setEmailDraft(prev => ({
-                                ...prev,
-                                userName: e.target.value
-                              }))}
-                              placeholder={currentUser?.displayName || 'Your name for emails'}
-                            />
                           </div>
                           <div>
                             <label className="form-label" htmlFor="user-email">

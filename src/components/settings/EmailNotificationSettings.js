@@ -184,21 +184,6 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
             </Form.Text>
           </Form.Group>
 
-          {/* User Name (Optional) */}
-          <Form.Group className="mb-3">
-            <Form.Label>Your Name (Optional)</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="Enter your name"
-              value={emailPreferences.userName}
-              onChange={(e) => handleInputChange('userName', e.target.value)}
-              disabled={!isEmailServiceReady()}
-            />
-            <Form.Text className="text-muted">
-              Used to personalize your emails
-            </Form.Text>
-          </Form.Group>
-
           {/* Daily Reminder */}
           <Form.Group className="mb-3">
             <Form.Check
