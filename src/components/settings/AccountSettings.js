@@ -24,7 +24,9 @@ function AccountSettings({ onClose }) {
       ...emailDraft,
       userId: currentUser?.uid || emailDraft.userId,
       // Use auth email when logged in so it matches Firestore rules
-      ...(currentUser?.email && { userEmail: currentUser.email })
+      ...(currentUser?.email && { userEmail: currentUser.email }),
+      // Use display name when logged in (e.g. from Google sign-in)
+      ...(currentUser?.displayName && { userName: currentUser.displayName })
     };
     emailNotifications.updateEmailPreferences(payload);
     showSuccess('Email notification settings saved.');
@@ -35,9 +37,11 @@ function AccountSettings({ onClose }) {
       ...emailNotifications.emailPreferences,
       userId: currentUser?.uid || emailNotifications.emailPreferences.userId,
       // Use auth email when logged in so it matches Firestore rules
-      ...(currentUser?.email && { userEmail: currentUser.email })
+      ...(currentUser?.email && { userEmail: currentUser.email }),
+      // Use display name when logged in (e.g. from Google sign-in)
+      ...(currentUser?.displayName && { userName: currentUser.displayName })
     });
-  }, [currentUser?.uid, currentUser?.email, emailNotifications.emailPreferences]);
+  }, [currentUser?.uid, currentUser?.email, currentUser?.displayName, emailNotifications.emailPreferences]);
 
   const handleDeleteAccount = async () => {
     if (!isGoogleUser && !password) {
@@ -280,6 +284,22 @@ function AccountSettings({ onClose }) {
                             <label className="form-check-label" htmlFor="advance-reminders">
                               Advance reminders
                             </label>
+                          </div>
+                          <div>
+                            <label className="form-label" htmlFor="user-name">
+                              Your Name
+                            </label>
+                            <input
+                              id="user-name"
+                              type="text"
+                              className="form-control"
+                              value={emailDraft.userName || ''}
+                              onChange={(e) => setEmailDraft(prev => ({
+                                ...prev,
+                                userName: e.target.value
+                              }))}
+                              placeholder={currentUser?.displayName || 'Your name for emails'}
+                            />
                           </div>
                           <div>
                             <label className="form-label" htmlFor="user-email">
