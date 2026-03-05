@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import CalendarContext from '../../context/CalendarContext';
 import EventContext from '../../context/EventContext';
-import { getWeekByIndex, getWeekDateRange, getDayHeaders } from '../../utils';
+import { getWeekByIndex, getWeekDateRange, getDayHeaders, getCurrentWeekIndex } from '../../utils';
 import { useResponsive, useSwipeGestures } from '../../hooks';
 import EventItem from './EventItem';
 import '../../index.css';
@@ -33,6 +33,13 @@ const WeeklyView = () => {
       setWeekIndex(0);
     }
   };
+
+  const handleToday = () => {
+    const now = dayjs();
+    setMonthIndex(now.month());
+    setWeekIndex(getCurrentWeekIndex(now.month(), now));
+  };
+
   const {
     filteredEvents,
     setShowEventModal,
@@ -145,10 +152,10 @@ const WeeklyView = () => {
       }}
     >
       {/* Week date range header with navigation */}
-      <div className="week-header d-flex align-items-center justify-content-center gap-2 py-2 border-bottom bg-light">
+      <div className="week-header d-flex align-items-center justify-content-center gap-1 py-2 border-bottom bg-light">
         <button
           type="button"
-          className="btn btn-sm btn-light"
+          className="btn btn-sm btn-light p-1"
           onClick={handlePrevWeek}
           aria-label="Previous week"
           title="Previous week"
@@ -157,12 +164,12 @@ const WeeklyView = () => {
             chevron_left
           </span>
         </button>
-        <h3 className="mb-0 fs-6 text-muted flex-grow-1 text-center">
+        <h3 className="mb-0 fs-6 text-muted text-center" style={{ minWidth: 'fit-content' }}>
           {getWeekDateRange(currentWeek)}
         </h3>
         <button
           type="button"
-          className="btn btn-sm btn-light"
+          className="btn btn-sm btn-light p-1"
           onClick={handleNextWeek}
           aria-label="Next week"
           title="Next week"
@@ -170,6 +177,15 @@ const WeeklyView = () => {
           <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
             chevron_right
           </span>
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary ms-2"
+          onClick={handleToday}
+          aria-label="Go to today"
+          title="Go to today"
+        >
+          Today
         </button>
       </div>
 

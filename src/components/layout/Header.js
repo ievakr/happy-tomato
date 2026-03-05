@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useCallback } from 'react';
 import logo from '../../assets/logo.png';
 import CalendarContext from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
-import { getCurrentWeekIndex, getWeekByIndex, getWeekDateRange } from '../../utils';
+import { getCurrentWeekIndex } from '../../utils';
 import { useResponsive } from '../../hooks';
 import UserMenu from '../auth/UserMenu';
 
@@ -98,8 +98,6 @@ export default function Header() {
         }
     };
 
-    const currentWeek = getWeekByIndex(monthIndex, weekIndex);
-    
     return (
         <header className={`calendar-header position-relative border-bottom bg-white px-2 px-md-4 py-2 ${isMobile ? 'd-flex flex-column' : 'd-flex align-items-center'}`}>
             {/* Mobile: First row with basic controls */}
@@ -177,7 +175,7 @@ export default function Header() {
                                     </span>
                                 </button>
                                 <span className="calendar-month-label mx-2">
-                                    {getWeekDateRange(currentWeek)}
+                                    {dayjs(new Date(dayjs().year(), monthIndex)).format("MMMM YYYY")}
                                 </span>
                                 <button
                                     className="btn btn-sm btn-light"
