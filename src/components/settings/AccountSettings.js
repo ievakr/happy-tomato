@@ -166,25 +166,12 @@ function AccountSettings({ onClose }) {
                             />
                             <button
                               type="button"
-                              className="btn btn-primary"
+                              className="btn btn-danger"
                               onClick={handleSaveProfile}
                               disabled={savingProfile || displayName === (currentUser?.displayName || '')}
                             >
                               {savingProfile ? 'Saving...' : 'Save'}
                             </button>
-                          </div>
-                          <small className="text-muted">Used in email greetings</small>
-                        </div>
-                        <div className="col-12">
-                          <div className="d-flex justify-content-between">
-                            <span className="text-muted">Email</span>
-                            <span>{currentUser?.email}</span>
-                          </div>
-                        </div>
-                        <div className="col-12">
-                          <div className="d-flex justify-content-between">
-                            <span className="text-muted">Sign-in method</span>
-                            <span>{isGoogleUser ? 'Google' : 'Email/Password'}</span>
                           </div>
                         </div>
                       </div>
@@ -327,25 +314,6 @@ function AccountSettings({ onClose }) {
                               Advance reminders
                             </label>
                           </div>
-                          <div>
-                            <label className="form-label" htmlFor="user-email">
-                              Email Address
-                            </label>
-                            <input
-                              id="user-email"
-                              type="email"
-                              className="form-control"
-                              value={emailDraft.userEmail}
-                              onChange={(e) => setEmailDraft(prev => ({
-                                ...prev,
-                                userEmail: e.target.value
-                              }))}
-                              placeholder="your@email.com"
-                              readOnly={!!currentUser?.email}
-                              title={currentUser?.email ? 'Uses your account email' : undefined}
-                            />
-                          </div>
-
                           <div>
                             <label className="form-label" htmlFor="advance-days">
                               Advance Notice (Days)
