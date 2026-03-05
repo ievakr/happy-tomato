@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { doc, getDoc, setDoc, getDocFromCache } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -37,7 +37,7 @@ async function saveSavedTodosToFirestore(userId, items) {
 export function useSavedTodos() {
   const { currentUser } = useAuth();
   const queryClient = useQueryClient();
-  const queryKey = ['savedTodos', currentUser?.uid];
+  const queryKey = useMemo(() => ['savedTodos', currentUser?.uid], [currentUser?.uid]);
   const hasMigratedFromStorage = useRef(false);
 
   const { data: firestoreItems = [], isLoading } = useQuery({
