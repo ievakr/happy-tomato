@@ -349,7 +349,7 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
         <Button variant="secondary" onClick={onHide}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={handleSaveAndClose}>
+        <Button variant="success" onClick={handleSaveAndClose}>
           Save Settings
         </Button>
       </Modal.Footer>

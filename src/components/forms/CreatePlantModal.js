@@ -147,7 +147,7 @@ export default function CreatePlantModal() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="btn btn-danger"
+                                    className="btn btn-success"
                                     disabled={isLoading || !plantCategory.trim()}
                                 >
                                     {isLoading ? (

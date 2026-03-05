@@ -108,7 +108,7 @@ export default function ManagePlantsModal({ onClose }) {
                                                         ))}
                                                     </div>
                                                     <div className="d-flex gap-2 mt-2">
-                                                        <button type="submit" className="btn btn-sm btn-danger" disabled={updatePlantMutation.isPending}>
+                                                        <button type="submit" className="btn btn-sm btn-success" disabled={updatePlantMutation.isPending}>
                                                             Save
                                                         </button>
                                                         <button type="button" className="btn btn-sm btn-outline-secondary" onClick={cancelEdit}>

@@ -97,7 +97,7 @@ export default function Header() {
                                 </span>
                             </button>
                             <img src={logo} alt="calendar" className="me-2" style={{ width: '28px', height: '28px' }} />
-                            <span className="mobile-title-main">Happy Tomato</span>
+                            <span className="mobile-title-main app-title">Happy Tomato</span>
                         </div>
                         
                         {/* Right side: View buttons and settings */}
@@ -138,7 +138,7 @@ export default function Header() {
                     {/* Desktop layout - single row */}
                     <img src={logo} alt="calendar" className="me-2" style={{ width: '32px', height: '32px' }} />
                     
-                    <h1 className="me-2 me-md-3 mb-0 fs-4 text-secondary fw-bold">
+                    <h1 className="me-2 me-md-3 mb-0 fs-4 fw-bold app-title">
                         Happy Tomato
                     </h1>
 

@@ -166,7 +166,7 @@ function AccountSettings({ onClose }) {
                             />
                             <button
                               type="button"
-                              className="btn btn-danger"
+                              className="btn btn-success"
                               onClick={handleSaveProfile}
                               disabled={savingProfile || displayName === (currentUser?.displayName || '')}
                             >
@@ -361,7 +361,7 @@ function AccountSettings({ onClose }) {
                       )}
                       <div className="d-flex justify-content-end mt-3">
                         <button
-                          className="btn btn-danger"
+                          className="btn btn-success"
                           type="button"
                           onClick={handleSaveEmailPreferences}
                         >

@@ -459,7 +459,7 @@ export default function EventModal() {
                                 <button 
                                     type="submit" 
                                     onClick={handleSubmit} 
-                                    className="btn btn-danger w-100"
+                                    className="btn btn-success w-100"
                                     disabled={isLoading}
                                 >
                                     {isLoading ? (
