@@ -11,6 +11,7 @@ export default function Sidebar() {
     const { setShowManagePlantsModal } = useContext(EventContext);
     const [showMigration, setShowMigration] = useState(false);
     const [hasUnassignedEvents, setHasUnassignedEvents] = useState(false);
+    const [isPlantManagementExpanded, setIsPlantManagementExpanded] = useState(false);
 
     useEffect(() => {
         // Check if there are unassigned events on mount
@@ -53,25 +54,46 @@ export default function Sidebar() {
                     </button>
                 </div>
                 
-                <div className="d-flex justify-content-start mb-4">
-                    <CreateEventButton />
-                </div>
-                
-                <div className="mb-4">
-                    <Labels />
-                </div>
-
                 <div className="mb-4">
                     <button
                         type="button"
-                        className="btn btn-outline-secondary w-100"
-                        onClick={() => setShowManagePlantsModal(true)}
+                        className="btn btn-link btn-collapse-toggle p-0 text-secondary fw-bold text-decoration-none d-flex w-100"
+                        onClick={() => setIsPlantManagementExpanded(!isPlantManagementExpanded)}
+                        aria-expanded={isPlantManagementExpanded}
                     >
-                        <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
-                            eco
+                        <span
+                            className="material-icons-outlined me-1"
+                            style={{
+                                fontSize: '1.25rem',
+                                transition: 'transform 0.2s ease',
+                                transform: isPlantManagementExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                            }}
+                        >
+                            expand_more
                         </span>
-                        Manage Plants
+                        Plant Management
                     </button>
+                    {isPlantManagementExpanded && (
+                        <div className="mt-3">
+                            <div className="d-flex justify-content-start mb-3">
+                                <CreateEventButton />
+                            </div>
+                            <button
+                                type="button"
+                                className="btn btn-outline-secondary w-100"
+                                onClick={() => setShowManagePlantsModal(true)}
+                            >
+                                <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
+                                    eco
+                                </span>
+                                Manage Plants
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                <div className="mb-4">
+                    <Labels />
                 </div>
 
                 {/* Migration button - only show if there are unassigned events */}

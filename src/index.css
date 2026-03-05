@@ -252,10 +252,16 @@
     vertical-align: middle !important;
 }
 
-.btn:not(.btn-group .btn) {
+.btn:not(.btn-group .btn):not(.btn-collapse-toggle) {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+}
+
+.sidebar .btn-collapse-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
 }
 
 /* Specific fix for header buttons */

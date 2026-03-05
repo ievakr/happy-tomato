@@ -340,6 +340,25 @@ export const useEmailNotifications = () => {
       return false;
     }
 
+    // Check Firestore first - another tab or Cloud Function may have already sent
+    try {
+      const docId = emailPreferences.userEmail.replace(/[.#$[\]]/g, '_');
+      const docSnap = await getDoc(doc(db, 'emailPreferences', docId));
+      if (docSnap.exists()) {
+        const fs = docSnap.data();
+        const lastSent = fs.lastAutoReminderSent;
+        if (lastSent) {
+          const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
+          if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
+            console.log('⏭️ Daily reminder already sent today (from another tab/device), skipping');
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Could not check Firestore before send:', e);
+    }
+
     const dueTodos = getDueTodos();
     const overdueTodos = getOverdueTodos();
     const allTodos = [...overdueTodos, ...dueTodos];
@@ -358,12 +377,14 @@ export const useEmailNotifications = () => {
       });
 
       if (success) {
-        // Update appropriate timestamp based on whether this is automatic or manual
-        setEmailPreferences(prev => ({
-          ...prev,
+        const updated = {
+          ...emailPreferences,
           lastReminderSent: Date.now(),
           ...(isAutomatic && { lastAutoReminderSent: Date.now() })
-        }));
+        };
+        setEmailPreferences(prev => ({ ...prev, ...updated }));
+        // Sync to Firestore so Cloud Functions and other tabs see we already sent
+        if (updated.userEmail) syncPreferencesToFirestore(updated);
       } else {
         console.log('❌ Email service returned false');
       }
@@ -387,6 +408,25 @@ export const useEmailNotifications = () => {
       return false;
     }
 
+    // Check Firestore first - another tab or Cloud Function may have already sent
+    try {
+      const docId = emailPreferences.userEmail.replace(/[.#$[\]]/g, '_');
+      const docSnap = await getDoc(doc(db, 'emailPreferences', docId));
+      if (docSnap.exists()) {
+        const fs = docSnap.data();
+        const lastSent = fs.lastAutoAdvanceReminderSent;
+        if (lastSent) {
+          const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
+          if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
+            console.log('⏭️ Advance reminder already sent today (from another tab/device), skipping');
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Could not check Firestore before send:', e);
+    }
+
     const advanceTodos = getTodosInAdvance(emailPreferences.advanceDays);
 
     if (advanceTodos.length === 0) {
@@ -403,12 +443,14 @@ export const useEmailNotifications = () => {
       });
 
       if (success) {
-        // Update appropriate timestamp based on whether this is automatic or manual
-        setEmailPreferences(prev => ({
-          ...prev,
+        const updated = {
+          ...emailPreferences,
           lastAdvanceReminderSent: Date.now(),
           ...(isAutomatic && { lastAutoAdvanceReminderSent: Date.now() })
-        }));
+        };
+        setEmailPreferences(prev => ({ ...prev, ...updated }));
+        // Sync to Firestore so Cloud Functions and other tabs see we already sent
+        if (updated.userEmail) syncPreferencesToFirestore(updated);
       } else {
         console.log('❌ Advance email service returned false');
       }

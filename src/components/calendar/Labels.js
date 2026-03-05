@@ -27,23 +27,26 @@ export default function Labels() {
     // Create a custom title that doesn't show all selected items
     const dropdownTitle = useMemo(() => {
         if (selectedLabels.length === 0) {
-            return "Select labels to filter";
+            return "Select categories to filter";
         } else if (selectedLabels.length === labelOptions.length) {
-            return "All plants selected";
+            return "All categories selected";
         } else {
-            return `${selectedLabels.length} label${selectedLabels.length > 1 ? 's' : ''} selected`;
+            return `${selectedLabels.length} categor${selectedLabels.length > 1 ? 'ies' : 'y'} selected`;
         }
     }, [selectedLabels.length, labelOptions.length]);
     
     return (
         <React.Fragment>
-            <p className="text-secondary fw-bold mt-4">Filter by Plants</p>
+            <div className="d-flex align-items-center text-secondary fw-bold mt-4 mb-2">
+                <span className="material-icons-outlined me-2" style={{ fontSize: '1.25rem' }}>filter_list</span>
+                Filter by Category
+            </div>
             {isInitialLoading ? (
                 <EventListSkeleton count={1} />
             ) : (
                 <div className="mb-3">
                     <CustomDropdown
-                        title="Select labels to filter"
+                        title="Select categories to filter"
                         options={labelOptions}
                         selectedOptions={selectedLabels}
                         onSelect={handleLabelSelect}

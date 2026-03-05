@@ -122,7 +122,7 @@ export default function ContextWrapper(props) {
             return savedEvents;
         }
         
-        const checkedLabels = labels.filter(lbl => lbl.checked).map(lbl => lbl.label);
+        const checkedCategories = labels.filter(lbl => lbl.checked).map(lbl => lbl.label);
         
         return savedEvents.filter(evt => {
             // Show events that have no labels
@@ -130,10 +130,13 @@ export default function ContextWrapper(props) {
                 return true;
             }
             
-            // Show events that have at least one checked label
-            return evt.labels.some(eventLabel => checkedLabels.includes(eventLabel));
+            // Show events where at least one plant belongs to a checked category
+            return evt.labels.some(plantId => {
+                const plant = plantsById[plantId];
+                return plant && checkedCategories.includes(plant.category);
+            });
         });
-    }, [savedEvents, labels]);
+    }, [savedEvents, labels, plantsById]);
 
     function getErrorMessage(error, operation) {
         // Check for specific Firebase error codes
@@ -365,12 +368,13 @@ export default function ContextWrapper(props) {
       
     useEffect(() => {
         setLabels((prevLabels) => {
-            // Use plant IDs for filtering; displayName for dropdown
-            return plants.map(p => {
-                const currentLabel = prevLabels.find(lbl => lbl.label === p.id);
+            // Use unique plant categories for filtering
+            const categories = [...new Set(plants.map(p => p.category).filter(Boolean))];
+            return categories.map(category => {
+                const currentLabel = prevLabels.find(lbl => lbl.label === category);
                 return {
-                    label: p.id,
-                    displayName: p.variety ? `${p.category} - ${p.variety}` : p.category,
+                    label: category,
+                    displayName: category,
                     checked: currentLabel ? currentLabel.checked : true,
                 };
             });
