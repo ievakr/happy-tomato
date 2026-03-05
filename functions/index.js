@@ -17,13 +17,39 @@ dayjs.tz.setDefault("Europe/Vilnius");
 admin.initializeApp();
 
 /**
+ * Fetch user's plants and build plantId -> displayName map
+ * @param {string} userId - User ID
+ * @return {Promise<Object>} Map of plantId to display name
+ */
+async function getPlantIdToDisplayName(userId) {
+  if (!userId) return {};
+  const plantsSnap = await admin.firestore()
+      .collection("plants")
+      .where("userId", "==", userId)
+      .get();
+  const map = {};
+  plantsSnap.docs.forEach((d) => {
+    const p = d.data();
+    const name = p.variety ?
+      `${p.category} - ${p.variety}` :
+      (p.category || p.name || d.id);
+    map[d.id] = name;
+  });
+  return map;
+}
+
+/**
  * Format TODO list for email
  * @param {Array} todos - Array of TODO objects
  * @param {boolean} isAdvanceReminder - Whether this is an advance reminder
  * @param {number} advanceDays - Number of days in advance (if applicable)
+ * @param {Object} plantIdToDisplayName - Map of plant ID to display name
  * @return {string} Formatted TODO list string
  */
-function formatTodoList(todos, isAdvanceReminder = false, advanceDays = 0) {
+function formatTodoList(
+    todos, isAdvanceReminder = false, advanceDays = 0,
+    plantIdToDisplayName = {},
+) {
   if (!todos || todos.length === 0) {
     return "No TODOs found.";
   }
@@ -43,9 +69,9 @@ function formatTodoList(todos, isAdvanceReminder = false, advanceDays = 0) {
       actionName = todo.title.replace(/^TO DO:\s*/i, "");
     }
 
-    // Get plant labels
+    // Resolve plant IDs to display names
     const plantLabels = todo.labels && todo.labels.length > 0 ?
-      todo.labels.join(", ") :
+      todo.labels.map((id) => plantIdToDisplayName[id] || id).join(", ") :
       "";
 
     // Determine status relative to today (not advance date)
@@ -150,9 +176,11 @@ function getTodosInAdvance(events, days) {
  * @param {string} userName - Recipient name
  * @param {Array} todos - Array of TODO objects
  * @param {string} reminderType - Type of reminder being sent
+ * @param {Object} plantIdToDisplayName - Map of plant ID to display name
  * @return {Promise<boolean>} Success status
  */
-async function sendEmail(userEmail, userName, todos, reminderType) {
+async function sendEmail(userEmail, userName, todos, reminderType,
+    plantIdToDisplayName = {}) {
   const config = functions.config().sendgrid;
 
   // Initialize SendGrid with API key
@@ -183,7 +211,8 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
   }
 
   // Create email HTML content
-  const todoListHtml = formatTodoList(todos, isAdvanceReminder, daysAhead)
+  const todoListHtml = formatTodoList(todos, isAdvanceReminder, daysAhead,
+      plantIdToDisplayName)
       .split("\n")
       .map((line) => `<li style="margin: 10px 0;">${line}</li>`)
       .join("");
@@ -242,7 +271,8 @@ async function sendEmail(userEmail, userName, todos, reminderType) {
       todos.length !== 1 ? "s" : ""} for Your Garden`,
     text: `Hi ${userName || "Garden Friend"}!\n\n` +
           `${plainTextMessage}:\n\n` +
-          formatTodoList(todos, isAdvanceReminder, daysAhead) +
+          formatTodoList(todos, isAdvanceReminder, daysAhead,
+              plantIdToDisplayName) +
           `\n\nHappy Gardening!\n- Happy Tomato Garden Planner`,
     html: htmlContent,
   };
@@ -308,11 +338,13 @@ const sendTodoReminderEmailHandler = async (data, context) => {
     userName.trim() :
     "Garden Friend";
 
+  const plantIdToDisplayName = await getPlantIdToDisplayName(context.auth.uid);
   const success = await sendEmail(
       userEmail.trim(),
       userNameStr,
       todos,
       reminderTypeStr,
+      plantIdToDisplayName,
   );
 
   return {success};
@@ -416,12 +448,14 @@ exports.sendDailyReminders = functions.pubsub
           console.log(`📧 Sending daily reminder to ${prefs.userEmail} ` +
             `(${dueTodos.length} TODOs)`);
 
-          // Send email
+          const plantIdToDisplayName =
+            await getPlantIdToDisplayName(userId);
           const success = await sendEmail(
               prefs.userEmail,
               prefs.userName,
               dueTodos,
               "Daily Garden Reminder",
+              plantIdToDisplayName,
           );
 
           if (success) {
@@ -606,12 +640,14 @@ exports.sendAdvanceReminders = functions.pubsub
               `${prefs.userEmail}`,
           );
 
-          // Send email
+          const plantIdToDisplayName =
+            await getPlantIdToDisplayName(userId);
           const success = await sendEmail(
               prefs.userEmail,
               prefs.userName,
               advanceTodos,
               `${advanceDays}-Day Advance Garden Reminder`,
+              plantIdToDisplayName,
           );
 
           if (success) {
