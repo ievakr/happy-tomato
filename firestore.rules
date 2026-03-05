@@ -108,6 +108,15 @@ service cloud.firestore {
     }
     
     // ========================================
+    // SAVED TODOS COLLECTION (user preferences)
+    // ========================================
+    
+    match /savedTodos/{userId} {
+      // Users can read/write only their own saved todos doc
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ========================================
     // DEFAULT DENY ALL
     // ========================================
     

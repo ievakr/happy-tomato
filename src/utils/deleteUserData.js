@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs, writeBatch, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, writeBatch, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
 /**
@@ -65,9 +65,14 @@ export async function deleteAllUserData(userId) {
     console.log('🗑️ Deleting all data for user:', userId);
     
     const eventsDeleted = await deleteUserEvents(userId);
-    
-    // Add other data deletion here if needed in the future
-    // e.g., user preferences, settings, etc.
+
+    try {
+      const savedTodosRef = doc(db, 'savedTodos', userId);
+      await deleteDoc(savedTodosRef);
+      console.log('✅ Deleted saved todos');
+    } catch (e) {
+      console.warn('Could not delete saved todos (may not exist):', e);
+    }
     
     const summary = {
       eventsDeleted,
