@@ -28,10 +28,13 @@ export const useEmailNotifications = () => {
       dueTodayReminders: true,
       advanceReminders: true,
       advanceDays: 3,
+      weeklySummary: false,
+      weeklySummaryTime: '08:00',
       lastReminderSent: null,
       lastAdvanceReminderSent: null,
       lastAutoReminderSent: null,
-      lastAutoAdvanceReminderSent: null
+      lastAutoAdvanceReminderSent: null,
+      lastWeeklySummarySent: null
     };
   });
 
@@ -173,10 +176,13 @@ export const useEmailNotifications = () => {
       dueTodayReminders: true,
       advanceReminders: true,
       advanceDays: 3,
+      weeklySummary: false,
+      weeklySummaryTime: '08:00',
       lastReminderSent: null,
       lastAdvanceReminderSent: null,
       lastAutoReminderSent: null,
-      lastAutoAdvanceReminderSent: null
+      lastAutoAdvanceReminderSent: null,
+      lastWeeklySummarySent: null
     });
   };
 
@@ -397,6 +403,25 @@ export const useEmailNotifications = () => {
   };
 
   /**
+   * Send weekly summary email ("here's your week ahead")
+   * @returns {Promise<boolean>} Success status
+   */
+  const sendWeeklySummary = async () => {
+    if (!emailPreferences.enabled || !emailPreferences.userEmail) {
+      return false;
+    }
+
+    try {
+      return await emailService.sendWeeklySummary({
+        userEmail: emailPreferences.userEmail,
+        userName: emailPreferences.userName
+      });
+    } catch (error) {
+      return false;
+    }
+  };
+
+  /**
    * Send immediate reminder for specific TODOs
    * @param {Array} todos - TODOs to send reminder for
    * @param {string} reminderType - Type of reminder
@@ -551,6 +576,7 @@ export const useEmailNotifications = () => {
     getTodosInAdvance,
     sendDailyReminder,
     sendAdvanceReminder,
+    sendWeeklySummary,
     sendImmediateReminder,
     testEmailConfiguration,
     shouldSendDailyReminder,

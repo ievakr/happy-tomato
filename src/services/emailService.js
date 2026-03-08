@@ -8,6 +8,7 @@ import { functions, httpsCallable } from '../firebase';
 class EmailService {
   constructor() {
     this.sendTodoReminderEmail = httpsCallable(functions, 'sendTodoReminderEmail');
+    this.sendWeeklySummaryEmail = httpsCallable(functions, 'sendWeeklySummaryEmail');
   }
 
   isValidEmail(email) {
@@ -181,6 +182,38 @@ class EmailService {
       return 'due_today';
     } else {
       return 'upcoming';
+    }
+  }
+
+  /**
+   * Send weekly summary email via Firebase Cloud Function
+   * @param {Object} params - Email parameters
+   * @param {string} params.userEmail - Recipient email address
+   * @param {string} params.userName - Recipient name (optional)
+   * @returns {Promise<boolean>} Success status
+   */
+  async sendWeeklySummary(params) {
+    try {
+      if (!params || typeof params !== 'object') {
+        return false;
+      }
+
+      if (!this.isValidEmail(params.userEmail)) {
+        return false;
+      }
+
+      const userName = typeof params.userName === 'string' && params.userName.trim().length > 0
+        ? params.userName.trim()
+        : 'Garden Friend';
+
+      const { data } = await this.sendWeeklySummaryEmail({
+        userEmail: params.userEmail.trim(),
+        userName
+      });
+
+      return data?.success === true;
+    } catch (error) {
+      return false;
     }
   }
 

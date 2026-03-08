@@ -258,6 +258,36 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
             </Form.Group>
           )}
 
+          {/* Weekly Summary */}
+          <Form.Group className="mb-3">
+            <Form.Check
+              type="checkbox"
+              id="weekly-summary"
+              label="Weekly summary email"
+              checked={emailPreferences.weeklySummary ?? false}
+              onChange={(e) => handleInputChange('weeklySummary', e.target.checked)}
+              disabled={!emailPreferences.enabled}
+            />
+            <Form.Text className="text-muted">
+              A short &quot;here&apos;s your week ahead&quot; email on Sunday or Monday morning
+            </Form.Text>
+          </Form.Group>
+
+          {emailPreferences.weeklySummary && (
+            <Form.Group className="mb-3 ms-3">
+              <Form.Label>Weekly summary time</Form.Label>
+              <Form.Control
+                type="time"
+                value={emailPreferences.weeklySummaryTime || '08:00'}
+                onChange={(e) => handleInputChange('weeklySummaryTime', e.target.value)}
+                disabled={!emailPreferences.enabled}
+              />
+              <Form.Text className="text-muted">
+                When to send your week-ahead summary (Sunday/Monday)
+              </Form.Text>
+            </Form.Group>
+          )}
+
           {/* Advanced Settings */}
           {showAdvanced && (
             <Card className="mb-3">
@@ -555,14 +585,22 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                     >
                       📧 Manual Daily Reminder
                     </Button>
-              <Button
-                variant="outline-warning"
-                size="sm"
-                onClick={() => handleSendManualReminder('advance')}
-                disabled={!emailPreferences.enabled || !emailPreferences.userEmail}
-              >
-                🔔 Manual Advance Reminder
-              </Button>
+                    <Button
+                      variant="outline-warning"
+                      size="sm"
+                      onClick={() => handleSendManualReminder('advance')}
+                      disabled={!emailPreferences.enabled || !emailPreferences.userEmail}
+                    >
+                      🔔 Manual Advance Reminder
+                    </Button>
+                    <Button
+                      variant="outline-secondary"
+                      size="sm"
+                      onClick={() => handleSendManualReminder('weekly')}
+                      disabled={!emailPreferences.enabled || !emailPreferences.userEmail}
+                    >
+                      📅 Manual Weekly Summary
+                    </Button>
               <Button
                 variant="outline-danger"
                 size="sm"

@@ -141,6 +141,201 @@ function getDueAndOverdueTodos(events) {
 }
 
 /**
+ * Get TODOs for the week ahead (Monday through Sunday)
+ * Used for weekly summary email sent on Sunday/Monday
+ * @param {Array} events - Array of event objects
+ * @return {Object} { overdue: [], byDay: { 'YYYY-MM-DD': [] } }
+ */
+function getTodosForWeekAhead(events) {
+  const now = dayjs.tz(new Date(), "Europe/Vilnius");
+  const today = now.startOf("day");
+
+  // Week ahead: if Sunday, next Mon-Sun; if Monday, this Mon-Sun
+  const dayOfWeek = now.day(); // 0=Sun, 1=Mon, ...
+  const weekStart = dayOfWeek === 0 ?
+    today.add(1, "day") : // Sunday -> Monday
+    today.startOf("week").add(1, "day"); // Monday = start of "week" in dayjs
+  const weekEnd = weekStart.add(6, "days");
+
+  const overdue = [];
+  const byDay = {};
+
+  for (let d = weekStart;
+    d.isSameOrBefore(weekEnd, "day");
+    d = d.add(1, "day")) {
+    byDay[d.format("YYYY-MM-DD")] = [];
+  }
+
+  events.forEach((evt) => {
+    const isTodoEvent = evt.isRecurringTodo ||
+                       (typeof evt.title === "string" &&
+                        evt.title.startsWith("TO DO:")) ||
+                       (typeof evt.toDo === "string" &&
+                        evt.toDo.startsWith("TO DO:"));
+
+    if (!isTodoEvent || evt.completed) return;
+
+    const eventDate = dayjs.tz(evt.day, "Europe/Vilnius").startOf("day");
+
+    if (eventDate.isBefore(today, "day")) {
+      overdue.push(evt);
+    } else if (!eventDate.isAfter(weekEnd, "day")) {
+      const key = eventDate.format("YYYY-MM-DD");
+      if (byDay[key]) {
+        byDay[key].push(evt);
+      }
+    }
+  });
+
+  return {overdue, byDay, weekStart, weekEnd};
+}
+
+/**
+ * Format a single TODO for display
+ * @param {Object} todo - TODO object
+ * @param {Object} plantIdToDisplayName - Map of plant ID to display name
+ * @return {string} Formatted line
+ */
+function formatTodoLine(todo, plantIdToDisplayName = {}) {
+  let actionName = "";
+  if (todo.actions && todo.actions.length > 0) {
+    actionName = todo.actions.join(", ");
+  } else if (todo.toDo) {
+    const todoText = Array.isArray(todo.toDo) ?
+      todo.toDo.join(", ") : todo.toDo;
+    actionName = todoText.replace(/^TO DO:\s*/i, "");
+  } else if (todo.title) {
+    actionName = todo.title.replace(/^TO DO:\s*/i, "");
+  }
+
+  const plantLabels = todo.labels && todo.labels.length > 0 ?
+    todo.labels.map((id) => plantIdToDisplayName[id] || id).join(", ") :
+    "";
+
+  let line = actionName || "Unnamed TODO";
+  if (plantLabels) {
+    line += ` (${plantLabels})`;
+  }
+  return line;
+}
+
+/**
+ * Send weekly summary email (here's your week ahead)
+ * @param {string} userEmail - Recipient email
+ * @param {string} userName - Recipient name
+ * @param {Object} weekData - { overdue, byDay, weekStart, weekEnd }
+ * @param {Object} plantIdToDisplayName - Map of plant ID to display name
+ * @return {Promise<boolean>} Success status
+ */
+async function sendWeeklySummaryEmail(userEmail, userName, weekData,
+    plantIdToDisplayName = {}) {
+  const config = functions.config().sendgrid;
+  sgMail.setApiKey(config.api_key);
+
+  const {overdue, byDay, weekStart, weekEnd} = weekData;
+  const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+  const htmlSections = [];
+  const textSections = [];
+
+  if (overdue.length > 0) {
+    const overdueLines = overdue.map((t) =>
+      `⚠️ ${formatTodoLine(t, plantIdToDisplayName)}`,
+    );
+    htmlSections.push(
+        `<p style="margin-bottom: 8px;"><strong>Overdue</strong></p>` +
+        `<ul style="list-style: none; padding-left: 0; margin-bottom: 20px;">` +
+        overdueLines.map((l) =>
+          `<li style="margin: 6px 0;">${l}</li>`).join("") +
+        `</ul>`,
+    );
+    textSections.push("Overdue:\n" + overdueLines.join("\n") + "\n");
+  }
+
+  for (let d = weekStart;
+    d.isSameOrBefore(weekEnd, "day");
+    d = d.add(1, "day")) {
+    const key = d.format("YYYY-MM-DD");
+    const todos = byDay[key] || [];
+    if (todos.length === 0) continue;
+
+    const dayLabel = dayNames[d.day()] + " " + d.format("MMM D");
+    const lines = todos.map((t) => formatTodoLine(t, plantIdToDisplayName));
+
+    htmlSections.push(
+        `<p style="margin-bottom: 8px;"><strong>${dayLabel}</strong></p>` +
+        `<ul style="list-style: none; padding-left: 0; margin-bottom: 20px;">` +
+        lines.map((l) => `<li style="margin: 6px 0;">• ${l}</li>`).join("") +
+        `</ul>`,
+    );
+    const textPart = lines.map((l) => `  • ${l}`).join("\n");
+    textSections.push(`${dayLabel}:\n` + textPart + "\n");
+  }
+
+  const totalCount = overdue.length +
+    Object.values(byDay).reduce((sum, arr) => sum + arr.length, 0);
+
+  if (totalCount === 0) {
+    return true; // Nothing to send
+  }
+
+  const htmlContent = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; 
+    margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+      <div style="background-color: white; border-radius: 8px; 
+      padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h1 style="color: #10b981; margin: 0 0 20px 0;">
+        📅 Your Week Ahead</h1>
+        <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
+          Hi ${userName || "Garden Friend"}! 👋
+        </p>
+        <p style="font-size: 14px; color: #6b7280; margin-bottom: 24px;">
+          Here's your garden at a glance for the week:
+        </p>
+        ${htmlSections.join("")}
+        <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
+          Happy Gardening! 🌻<br>
+          <em>Happy Tomato Garden Planner</em>
+        </p>
+      </div>
+      <p style="text-align: center; color: #9ca3af; 
+      font-size: 12px; margin-top: 20px;">
+        ${new Date().toLocaleDateString()} | 
+        <a href="https://happytomato-c4fed.web.app" 
+        style="color: #10b981; text-decoration: none;">Open App</a>
+      </p>
+    </div>
+  `;
+
+  const msg = {
+    to: userEmail,
+    from: {
+      email: config.from_email,
+      name: "Happy Tomato Garden Planner",
+    },
+    subject: `Your Week Ahead – ${totalCount} Task${
+      totalCount !== 1 ? "s" : ""} for Your Garden`,
+    text: `Hi ${userName || "Garden Friend"}!\n\n` +
+          "Here's your week ahead:\n\n" +
+          textSections.join("\n") +
+          "\nHappy Gardening!\n- Happy Tomato Garden Planner",
+    html: htmlContent,
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`✅ Weekly summary sent to ${userEmail}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Failed to send weekly summary to ${userEmail}:`, error);
+    if (error.response) {
+      console.error("SendGrid error details:", error.response.body);
+    }
+    return false;
+  }
+}
+
+/**
  * Get TODOs due in X days (for advance reminders)
  * @param {Array} events - Array of event objects
  * @param {number} days - Number of days in advance
@@ -351,6 +546,71 @@ const sendTodoReminderEmailHandler = async (data, context) => {
 };
 exports.sendTodoReminderEmail =
   functions.https.onCall(sendTodoReminderEmailHandler);
+
+/**
+ * Callable Cloud Function: Send Weekly Summary email
+ * Called by client for test emails and manual "send now"
+ * @param {Object} data - Call data (userEmail, userName)
+ * @param {Object} context - Firebase call context (auth)
+ * @return {Promise<{success: boolean}>}
+ */
+const sendWeeklySummaryEmailHandler = async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+        "unauthenticated",
+        "User must be authenticated to send weekly summary",
+    );
+  }
+
+  const {userEmail, userName} = data || {};
+  const userId = context.auth.uid;
+
+  if (!userEmail || typeof userEmail !== "string") {
+    throw new functions.https.HttpsError(
+        "invalid-argument",
+        "userEmail is required",
+    );
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(userEmail.trim())) {
+    throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Invalid email address",
+    );
+  }
+
+  const eventsSnapshot = await admin.firestore()
+      .collection("events")
+      .where("userId", "==", userId)
+      .get();
+
+  const userEvents = eventsSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+
+  const weekData = getTodosForWeekAhead(userEvents);
+  const totalCount = weekData.overdue.length +
+    Object.values(weekData.byDay).reduce((sum, arr) => sum + arr.length, 0);
+
+  if (totalCount === 0) {
+    return {success: true}; // Nothing to send, not an error
+  }
+
+  const plantIdToDisplayName = await getPlantIdToDisplayName(userId);
+  const success = await sendWeeklySummaryEmail(
+      userEmail.trim(),
+      (typeof userName === "string" && userName.trim()) ?
+        userName.trim() : "Garden Friend",
+      weekData,
+      plantIdToDisplayName,
+  );
+
+  return {success};
+};
+exports.sendWeeklySummaryEmail =
+  functions.https.onCall(sendWeeklySummaryEmailHandler);
 
 /**
  * Cloud Function: Send Daily Reminders
@@ -666,6 +926,132 @@ exports.sendAdvanceReminders = functions.pubsub
         return null;
       } catch (error) {
         console.error("❌ Error in sendAdvanceReminders:", error);
+        return null;
+      }
+    });
+
+/**
+ * Cloud Function: Send Weekly Summary
+ * Runs every hour on Sunday and Monday; sends "here's your week ahead" email
+ */
+exports.sendWeeklySummary = functions.pubsub
+    .schedule("0 * * * *") // Every hour at :00
+    .timeZone("Europe/Vilnius")
+    .onRun(async (context) => {
+      console.log("🔍 Checking for weekly summary to send...");
+
+      const now = dayjs.tz(new Date(), "Europe/Vilnius");
+      const dayOfWeek = now.day(); // 0=Sun, 1=Mon, ...
+      const currentHour = now.hour();
+
+      // Only run on Sunday or Monday
+      if (dayOfWeek !== 0 && dayOfWeek !== 1) {
+        console.log(
+            `Not Sunday/Monday (day=${dayOfWeek}), skipping weekly summary`,
+        );
+        return null;
+      }
+
+      try {
+        const prefsSnapshot = await admin.firestore()
+            .collection("emailPreferences")
+            .where("enabled", "==", true)
+            .where("weeklySummary", "==", true)
+            .get();
+
+        if (prefsSnapshot.empty) {
+          console.log("No users with weekly summary enabled");
+          return null;
+        }
+
+        for (const prefDoc of prefsSnapshot.docs) {
+          const prefs = prefDoc.data();
+          const userId = prefs.userId;
+
+          const weeklyTime = prefs.weeklySummaryTime || "08:00";
+          const [summaryHour] = weeklyTime.split(":").map(Number);
+
+          if (currentHour !== summaryHour) {
+            continue;
+          }
+
+          // Only send once per week
+          const lastSent = prefs.lastWeeklySummarySent ?
+            dayjs.tz(
+                prefs.lastWeeklySummarySent.toDate(),
+                "Europe/Vilnius",
+            ) : null;
+          if (lastSent) {
+            const thisWeekStart = now.day() === 0 ?
+              now.add(1, "day").startOf("day") :
+              now.startOf("week").add(1, "day");
+            const lastSentWeekStart = lastSent.day() === 0 ?
+              lastSent.add(1, "day").startOf("day") :
+              lastSent.startOf("week").add(1, "day");
+            if (thisWeekStart.isSame(lastSentWeekStart, "day")) {
+              console.log(
+                  `Already sent weekly summary to ${prefs.userEmail} this week`,
+              );
+              continue;
+            }
+          }
+
+          if (!userId) {
+            console.log(
+                `No userId for ${prefs.userEmail}, skipping weekly summary`,
+            );
+            continue;
+          }
+
+          const eventsSnapshot = await admin.firestore()
+              .collection("events")
+              .where("userId", "==", userId)
+              .get();
+
+          const userEvents = eventsSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
+          const weekData = getTodosForWeekAhead(userEvents);
+          const totalCount = weekData.overdue.length +
+            Object.values(weekData.byDay).reduce(
+                (sum, arr) => sum + arr.length, 0);
+
+          if (totalCount === 0) {
+            console.log(`No TODOs for week ahead for ${prefs.userEmail}`);
+            continue;
+          }
+
+          console.log(
+              `📧 Sending weekly summary to ${prefs.userEmail} ` +
+              `(${totalCount} tasks)`,
+          );
+
+          const plantIdToDisplayName =
+            await getPlantIdToDisplayName(userId);
+          const success = await sendWeeklySummaryEmail(
+              prefs.userEmail,
+              prefs.userName,
+              weekData,
+              plantIdToDisplayName,
+          );
+
+          if (success) {
+            await admin.firestore()
+                .collection("emailPreferences")
+                .doc(prefDoc.id)
+                .update({
+                  lastWeeklySummarySent: admin.firestore
+                      .FieldValue.serverTimestamp(),
+                });
+          }
+        }
+
+        console.log("✅ Weekly summary check complete");
+        return null;
+      } catch (error) {
+        console.error("❌ Error in sendWeeklySummary:", error);
         return null;
       }
     });

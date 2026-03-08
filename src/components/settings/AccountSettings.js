@@ -310,6 +310,21 @@ function AccountSettings({ onClose }) {
                               Advance reminders
                             </label>
                           </div>
+                          <div className="form-check">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              id="weekly-summary"
+                              checked={emailDraft.weeklySummary ?? false}
+                              onChange={(e) => setEmailDraft(prev => ({
+                                ...prev,
+                                weeklySummary: e.target.checked
+                              }))}
+                            />
+                            <label className="form-check-label" htmlFor="weekly-summary">
+                              Weekly summary (here&apos;s your week ahead)
+                            </label>
+                          </div>
                           <div>
                             <label className="form-label" htmlFor="advance-days">
                               Advance Notice (Days)

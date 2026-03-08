@@ -115,7 +115,7 @@ class NotificationService {
 
   /**
    * Force send a reminder immediately (for testing or manual trigger)
-   * @param {string} reminderType - Type of reminder to send ('daily' or 'advance')
+   * @param {string} reminderType - Type of reminder to send ('daily', 'advance', or 'weekly')
    * @returns {Promise<boolean>} Success status
    */
   async sendManualReminder(reminderType = 'daily') {
@@ -128,6 +128,8 @@ class NotificationService {
       
       if (reminderType === 'advance') {
         success = await this.emailHook.sendAdvanceReminder();
+      } else if (reminderType === 'weekly') {
+        success = await this.emailHook.sendWeeklySummary();
       } else {
         success = await this.emailHook.sendDailyReminder();
       }
