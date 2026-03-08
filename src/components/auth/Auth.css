@@ -1,8 +1,22 @@
 /* Auth Components Styles */
 .auth-container {
   min-height: 100vh;
-  background: radial-gradient(circle at top right, #ffffff 0%, #eef1ff 40%, #e9ecff 100%);
   padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Tomato Background Pattern */
+.tomato-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.tomato-bg-item {
+  position: absolute;
+  object-fit: contain;
 }
 
 .auth-card {
@@ -10,6 +24,8 @@
   max-width: 460px;
   border-radius: 1rem;
   animation: slideUp 0.4s ease-out;
+  position: relative;
+  z-index: 1;
 }
 
 .auth-card .card-body {
@@ -36,7 +52,33 @@
 }
 
 .auth-form .form-control:focus {
-  box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.2);
+  border-color: #2e7d32;
+}
+
+.auth-container .btn-primary {
+  background-color: #2e7d32;
+  border-color: #2e7d32;
+}
+
+.auth-container .btn-primary:hover {
+  background-color: #1b5e20;
+  border-color: #1b5e20;
+}
+
+.auth-container .btn-primary:focus,
+.auth-container .btn-primary:active {
+  background-color: #1b5e20;
+  border-color: #1b5e20;
+  box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.3);
+}
+
+.auth-container .btn-link {
+  color: #2e7d32;
+}
+
+.auth-container .btn-link:hover {
+  color: #1b5e20;
 }
 
 .auth-divider {

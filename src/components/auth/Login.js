@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import TomatoBackground from './TomatoBackground';
 import './Auth.css';
 
 function Login({ onSwitchToSignup, onForgotPassword }) {
@@ -44,10 +45,11 @@ function Login({ onSwitchToSignup, onForgotPassword }) {
 
   return (
     <div className="auth-container d-flex align-items-center justify-content-center">
+      <TomatoBackground />
       <div className="auth-card card shadow-lg border-0">
         <div className="card-body">
           <div className="text-center mb-4">
-            <h2 className="auth-title h3 fw-bold mb-1">Welcome to Happy Tomato</h2>
+            <h2 className="auth-title h3 fw-bold mb-1">Welcome to <span style={{ color: '#2e7d32' }}>Happy Tomato</span></h2>
             <p className="auth-subtitle mb-0">Sign in to your account</p>
           </div>
 

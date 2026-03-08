@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import TomatoBackground from './TomatoBackground';
 import './Auth.css';
 
 function Signup({ onSwitchToLogin }) {
@@ -64,6 +65,7 @@ function Signup({ onSwitchToLogin }) {
 
   return (
     <div className="auth-container d-flex align-items-center justify-content-center">
+      <TomatoBackground />
       <div className="auth-card card shadow-lg border-0">
         <div className="card-body">
           <div className="text-center mb-4">
