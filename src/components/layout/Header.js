@@ -4,7 +4,7 @@ import logo from '../../assets/logo.png';
 import CalendarContext from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
 import { getCurrentWeekIndex } from '../../utils';
-import { useResponsive } from '../../hooks';
+import { useResponsive } from '../../hooks/useResponsive';
 import UserMenu from '../auth/UserMenu';
 
 export default function Header() {
