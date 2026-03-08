@@ -9,7 +9,7 @@ function seededRandom(seed) {
   };
 }
 
-function TomatoBackground({ cols = 8, rows = 9, maxSize = 90, minSize = 40, seed = 500 }) {
+function TomatoBackground({ cols = 9, rows = 10, maxSize = 90, minSize = 40, seed = 500 }) {
   const tomatoes = useMemo(() => {
     const rand = seededRandom(seed);
     const cellW = 100 / cols;

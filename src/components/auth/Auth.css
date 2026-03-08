@@ -106,6 +106,17 @@
 }
 
 /* Responsive Design */
+@media (max-width: 768px) {
+  .tomato-bg-item {
+    max-width: 50px !important;
+    max-height: 50px !important;
+  }
+
+  .tomato-bg-item:nth-child(even) {
+    display: none;
+  }
+}
+
 @media (max-width: 480px) {
   .auth-card .card-body {
     padding: 2rem 1.5rem;
