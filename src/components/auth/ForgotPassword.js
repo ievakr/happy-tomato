@@ -32,7 +32,6 @@ function ForgotPassword({ onBackToLogin }) {
       } else {
         setError('Failed to send reset email. Please try again.');
       }
-      console.error('Password reset error:', err);
     } finally {
       setLoading(false);
     }

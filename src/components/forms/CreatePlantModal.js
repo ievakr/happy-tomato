@@ -4,6 +4,7 @@ import { usePlants } from '../../hooks/usePlants';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { VEGETABLE_ICONS } from '../../constants';
+import { Modal, Icon } from '../common';
 
 export default function CreatePlantModal() {
     const { setShowPlantModal } = useContext(EventContext);
@@ -33,8 +34,7 @@ export default function CreatePlantModal() {
             setPlantVariety('');
             setSelectedIcon('tomato');
             setShowPlantModal(false);
-        } catch (error) {
-            console.error('Failed to create plant:', error);
+        } catch {
             showError('Failed to create plant. Please try again.');
         }
     };
@@ -48,125 +48,103 @@ export default function CreatePlantModal() {
 
     const isLoading = addPlantMutation.isPending;
 
-    return (
+    const footer = (
         <>
-            <div className="modal fade show d-block" role="dialog" aria-modal="true">
-                <div className="modal-dialog modal-dialog-centered">
-                    <div className="modal-content">
-                        <form onSubmit={handleSubmit}>
-                            <div className="modal-header d-flex align-items-center justify-content-between">
-                                <div className="d-flex align-items-center gap-2 flex-grow-1">
-                                    <span className="material-icons-outlined text-muted">
-                                        yard
-                                    </span>
-                                    <h5 className="modal-title">Create Plant</h5>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="btn-close"
-                                    onClick={handleClose}
-                                    aria-label="Close"
-                                    disabled={isLoading}
-                                />
-                            </div>
-                            <div className="modal-body">
-                                <div className="d-grid gap-3">
-                                    <div>
-                                        <label className="form-label d-flex align-items-center gap-2">
-                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
-                                                category
-                                            </span>
-                                            Plant Category
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder="e.g. Tomatoes"
-                                            value={plantCategory}
-                                            onChange={(e) => setPlantCategory(e.target.value)}
-                                            autoFocus
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="form-label d-flex align-items-center gap-2">
-                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
-                                                label
-                                            </span>
-                                            Plant Variety
-                                        </label>
-                                        <input
-                                            type="text"
-                                            className="form-control"
-                                            placeholder="e.g. Cherry"
-                                            value={plantVariety}
-                                            onChange={(e) => setPlantVariety(e.target.value)}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="form-label d-flex align-items-center gap-2">
-                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
-                                                eco
-                                            </span>
-                                            Choose icon
-                                        </label>
-                                        <div 
-                                            className="d-flex flex-wrap gap-2 p-2 border rounded bg-light"
-                                            style={{ minHeight: '80px' }}
-                                        >
-                                            {Object.entries(VEGETABLE_ICONS).map(([iconKey, displayName]) => (
-                                                <button
-                                                    key={iconKey}
-                                                    type="button"
-                                                    className={`btn btn-sm d-flex align-items-center justify-content-center rounded p-2 ${
-                                                        selectedIcon === iconKey 
-                                                            ? 'btn-primary' 
-                                                            : 'btn-outline-secondary'
-                                                    }`}
-                                                    onClick={() => setSelectedIcon(iconKey)}
-                                                    title={displayName}
-                                                    style={{ width: '44px', height: '44px' }}
-                                                >
-                                                    <i 
-                                                        className={`fi fi-rr-${iconKey}`}
-                                                        style={{ fontSize: '1.25rem' }}
-                                                    />
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-secondary"
-                                    onClick={handleClose}
-                                    disabled={isLoading}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="btn btn-success"
-                                    disabled={isLoading || !plantCategory.trim()}
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <span className="spinner-border spinner-border-sm me-2" role="status">
-                                                <span className="visually-hidden">Creating...</span>
-                                            </span>
-                                            Creating...
-                                        </>
-                                    ) : (
-                                        'Create Plant'
-                                    )}
-                                </button>
-                            </div>
-                        </form>
+            <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={handleClose}
+                disabled={isLoading}
+            >
+                Cancel
+            </button>
+            <button
+                type="submit"
+                className="btn btn-success"
+                disabled={isLoading || !plantCategory.trim()}
+            >
+                {isLoading ? (
+                    <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status">
+                            <span className="visually-hidden">Creating...</span>
+                        </span>
+                        Creating...
+                    </>
+                ) : (
+                    'Create Plant'
+                )}
+            </button>
+        </>
+    );
+
+    return (
+        <Modal
+            title="Create Plant"
+            icon="yard"
+            onClose={handleClose}
+            form={{ onSubmit: handleSubmit }}
+            footer={footer}
+            closeDisabled={isLoading}
+        >
+            <div className="d-grid gap-3">
+                <div>
+                    <label className="form-label d-flex align-items-center gap-2">
+                        <Icon name="category" className="text-muted" style={{ fontSize: '1rem' }} />
+                        Plant Category
+                    </label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Tomatoes"
+                        value={plantCategory}
+                        onChange={(e) => setPlantCategory(e.target.value)}
+                        autoFocus
+                    />
+                </div>
+                <div>
+                    <label className="form-label d-flex align-items-center gap-2">
+                        <Icon name="label" className="text-muted" style={{ fontSize: '1rem' }} />
+                        Plant Variety
+                    </label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Cherry"
+                        value={plantVariety}
+                        onChange={(e) => setPlantVariety(e.target.value)}
+                    />
+                </div>
+                <div>
+                    <label className="form-label d-flex align-items-center gap-2">
+                        <Icon name="eco" className="text-muted" style={{ fontSize: '1rem' }} />
+                        Choose icon
+                    </label>
+                    <div
+                        className="d-flex flex-wrap gap-2 p-2 border rounded bg-light"
+                        style={{ minHeight: '80px' }}
+                    >
+                        {Object.entries(VEGETABLE_ICONS).map(([iconKey, displayName]) => (
+                            <button
+                                key={iconKey}
+                                type="button"
+                                className={`btn btn-sm d-flex align-items-center justify-content-center rounded p-2 ${
+                                    selectedIcon === iconKey
+                                        ? 'btn-primary'
+                                        : 'btn-outline-secondary'
+                                }`}
+                                onClick={() => setSelectedIcon(iconKey)}
+                                title={displayName}
+                                style={{ width: '44px', height: '44px' }}
+                            >
+                                                <Icon
+                                                    plantIcon={iconKey}
+                                                    style={{ fontSize: '1.25rem' }}
+                                                />
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>
-            <div className="modal-backdrop fade show" />
-        </>
+        </Modal>
     );
 }

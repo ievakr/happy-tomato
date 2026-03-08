@@ -19,8 +19,8 @@ export default function Sidebar() {
             try {
                 const count = await countEventsWithoutUser();
                 setHasUnassignedEvents(count > 0);
-            } catch (error) {
-                console.error('Error checking for unassigned events:', error);
+            } catch {
+                // Ignore - user may not have permission
             }
         };
         

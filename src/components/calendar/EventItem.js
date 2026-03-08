@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { UI_CONSTANTS } from '../../constants';
 import { useResponsive } from '../../hooks';
+import Icon from '../common/Icon';
 
 /**
  * Individual event item component for calendar display
@@ -24,9 +25,7 @@ const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, show
       <div className="d-flex align-items-center w-100">
         {/* Checkmark icon for completed todos */}
         {isCompletedTodo && (
-          <span className="material-icons-outlined text-success me-1" style={{ fontSize: compact ? '14px' : '18px' }}>
-            check_circle
-          </span>
+          <Icon name="check_circle" className="text-success me-1" style={{ fontSize: compact ? '14px' : '18px' }} />
         )}
         {/* Show time if requested */}
         {showTime && time && (
@@ -116,8 +115,9 @@ const EventIcons = memo(({ labels, plantsById = {}, compact = false, showAllIcon
         
         return (
           <span key={index} className="d-inline-flex align-items-center me-1" title={title}>
-            <i 
-              className={`event-icons fi fi-rr-${iconClass} ${compact ? 'event-icons-compact' : ''}`} 
+            <Icon 
+              plantIcon={iconClass}
+              className={`event-icons ${compact ? 'event-icons-compact' : ''}`}
             />
             {!compact && displayText && (
               <span className="ms-1" style={{ fontSize: '0.75em' }}>{displayText}</span>

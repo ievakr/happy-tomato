@@ -44,7 +44,6 @@ function Signup({ onSwitchToLogin }) {
       } else {
         setError('Failed to create account. Please try again.');
       }
-      console.error('Signup error:', err);
     } finally {
       setLoading(false);
     }
@@ -57,7 +56,6 @@ function Signup({ onSwitchToLogin }) {
       await loginWithGoogle();
     } catch (err) {
       setError('Failed to sign in with Google.');
-      console.error('Google sign-in error:', err);
     } finally {
       setLoading(false);
     }

@@ -78,7 +78,7 @@ function UserMenu() {
       await logout();
       setIsOpen(false);
     } catch (error) {
-      console.error('Failed to log out:', error);
+      // User sees error via UI
     }
   };
 

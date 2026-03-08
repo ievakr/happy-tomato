@@ -47,10 +47,8 @@ export const useEmailNotifications = () => {
         ...preferences,
         updatedAt: new Date().toISOString()
       });
-      
-      console.log('✅ Email preferences synced to Firestore');
     } catch (error) {
-      console.error('❌ Failed to sync preferences to Firestore:', error);
+      // Error propagates to caller
     }
   }, []); // No dependencies - uses parameter directly
 
@@ -66,18 +64,15 @@ export const useEmailNotifications = () => {
   const loadFromFirestore = useCallback(async () => {
     const saved = localStorage.getItem('email-preferences');
     if (!saved) {
-      console.log('⚠️ No local preferences found, skipping Firestore sync');
       return;
     }
     
     const localPrefs = JSON.parse(saved);
     if (!localPrefs.userEmail) {
-      console.log('⚠️ No email configured, skipping Firestore sync');
       return;
     }
     
     try {
-      console.log('🔄 Checking Firestore for updated preferences...');
       const docId = localPrefs.userEmail.replace(/[.#$[\]]/g, '_');
       const docRef = doc(db, 'emailPreferences', docId);
       const docSnap = await getDoc(docRef);
@@ -89,17 +84,7 @@ export const useEmailNotifications = () => {
         const localUpdated = localPrefs.updatedAt || 0;
         const firestoreUpdated = firestorePrefs.updatedAt || 0;
         
-        console.log('📊 Version comparison:', {
-          local: { time: localUpdated, reminderTime: localPrefs.reminderTime },
-          firestore: { time: firestoreUpdated, reminderTime: firestorePrefs.reminderTime }
-        });
-        
         if (firestoreUpdated > localUpdated) {
-          console.log('📥 Loading newer preferences from Firestore', {
-            firestoreTime: firestoreUpdated,
-            localTime: localUpdated,
-            reminderTime: firestorePrefs.reminderTime
-          });
           
           // Update local state with Firestore data
           setEmailPreferences(prev => ({
@@ -112,24 +97,17 @@ export const useEmailNotifications = () => {
             lastAutoAdvanceReminderSent: firestorePrefs.lastAutoAdvanceReminderSent || prev.lastAutoAdvanceReminderSent
           }));
         } else {
-          console.log('📤 Local preferences are up to date or newer', {
-            firestoreTime: firestoreUpdated,
-            localTime: localUpdated
-          });
-          
           // Sync local to Firestore if local is newer
           if (localUpdated > firestoreUpdated) {
-            console.log('📤 Syncing newer local preferences to Firestore');
             syncPreferencesToFirestore(localPrefs);
           }
         }
       } else {
-        console.log('📤 No Firestore preferences found, syncing local to Firestore');
         // No Firestore data yet, sync local to Firestore
         syncPreferencesToFirestore(localPrefs);
       }
     } catch (error) {
-      console.error('❌ Failed to load preferences from Firestore:', error);
+      // Error propagates to caller
     }
   }, [syncPreferencesToFirestore]);
 
@@ -142,7 +120,6 @@ export const useEmailNotifications = () => {
   useEffect(() => {
     const intervalId = setInterval(() => {
       if (emailPreferences.userEmail) {
-        console.log('🔄 Periodic Firestore sync check...');
         loadFromFirestore();
       }
     }, 30000); // Check every 30 seconds
@@ -164,16 +141,12 @@ export const useEmailNotifications = () => {
       
       // If reminder time changed, clear auto reminder timestamps so reminders can be sent at new time
       if (newPreferences.reminderTime && newPreferences.reminderTime !== prev.reminderTime) {
-        console.log('⏰ Reminder time changed from', prev.reminderTime, 'to', newPreferences.reminderTime);
-        console.log('🔄 Clearing auto reminder timestamps to allow sending at new time');
         updated.lastAutoReminderSent = null;
         updated.lastAutoAdvanceReminderSent = null;
       }
       
       // If advance days changed, clear advance reminder timestamp
       if (newPreferences.advanceDays && newPreferences.advanceDays !== prev.advanceDays) {
-        console.log('📅 Advance days changed from', prev.advanceDays, 'to', newPreferences.advanceDays);
-        console.log('🔄 Clearing advance reminder timestamp');
         updated.lastAutoAdvanceReminderSent = null;
       }
 
@@ -285,27 +258,6 @@ export const useEmailNotifications = () => {
   const getTodosInAdvance = (days = 3) => {
     const targetDate = dayjs().add(days, 'days');
     
-    console.log('🔍 getTodosInAdvance DEBUG:', {
-      daysAhead: days,
-      targetDate: targetDate.format('YYYY-MM-DD'),
-      totalEvents: allEvents.length
-    });
-    
-    // Log all events to see what we have
-    const allTodos = allEvents.filter(evt => {
-      const isTodoEvent = evt.isRecurringTodo || 
-                         (typeof evt.title === 'string' && evt.title.startsWith("TO DO:")) ||
-                         (typeof evt.toDo === 'string' && evt.toDo.startsWith("TO DO:"));
-      return isTodoEvent && !evt.completed;
-    });
-    
-    console.log(`📋 All pending todos (${allTodos.length}):`, allTodos.map(t => ({
-      title: t.title || t.toDo,
-      day: dayjs(t.day).format('YYYY-MM-DD'),
-      isRecurringTodo: t.isRecurringTodo,
-      completed: t.completed
-    })));
-    
     const matchingTodos = allEvents.filter(evt => {
       // Include both recurring TODOs and manually created TODOs (title starts with "TO DO:" OR toDo field starts with "TO DO:")
       const isTodoEvent = evt.isRecurringTodo || 
@@ -316,14 +268,8 @@ export const useEmailNotifications = () => {
       const eventDate = dayjs(evt.day);
       const matches = eventDate.isSame(targetDate, 'day');
       
-      if (isTodoEvent && !evt.completed) {
-        console.log(`  📝 Checking todo: ${evt.title || evt.toDo} on ${eventDate.format('YYYY-MM-DD')} - ${matches ? '✅ MATCH' : '❌ no match'}`);
-      }
-      
       return matches;
     });
-    
-    console.log(`✅ Found ${matchingTodos.length} todos matching target date ${targetDate.format('YYYY-MM-DD')}`);
     
     return matchingTodos;
   };
@@ -336,7 +282,6 @@ export const useEmailNotifications = () => {
   const sendDailyReminder = async (isAutomatic = false) => {
 
     if (!emailPreferences.enabled || !emailPreferences.userEmail) {
-      console.log('❌ Email notifications not enabled or email not configured');
       return false;
     }
 
@@ -350,13 +295,12 @@ export const useEmailNotifications = () => {
         if (lastSent) {
           const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
           if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
-            console.log('⏭️ Daily reminder already sent today (from another tab/device), skipping');
             return true;
           }
         }
       }
     } catch (e) {
-      console.warn('Could not check Firestore before send:', e);
+      // Error checking Firestore - continue with send attempt
     }
 
     const dueTodos = getDueTodos();
@@ -364,7 +308,6 @@ export const useEmailNotifications = () => {
     const allTodos = [...overdueTodos, ...dueTodos];
 
     if (allTodos.length === 0) {
-      console.log('⚠️ No TODOs to remind about');
       return true; // No error, just nothing to send
     }
 
@@ -385,13 +328,10 @@ export const useEmailNotifications = () => {
         setEmailPreferences(prev => ({ ...prev, ...updated }));
         // Sync to Firestore so Cloud Functions and other tabs see we already sent
         if (updated.userEmail) syncPreferencesToFirestore(updated);
-      } else {
-        console.log('❌ Email service returned false');
       }
 
       return success;
     } catch (error) {
-      console.error('❌ Failed to send daily reminder:', error);
       return false;
     }
   };
@@ -404,7 +344,6 @@ export const useEmailNotifications = () => {
   const sendAdvanceReminder = async (isAutomatic = false) => {
 
     if (!emailPreferences.enabled || !emailPreferences.userEmail || !emailPreferences.advanceReminders) {
-      console.log('❌ Advance reminders not enabled or email not configured');
       return false;
     }
 
@@ -418,19 +357,17 @@ export const useEmailNotifications = () => {
         if (lastSent) {
           const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
           if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
-            console.log('⏭️ Advance reminder already sent today (from another tab/device), skipping');
             return true;
           }
         }
       }
     } catch (e) {
-      console.warn('Could not check Firestore before send:', e);
+      // Error checking Firestore - continue with send attempt
     }
 
     const advanceTodos = getTodosInAdvance(emailPreferences.advanceDays);
 
     if (advanceTodos.length === 0) {
-      console.log('⚠️ No TODOs due in advance period to remind about');
       return true; // No error, just nothing to send
     }
 
@@ -451,13 +388,10 @@ export const useEmailNotifications = () => {
         setEmailPreferences(prev => ({ ...prev, ...updated }));
         // Sync to Firestore so Cloud Functions and other tabs see we already sent
         if (updated.userEmail) syncPreferencesToFirestore(updated);
-      } else {
-        console.log('❌ Advance email service returned false');
       }
 
       return success;
     } catch (error) {
-      console.error('❌ Failed to send advance reminder:', error);
       return false;
     }
   };
@@ -470,12 +404,10 @@ export const useEmailNotifications = () => {
    */
   const sendImmediateReminder = async (todos, reminderType = 'TODO Reminder') => {
     if (!emailPreferences.enabled || !emailPreferences.userEmail) {
-      console.log('Email notifications not enabled or email not configured');
       return false;
     }
 
     if (!todos || todos.length === 0) {
-      console.log('No TODOs provided for reminder');
       return false;
     }
 
@@ -487,7 +419,6 @@ export const useEmailNotifications = () => {
         reminderType: reminderType
       });
     } catch (error) {
-      console.error('Failed to send immediate reminder:', error);
       return false;
     }
   };
@@ -510,10 +441,6 @@ export const useEmailNotifications = () => {
    */
   const shouldSendDailyReminder = () => {
     if (!emailPreferences.enabled || !emailPreferences.dailyReminder) {
-      console.log('❌ Daily reminder check: Not enabled or disabled', {
-        enabled: emailPreferences.enabled,
-        dailyReminder: emailPreferences.dailyReminder
-      });
       return false;
     }
 
@@ -538,19 +465,6 @@ export const useEmailNotifications = () => {
     const overdueTodos = getOverdueTodos();
     const hasTodosToRemind = dueTodos.length > 0 || overdueTodos.length > 0;
 
-    console.log('🔍 Daily reminder check details:', {
-      currentTime: now.format('HH:mm:ss'),
-      reminderTime: emailPreferences.reminderTime,
-      reminderTimeToday: reminderTimeToday.format('HH:mm:ss'),
-      isTimeToSend,
-      haventSentAutoToday,
-      hasTodosToRemind,
-      lastSent: lastSent ? lastSent.format('YYYY-MM-DD HH:mm:ss') : 'Never',
-      dueTodosCount: dueTodos.length,
-      overdueTodosCount: overdueTodos.length,
-      shouldSend: isTimeToSend && haventSentAutoToday && hasTodosToRemind
-    });
-
     return isTimeToSend && haventSentAutoToday && hasTodosToRemind;
   };
 
@@ -560,10 +474,6 @@ export const useEmailNotifications = () => {
    */
   const shouldSendAdvanceReminder = () => {
     if (!emailPreferences.enabled || !emailPreferences.advanceReminders) {
-      console.log('❌ Advance reminder check: Not enabled or disabled', {
-        enabled: emailPreferences.enabled,
-        advanceReminders: emailPreferences.advanceReminders
-      });
       return false;
     }
 
@@ -586,19 +496,6 @@ export const useEmailNotifications = () => {
     // Check if there are actually TODOs due in the advance period
     const advanceTodos = getTodosInAdvance(emailPreferences.advanceDays);
     const hasTodosToRemind = advanceTodos.length > 0;
-
-    console.log('🔍 Advance reminder check details:', {
-      currentTime: now.format('HH:mm:ss'),
-      reminderTime: emailPreferences.reminderTime,
-      reminderTimeToday: reminderTimeToday.format('HH:mm:ss'),
-      isTimeToSend,
-      haventSentAutoToday,
-      hasTodosToRemind,
-      advanceDays: emailPreferences.advanceDays,
-      lastSent: lastSent ? lastSent.format('YYYY-MM-DD HH:mm:ss') : 'Never',
-      advanceTodosCount: advanceTodos.length,
-      shouldSend: isTimeToSend && haventSentAutoToday && hasTodosToRemind
-    });
 
     return isTimeToSend && haventSentAutoToday && hasTodosToRemind;
   };

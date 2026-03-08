@@ -109,7 +109,6 @@ export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6
   const actionDate = dayjs(actionEvent.day);
   const expectedNextDate = actionDate.add(recurringInfo.interval, recurringInfo.unit);
   if (expectedNextDate.isBefore(today) && futureRecurringTodos.length === 0) {
-    console.log(`🚫 Recurring series appears to be cancelled by user for action: ${actionToMatch}`);
     return []; // Don't regenerate cancelled series
   }
   
@@ -125,11 +124,9 @@ export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6
   if (generateAllOccurrences) {
     currentDate = startDate; // Start from the selected date itself
     todosToGenerate = recurringInfo.maxOccurrences; // Generate all occurrences
-    console.log(`📊 User TODO recurring generation: maxOccurrences=${recurringInfo.maxOccurrences}, will generate ${todosToGenerate} TODOs starting from ${startDate.format('DD-MM-YY')}`);
   } else {
     currentDate = startDate.add(recurringInfo.interval, recurringInfo.unit); // Start from next interval
     todosToGenerate = recurringInfo.maxOccurrences - 1; // Generate additional todos
-    console.log(`📊 Action recurring TODO generation: maxOccurrences=${recurringInfo.maxOccurrences}, will generate ${todosToGenerate} additional TODOs`);
   }
   
   let todosCreated = 0;
@@ -206,16 +203,10 @@ export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6
       
       todos.push(todoEvent);
       todosCreated++;
-      console.log(`✅ Created TODO ${todosCreated}/${todosToGenerate} for ${currentDateStr}`);
-    } else {
-      console.log(`⏭️ Skipping TODO creation for ${currentDateStr} - TODO already exists:`, existingTodoForDate.title);
     }
     
     currentDate = currentDate.add(recurringInfo.interval, recurringInfo.unit);
   }
-  
-  console.log(`📊 Recurring TODO generation complete: created ${todosCreated} TODOs (target was ${todosToGenerate})`);
-  
   return todos;
 };
 

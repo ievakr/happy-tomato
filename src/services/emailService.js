@@ -52,18 +52,15 @@ class EmailService {
   async sendTodoReminder(params) {
     try {
       if (!params || typeof params !== 'object') {
-        console.error('❌ Invalid email parameters - expected an object');
         return false;
       }
 
       if (!this.isValidEmail(params.userEmail)) {
-        console.error('❌ Invalid user email address for reminder');
         return false;
       }
 
       const sanitizedTodos = this.sanitizeTodos(params.todos);
       if (sanitizedTodos.length === 0) {
-        console.error('❌ No valid TODOs provided for reminder');
         return false;
       }
 
@@ -80,19 +77,10 @@ class EmailService {
       });
 
       if (data?.success !== true) {
-        console.error('❌ Email callable returned success:', data?.success, data);
         return false;
       }
       return true;
     } catch (error) {
-      const code = error?.code || error?.message;
-      const details = error?.details || error?.message;
-      console.error('❌ Failed to send email:', {
-        code,
-        message: error?.message,
-        details,
-        fullError: error
-      });
       return false;
     }
   }
@@ -203,7 +191,6 @@ class EmailService {
    */
   async testEmailConfiguration(testEmail) {
     if (!this.isValidEmail(testEmail)) {
-      console.error('❌ Invalid test email address');
       return false;
     }
 

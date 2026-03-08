@@ -22,9 +22,8 @@ function Login({ onSwitchToSignup, onForgotPassword }) {
       setError('');
       setLoading(true);
       await login(email, password);
-    } catch (err) {
+    } catch {
       setError('Failed to sign in. Please check your credentials.');
-      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -35,9 +34,8 @@ function Login({ onSwitchToSignup, onForgotPassword }) {
       setError('');
       setLoading(true);
       await loginWithGoogle();
-    } catch (err) {
+    } catch {
       setError('Failed to sign in with Google.');
-      console.error('Google sign-in error:', err);
     } finally {
       setLoading(false);
     }

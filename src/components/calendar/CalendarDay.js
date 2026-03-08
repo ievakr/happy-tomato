@@ -4,6 +4,7 @@ import CalendarContext from '../../context/CalendarContext';
 import EventContext from '../../context/EventContext';
 import { UI_CONSTANTS } from '../../constants';
 import { useResponsive, useRecurringActions } from '../../hooks';
+import Icon from '../common/Icon';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
@@ -136,9 +137,7 @@ export default function CalendarDay({ day, rowIndex }) {
                         title={evt.title || evt.toDo ? `${evt.title || evt.toDo}${evt.description ? ' - ' + evt.description : ''}` : ''}
                     >
                         <div className="d-flex align-items-center w-100">
-                            <span className="material-icons-outlined me-1" style={{ fontSize: '12px' }}>
-                                {getEventIcon(evt)}
-                            </span>
+                            <Icon name={getEventIcon(evt)} className="me-1" style={{ fontSize: '12px' }} />
                             <div className="d-flex flex-wrap align-items-center flex-grow-1" style={{
                                 maxWidth: "100%", 
                                 wordWrap: 'break-word'
@@ -186,7 +185,7 @@ export default function CalendarDay({ day, rowIndex }) {
                                                     const title = plant ? (plant.variety ? `${plant.category} - ${plant.variety}` : plant.category) : label;
                                                     return (
                                                         <span key={labelIdx} className="d-inline-flex align-items-center me-1" title={title} style={{ fontSize: "12px", lineHeight: "1" }}>
-                                                            <i className={`event-icons fi fi-rr-${iconClass}`} style={{ minWidth: "12px", marginRight: "2px" }} />
+                                                            <Icon plantIcon={iconClass} className="event-icons" style={{ minWidth: "12px", marginRight: "2px" }} />
                                                             {displayText && <span style={{ fontSize: "0.6rem" }}>{displayText}</span>}
                                                         </span>
                                                     );

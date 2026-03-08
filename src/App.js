@@ -1,13 +1,13 @@
-import React, { useContext, useEffect, Suspense, lazy } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import './styles/variables.css';
 import './App.css';
 import { useCalendar } from './hooks/useCalendar';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
-import CalendarContext from './context/CalendarContext';
-import EventContext from './context/EventContext';
-import LayoutContext from './context/LayoutContext';
+import { useCalendarContext } from './context/CalendarContext';
+import { useEventContext } from './context/EventContext';
+import { useLayoutContext } from './context/LayoutContext';
 import { getLoadingMessage } from './utils';
 import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay, LoadingSpinner, OfflineBanner, ServiceWorkerUpdateBanner } from './components/common';
 import errorLogger from './utils/errorLogger';
@@ -31,9 +31,9 @@ const ManagePlantsModal = lazy(() => import('./components/forms/ManagePlantsModa
  */
 function App() {
   const { currentMonth } = useCalendar();
-  const { showEventModal, showPlantModal, showManagePlantsModal, setShowManagePlantsModal, isInitialLoading, loadingOperation } = useContext(EventContext);
-  const { showSidebar } = useContext(LayoutContext);
-  const { currentView } = useContext(CalendarContext);
+  const { showEventModal, showPlantModal, showManagePlantsModal, setShowManagePlantsModal, isInitialLoading, loadingOperation } = useEventContext();
+  const { showSidebar } = useLayoutContext();
+  const { currentView } = useCalendarContext();
   const emailNotifications = useEmailNotifications();
   const isOnline = useOnlineStatus();
   const { updateReady, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();

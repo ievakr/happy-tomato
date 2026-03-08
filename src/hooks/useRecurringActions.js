@@ -28,22 +28,16 @@ export const useRecurringActions = () => {
                                       actionEvent.toDo;
       
       if (isUserTodoWithRecurring) {
-        console.log(`📝 Creating user TODO with recurring config:`, actionEvent.userRecurringConfig);
-        console.log(`📊 actionEvent:`, actionEvent);
-        
         // For user-created TODOs with recurring enabled:
         // Generate ALL occurrences (including the first one) based on maxOccurrences
         // Don't create the original event separately
         const recurringTodos = generateRecurringToDos(actionEvent, '', 6, filteredEvents, true);
-        
-        console.log(`📝 Generated ${recurringTodos.length} recurring TODOs, creating them now...`);
         
         // Create each TO DO event (Firebase will assign IDs)
         for (const todo of recurringTodos) {
           await dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: todo });
         }
         
-        console.log(`✅ Created ${recurringTodos.length} recurring TODOs based on user config`);
         return;
       }
       
@@ -73,7 +67,6 @@ export const useRecurringActions = () => {
       if (shouldGenerateRecurringTodos(sourceItem, dosageText, actionEvent.userRecurringConfig)) {
         // Check if this action has been marked as having its recurring series cancelled
         if (actionEvent.recurringCancelled) {
-          console.log(`🚫 Skipping recurring TODO generation - series was cancelled for: ${sourceItem}`);
           return;
         }
         
@@ -84,11 +77,8 @@ export const useRecurringActions = () => {
         for (const todo of recurringTodos) {
           await dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: todo });
         }
-        
-        console.log(`Created "${sourceItem}" with ${recurringTodos.length} recurring TO DOs`);
       }
     } catch (error) {
-      console.error('Failed to create action with recurring TOs DOs:', error);
       throw error;
     }
   };
@@ -113,10 +103,7 @@ export const useRecurringActions = () => {
       
       // Update the existing event to mark it as completed
       await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: completedAction });
-      
-      console.log(`Completed TO DO: ${todoEvent.title}`);
     } catch (error) {
-      console.error('Failed to complete TO DO:', error);
       throw error;
     }
   };
@@ -134,9 +121,7 @@ export const useRecurringActions = () => {
       };
       
       await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedTodo });
-      console.log(`Marked TO DO as completed: ${todoEvent.title}`);
     } catch (error) {
-      console.error('Failed to mark TO DO as completed:', error);
       throw error;
     }
   };
@@ -232,8 +217,6 @@ export const useRecurringActions = () => {
                          (typeof evt.toDo === 'string' && evt.toDo.startsWith("TO DO:"));
       return isTodoEvent && !evt.completed;
     });
-    console.log(`📊 getAllPendingTodos: Found ${pendingTodos.length} pending todos out of ${filteredEvents.length} total events`);
-    console.log(`📝 Pending todos:`, pendingTodos.map(t => `${t.title} (ID: ${t.id}, isRecurringTodo: ${t.isRecurringTodo || 'manual'}, completed: ${t.completed})`));
     return pendingTodos;
   };
 
@@ -247,39 +230,27 @@ export const useRecurringActions = () => {
     try {
       let todosToDelete = getAllPendingTodos();
       
-      console.log(`🔍 BULK DELETE DEBUG: Found ${todosToDelete.length} pending todos to potentially delete`);
-      console.log(`📋 All pending todos:`, todosToDelete.map(t => `${t.title} on ${dayjs(t.day).format('YYYY-MM-DD')} (ID: ${t.id})`));
-      
       // Apply filters if provided
       if (filterAction) {
         todosToDelete = todosToDelete.filter(evt => 
           evt.actions && evt.actions.includes(filterAction)
         );
-        console.log(`🔍 After action filter: ${todosToDelete.length} todos remaining`);
       }
       
       if (filterLabels && filterLabels.length > 0) {
         todosToDelete = todosToDelete.filter(evt =>
           evt.labels && filterLabels.some(label => evt.labels.includes(label))
         );
-        console.log(`🔍 After label filter: ${todosToDelete.length} todos remaining`);
       }
       
-      console.log(`🗑️ BULK DELETE: Deleting ${todosToDelete.length} recurring TO DO events...`);
-      console.log(`🗑️ Todos to delete:`, todosToDelete.map(t => `${t.title} on ${dayjs(t.day).format('YYYY-MM-DD')} (ID: ${t.id})`));
-      
       // Delete all todos in parallel for better performance
-      const deletePromises = todosToDelete.map((todo, index) => {
-        console.log(`🗑️ [${index + 1}/${todosToDelete.length}] Deleting: ${todo.title} (ID: ${todo.id})`);
-        return dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: todo });
-      });
+      const deletePromises = todosToDelete.map((todo) =>
+        dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: todo })
+      );
       
       await Promise.all(deletePromises);
       
-      console.log(`✅ BULK DELETE COMPLETED: Successfully deleted ${todosToDelete.length} recurring TO DO events`);
-      
       // Cancel the recurring series to prevent regeneration
-      console.log('🚫 Cancelling recurring series to prevent regeneration...');
       const actionsCancelled = new Set();
       
       for (const todo of todosToDelete) {
@@ -291,17 +262,14 @@ export const useRecurringActions = () => {
           actionsCancelled.add(actionToCancel);
           try {
             await cancelRecurringSeries(actionToCancel, todo.labels);
-            console.log(`✅ Cancelled recurring series for: ${actionToCancel}`);
           } catch (cancelError) {
-            console.warn(`⚠️ Failed to cancel series for ${actionToCancel}:`, cancelError);
+            // Failed to cancel series
           }
         }
       }
       
-      console.log(`🚫 Cancelled ${actionsCancelled.size} recurring series`);
       return todosToDelete.length;
     } catch (error) {
-      console.error('❌ BULK DELETE FAILED:', error);
       throw error;
     }
   };
@@ -351,19 +319,15 @@ export const useRecurringActions = () => {
       });
       
       if (todosToDelete.length > 0) {
-        console.log(`Deleting ${todosToDelete.length} recurring todos for updated event...`);
-        
         const deletePromises = todosToDelete.map(todo => 
           dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: todo })
         );
         
         await Promise.all(deletePromises);
-        console.log(`✅ Deleted ${todosToDelete.length} old recurring todos`);
       }
       
       return todosToDelete.length;
     } catch (error) {
-      console.error('Failed to delete recurring todos for event:', error);
       throw error;
     }
   };
@@ -377,19 +341,12 @@ export const useRecurringActions = () => {
     try {
       // Safety check: ensure we have valid event data
       if (!originalEvent || !originalEvent.id) {
-        console.error('⚠️ No original event provided or missing ID!');
-        console.error('originalEvent:', originalEvent);
-        console.error('updatedEvent:', updatedEvent);
         throw new Error('Cannot update event: missing original event or ID');
       }
       
       if (!updatedEvent || !updatedEvent.id) {
-        console.error('⚠️ Updated event is missing ID!');
-        console.error('updatedEvent:', updatedEvent);
         throw new Error('Cannot update event: missing updated event ID');
       }
-
-      console.log(`🔄 Updating event: ${originalEvent.id}`);
       
       // Check if this event has recurring potential
       const hasActions = updatedEvent.actions && updatedEvent.actions.length > 0;
@@ -400,7 +357,6 @@ export const useRecurringActions = () => {
       
       if (!hasActions && !hasTodos) {
         // No recurring potential, just update normally
-        console.log('📝 Regular event update (no recurring patterns)');
         await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
         return;
       }
@@ -417,8 +373,6 @@ export const useRecurringActions = () => {
                                       updatedEvent.userRecurringConfig.enabled;
       
       if (isConvertingToRecurring) {
-        console.log('🔄 Converting simple TODO to recurring - generating series');
-        
         // Update the original event to mark it as recurring
         const recurringEvent = {
           ...updatedEvent,
@@ -431,19 +385,14 @@ export const useRecurringActions = () => {
         // Pass false for generateAllOccurrences since the first one already exists
         const additionalTodos = generateRecurringToDos(recurringEvent, '', 6, filteredEvents, false);
         
-        console.log(`📝 Generating ${additionalTodos.length} additional occurrences`);
-        
         for (const todo of additionalTodos) {
           await dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: todo });
         }
         
-        console.log('✅ Successfully converted to recurring TODO series');
         return;
       }
       
       if (dateChanged) {
-        console.log(`📅 Date changed from ${originalDate.format('YYYY-MM-DD')} to ${newDate.format('YYYY-MM-DD')} - recalculating recurring events...`);
-        
         try {
           const firstAction = updatedEvent.actions && updatedEvent.actions.length > 0 ? updatedEvent.actions[0] : null;
           const firstTodo = Array.isArray(updatedEvent.toDo) ? updatedEvent.toDo[0] : updatedEvent.toDo;
@@ -454,11 +403,8 @@ export const useRecurringActions = () => {
             const isUserRecurringTodo = updatedEvent.userRecurringConfig && updatedEvent.userRecurringConfig.enabled;
             
             if (isUserRecurringTodo) {
-              console.log('🔄 Updating user-created recurring TODO - will shift subsequent events');
-              
               // Calculate the date shift (how many days the event was moved)
               const dateShift = newDate.diff(originalDate, 'day');
-              console.log(`📅 Date shift: ${dateShift} days`);
               
               if (firstAction || firstTodo) {
                 const actionToMatch = firstAction || firstTodo;
@@ -489,18 +435,13 @@ export const useRecurringActions = () => {
                   return hasMatchingAction && hasMatchingLabels;
                 }).sort((a, b) => a.day - b.day); // Sort by date
                 
-                console.log(`📋 Found ${seriesEvents.length} events in the series`);
-                
                 // Update the current event
                 await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
-                console.log(`✅ Updated current event`);
                 
                 // Find and shift all events AFTER the current one
                 const eventsToShift = seriesEvents.filter(evt => 
                   evt.id !== updatedEvent.id && dayjs(evt.day).isAfter(originalDate)
                 );
-                
-                console.log(`🔄 Shifting ${eventsToShift.length} subsequent events by ${dateShift} days`);
                 
                 for (const evt of eventsToShift) {
                   const shiftedEvent = {
@@ -508,16 +449,13 @@ export const useRecurringActions = () => {
                     day: dayjs(evt.day).add(dateShift, 'day').valueOf()
                   };
                   await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: shiftedEvent });
-                  console.log(`✅ Shifted event from ${dayjs(evt.day).format('YYYY-MM-DD')} to ${dayjs(shiftedEvent.day).format('YYYY-MM-DD')}`);
                 }
               }
               
-              console.log('✅ User recurring TODO series update complete');
               return; // Exit early - we've handled the entire series
               
             } else {
               // Legacy behavior for recurring TODOs without userRecurringConfig
-              console.log('🔄 Updating legacy recurring TODO');
               
               // For legacy recurring TODOs: Delete OTHER recurring todos in the same series (but not this one)
               if (firstAction || firstTodo) {
@@ -613,8 +551,6 @@ export const useRecurringActions = () => {
               const existingEventCount = 1 + existingRelatedEvents.length; // 1 for the updated event + related events
               const maxAdditionalTodos = Math.max(0, maxTotalEvents - existingEventCount);
               
-              console.log(`📊 Counting for recurring series: ${existingEventCount} existing events (max: ${maxTotalEvents}), will create ${maxAdditionalTodos} more`);
-              
               const recurringTodosToCreate = recurringTodos.slice(0, maxAdditionalTodos);
               
               for (const todo of recurringTodosToCreate) {
@@ -625,17 +561,13 @@ export const useRecurringActions = () => {
             }
             
           } else {
-            console.log('🔄 Updating original action event - will recalculate all recurring todos');
-            
             // For original action events: Delete ALL recurring todos that match this event
             if (firstAction || firstTodo) {
               const actionToMatch = firstAction || firstTodo;
-              console.log(`🗑️ Cleaning up ALL recurring todos for action: ${actionToMatch}`);
               await deleteRecurringTodosForEvent(originalEvent.id, actionToMatch, updatedEvent.labels);
             }
             
             // Update the main event
-            console.log('💾 Updating main action event...');
             await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
             
             // Generate new recurring todos if applicable
@@ -645,32 +577,24 @@ export const useRecurringActions = () => {
             }
             
             if (shouldGenerateRecurringTodos(sourceItem, dosageText, updatedEvent.userRecurringConfig)) {
-              console.log(`🔄 Generating new recurring todos with pattern: ${dosageText}`);
               const recurringTodos = generateRecurringToDos(updatedEvent, dosageText, 6, filteredEvents, false);
               
               for (const todo of recurringTodos) {
-                console.log(`➕ Creating new recurring todo: ${todo.title} on ${dayjs(todo.day).format('YYYY-MM-DD')} (Firebase will assign ID)`);
                 await dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: todo });
               }
-              
-              console.log(`✅ Generated ${recurringTodos.length} new recurring todos based on updated date`);
             }
           }
           
         } catch (recalcError) {
-          console.error('❌ Error during recurring event recalculation:', recalcError);
           // If recalculation fails, at least try to save the main event
-          console.log('🛡️ Fallback: attempting to save main event only');
           await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
           throw recalcError;
         }
       } else {
         // Date didn't change, just update normally
-        console.log('📝 Date unchanged - performing normal update');
         await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
       }
     } catch (error) {
-      console.error('❌ Failed to update event with recurring recalculation:', error);
       throw error;
     }
   };
@@ -683,7 +607,6 @@ export const useRecurringActions = () => {
    */
   const cancelRecurringSeries = async (actionName, labels = []) => {
     try {
-      console.log(`🚫 Cancelling recurring series for action: ${actionName}`);
       
       // Find original action events that generated this recurring series
       const originalActions = filteredEvents.filter(evt => {
@@ -707,8 +630,6 @@ export const useRecurringActions = () => {
         return hasMatchingAction && hasMatchingLabels;
       });
       
-      console.log(`📝 Found ${originalActions.length} original actions to mark as cancelled`);
-      
       // Mark each original action as having its recurring series cancelled
       for (const action of originalActions) {
         const updatedAction = {
@@ -718,12 +639,10 @@ export const useRecurringActions = () => {
         };
         
         await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedAction });
-        console.log(`✅ Marked action as cancelled: ${action.title || action.actions?.join(', ')}`);
       }
       
       return originalActions.length;
     } catch (error) {
-      console.error('Failed to cancel recurring series:', error);
       throw error;
     }
   };
@@ -736,7 +655,6 @@ export const useRecurringActions = () => {
    */
   const deleteRecurringTodosByPatternFromFirebase = async (actionName, labels = []) => {
     try {
-      console.log(`🎯 TARGETED DELETE: Looking for recurring todos with action "${actionName}" and labels:`, labels);
       
       // Import Firebase functions
       const { collection, getDocs, deleteDoc, doc, query, where } = await import('firebase/firestore');
@@ -752,8 +670,6 @@ export const useRecurringActions = () => {
         id: doc.id, 
         ...doc.data() 
       }));
-      
-      console.log(`📊 Scanning ${allFirebaseEvents.length} total events in Firebase`);
       
       // Find recurring todos in Firebase that match the specific pattern
       const recurringTodosToDelete = allFirebaseEvents.filter(evt => {
@@ -783,27 +699,19 @@ export const useRecurringActions = () => {
         return hasMatchingAction && hasMatchingLabels;
       });
       
-      console.log(`🎯 Found ${recurringTodosToDelete.length} matching recurring todos in Firebase to delete:`);
-      console.log(recurringTodosToDelete.map(t => `${t.title} (Firebase ID: ${t.id})`));
-      
       if (recurringTodosToDelete.length === 0) {
-        console.log('✅ No matching recurring todos found in Firebase');
         return 0;
       }
       
       // Delete each matching todo from Firebase
       const deletePromises = recurringTodosToDelete.map(async (todo) => {
-        console.log(`🗑️ Deleting from Firebase: ${todo.title} (ID: ${todo.id})`);
         await deleteDoc(doc(db, "events", todo.id));
       });
       
       await Promise.all(deletePromises);
       
-      console.log(`🎯 TARGETED DELETE COMPLETED: Deleted ${recurringTodosToDelete.length} matching recurring todos from Firebase`);
-      
       return recurringTodosToDelete.length;
     } catch (error) {
-      console.error('❌ TARGETED DELETE FAILED:', error);
       throw error;
     }
   };
@@ -814,7 +722,6 @@ export const useRecurringActions = () => {
    */
   const nukeAllRecurringTodosFromFirebase = async () => {
     try {
-      console.log('🧨 NUCLEAR DELETE: Scanning Firebase for all recurring todos...');
       
       // Import Firebase functions
       const { collection, getDocs, deleteDoc, doc, query, where } = await import('firebase/firestore');
@@ -831,34 +738,24 @@ export const useRecurringActions = () => {
         ...doc.data() 
       }));
       
-      console.log(`📊 Found ${allFirebaseEvents.length} total events in Firebase`);
-      
       // Find recurring todos in Firebase
       const recurringTodosInFirebase = allFirebaseEvents.filter(evt => 
         evt.isRecurringTodo === true && evt.completed !== true
       );
       
-      console.log(`🎯 Found ${recurringTodosInFirebase.length} recurring todos in Firebase to delete:`);
-      console.log(recurringTodosInFirebase.map(t => `${t.title} (Firebase ID: ${t.id})`));
-      
       if (recurringTodosInFirebase.length === 0) {
-        console.log('✅ No recurring todos found in Firebase');
         return 0;
       }
       
       // Delete each one from Firebase
       const deletePromises = recurringTodosInFirebase.map(async (todo) => {
-        console.log(`🗑️ Deleting from Firebase: ${todo.title} (ID: ${todo.id})`);
         await deleteDoc(doc(db, "events", todo.id));
       });
       
       await Promise.all(deletePromises);
       
-      console.log(`🧨 NUCLEAR DELETE COMPLETED: Deleted ${recurringTodosInFirebase.length} recurring todos from Firebase`);
-      
       // Also mark the original actions as having their recurring series cancelled
       // to prevent regeneration
-      console.log('🚫 Marking original actions as cancelled to prevent regeneration...');
       const actionsCancelled = new Set();
       
       for (const todo of recurringTodosInFirebase) {
@@ -870,18 +767,14 @@ export const useRecurringActions = () => {
           actionsCancelled.add(actionToCancel);
           try {
             await cancelRecurringSeries(actionToCancel, todo.labels);
-            console.log(`✅ Cancelled recurring series for: ${actionToCancel}`);
           } catch (cancelError) {
-            console.warn(`⚠️ Failed to cancel series for ${actionToCancel}:`, cancelError);
+            // Failed to cancel series
           }
         }
       }
       
-      console.log(`🚫 Cancelled ${actionsCancelled.size} recurring series to prevent regeneration`);
-      
       return recurringTodosInFirebase.length;
     } catch (error) {
-      console.error('❌ NUCLEAR DELETE FAILED:', error);
       throw error;
     }
   };

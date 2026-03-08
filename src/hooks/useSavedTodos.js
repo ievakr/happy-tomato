@@ -83,8 +83,7 @@ export function useSavedTodos() {
       saveSavedTodosToFirestore(currentUser.uid, merged).then(() => {
         queryClient.setQueryData(queryKey, merged);
         localStorage.removeItem(STORAGE_KEY);
-      }).catch((e) => {
-        console.warn('Failed to migrate saved todos to account:', e);
+      }).catch(() => {
         hasMigratedFromStorage.current = false;
       });
     }
@@ -98,8 +97,8 @@ export function useSavedTodos() {
     } else {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch (e) {
-        console.warn('Failed to save todo items to localStorage:', e);
+      } catch {
+        // localStorage may be full or unavailable
       }
       setLocalItems(next);
     }

@@ -81,17 +81,13 @@ function AccountSettings({ onClose }) {
       setError('');
 
       // Step 1: Delete user's events and data
-      console.log('Deleting user data...');
       await deleteAllUserData(currentUser.uid);
 
       // Step 2: Delete the Firebase Auth account
-      console.log('Deleting user account...');
       await deleteAccount(isGoogleUser ? null : password);
 
       // User is automatically logged out and redirected to login screen
-      console.log('Account deleted successfully');
     } catch (err) {
-      console.error('Error deleting account:', err);
       
       if (err.code === 'auth/wrong-password') {
         setError('Incorrect password. Please try again.');

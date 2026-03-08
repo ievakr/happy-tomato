@@ -17,5 +17,4 @@ export { default as EventModal } from './forms/EventModal';
 export { default as CreateEventButton } from './forms/CreateEventButton';
 
 // Common components
-export { default as CustomDropdown } from './common/CustomDropdown';
-export { default as SingleSelectDropdown } from './common/SingleSelectDropdown'; 
+export { default as CustomDropdown } from './common/CustomDropdown'; 

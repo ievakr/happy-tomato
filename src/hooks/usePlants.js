@@ -19,8 +19,8 @@ async function fetchPlants(userId) {
             try {
                 const cacheSnapshot = await getDocsFromCache(plantsQuery);
                 return cacheSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            } catch (cacheError) {
-                console.warn('Offline cache read failed for plants:', cacheError);
+            } catch {
+                // Offline cache read failed
             }
         }
         throw error;

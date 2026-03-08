@@ -17,12 +17,10 @@ class NotificationService {
    */
   start(emailHook) {
     if (this.isRunning) {
-      console.log('Notification service already running, updating email hook reference...');
       this.emailHook = emailHook;
       return;
     }
 
-    console.log('Starting notification service...');
     this.isRunning = true;
     this.emailHook = emailHook;
 
@@ -33,8 +31,6 @@ class NotificationService {
     this.checkInterval = setInterval(() => {
       this.checkForReminders();
     }, this.checkFrequency);
-
-    console.log(`Notification service started - checking every ${this.checkFrequency / 1000} seconds`);
   }
 
   /**
@@ -42,7 +38,6 @@ class NotificationService {
    * @param {Object} emailHook - Updated email notifications hook instance
    */
   updateEmailHook(emailHook) {
-    console.log('Updating notification service email hook reference...');
     this.emailHook = emailHook;
   }
 
@@ -51,12 +46,9 @@ class NotificationService {
    */
   stop() {
     if (!this.isRunning) {
-      console.log('Notification service not running');
       return;
     }
 
-    console.log('Stopping notification service...');
-    
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
@@ -64,7 +56,6 @@ class NotificationService {
 
     this.isRunning = false;
     this.emailHook = null;
-    console.log('Notification service stopped');
   }
 
   /**
@@ -82,53 +73,25 @@ class NotificationService {
       const shouldSendDaily = this.emailHook.shouldSendDailyReminder();
       const shouldSendAdvance = this.emailHook.shouldSendAdvanceReminder();
       const todoSummary = this.emailHook.getTodoSummary();
-      
-      // Log check details for debugging
-      console.log(`🔍 Reminder check at ${this.lastCheck.toLocaleTimeString()}:`, {
-        shouldSendDaily,
-        shouldSendAdvance,
-        todosCount: {
-          dueToday: todoSummary.dueToday,
-          overdue: todoSummary.overdue,
-          advance: todoSummary.advance
-        },
-        preferences: {
-          enabled: this.emailHook.emailPreferences.enabled,
-          dailyReminder: this.emailHook.emailPreferences.dailyReminder,
-          reminderTime: this.emailHook.emailPreferences.reminderTime,
-          userEmail: !!this.emailHook.emailPreferences.userEmail
-        }
-      });
 
       // Only send ONE type of reminder per check cycle to avoid race conditions
       // Priority: Daily reminder first, then advance reminder in next cycle
       if (shouldSendDaily) {
-        console.log('📅 Time for daily reminder - sending email...');
-        
         const success = await this.emailHook.sendDailyReminder(true); // isAutomatic = true
         
         if (success) {
-          console.log('✅ Daily reminder sent successfully');
           this.logNotification('daily_reminder', 'success', `${todoSummary.dueToday + todoSummary.overdue} TODOs`);
         } else {
-          console.warn('⚠️ Failed to send daily reminder');
           this.logNotification('daily_reminder', 'failed');
         }
-        
-        // Skip advance reminder this cycle - it will be sent in the next cycle
-        console.log('⏭️  Skipping advance reminder this cycle (will check in next cycle)');
       } else if (shouldSendAdvance) {
         // Only check advance if daily wasn't sent
         const advanceDays = this.emailHook.emailPreferences.advanceDays || 3;
-        console.log(`🔔 Time for ${advanceDays}-day advance reminder - sending email...`);
-        
         const success = await this.emailHook.sendAdvanceReminder(true); // isAutomatic = true
         
         if (success) {
-          console.log(`✅ ${advanceDays}-day advance reminder sent successfully`);
           this.logNotification('advance_reminder', 'success', `${advanceDays} days ahead - ${todoSummary.advance} TODOs`);
         } else {
-          console.warn(`⚠️ Failed to send ${advanceDays}-day advance reminder`);
           this.logNotification('advance_reminder', 'failed', `${advanceDays} days ahead`);
         }
       }
@@ -146,7 +109,6 @@ class NotificationService {
         }
       }
     } catch (error) {
-      console.error('Error during reminder check:', error);
       this.logNotification('check_error', 'error', error.message);
     }
   }
@@ -158,13 +120,10 @@ class NotificationService {
    */
   async sendManualReminder(reminderType = 'daily') {
     if (!this.emailHook) {
-      console.error('Email hook not available');
       return false;
     }
 
     try {
-      console.log(`Sending manual reminder: ${reminderType}`);
-      
       let success = false;
       
       if (reminderType === 'advance') {
@@ -174,16 +133,13 @@ class NotificationService {
       }
       
       if (success) {
-        console.log(`✅ Manual ${reminderType} reminder sent successfully`);
         this.logNotification('manual_reminder', 'success', reminderType);
       } else {
-        console.warn(`⚠️ Failed to send manual ${reminderType} reminder`);
         this.logNotification('manual_reminder', 'failed', reminderType);
       }
       
       return success;
     } catch (error) {
-      console.error('Error sending manual reminder:', error);
       this.logNotification('manual_reminder', 'error', error.message);
       return false;
     }
@@ -203,8 +159,6 @@ class NotificationService {
       details
     };
 
-    console.log('📧 Notification Log:', logEntry);
-
     // Store in localStorage for debugging (keep last 50 entries)
     try {
       const logs = JSON.parse(localStorage.getItem('notification-logs') || '[]');
@@ -214,7 +168,7 @@ class NotificationService {
       const trimmedLogs = logs.slice(0, 50);
       localStorage.setItem('notification-logs', JSON.stringify(trimmedLogs));
     } catch (error) {
-      console.warn('Failed to save notification log:', error);
+      // Failed to save notification log
     }
   }
 
@@ -226,7 +180,6 @@ class NotificationService {
     try {
       return JSON.parse(localStorage.getItem('notification-logs') || '[]');
     } catch (error) {
-      console.warn('Failed to retrieve notification logs:', error);
       return [];
     }
   }
@@ -237,9 +190,8 @@ class NotificationService {
   clearNotificationLogs() {
     try {
       localStorage.removeItem('notification-logs');
-      console.log('Notification logs cleared');
     } catch (error) {
-      console.warn('Failed to clear notification logs:', error);
+      // Failed to clear notification logs
     }
   }
 
@@ -262,7 +214,6 @@ class NotificationService {
    */
   setCheckFrequency(frequency) {
     if (frequency < 10000) { // Minimum 10 seconds
-      console.warn('Check frequency too low, setting to minimum (10 seconds)');
       frequency = 10000;
     }
 
@@ -273,8 +224,6 @@ class NotificationService {
       this.stop();
       setTimeout(() => this.start(this.emailHook), 100);
     }
-    
-    console.log(`Check frequency updated to ${frequency / 1000} seconds`);
   }
 }
 

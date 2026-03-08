@@ -9,8 +9,6 @@ import { db } from '../firebase';
  */
 export async function deleteUserEvents(userId) {
   try {
-    console.log('🗑️ Deleting all events for user:', userId);
-    
     // Query events for this user
     const eventsQuery = query(
       collection(db, 'events'),
@@ -20,10 +18,7 @@ export async function deleteUserEvents(userId) {
     const eventsSnapshot = await getDocs(eventsQuery);
     const userEvents = eventsSnapshot.docs;
     
-    console.log(`Found ${userEvents.length} events to delete`);
-    
     if (userEvents.length === 0) {
-      console.log('✅ No events to delete');
       return 0;
     }
     
@@ -42,13 +37,9 @@ export async function deleteUserEvents(userId) {
       
       await batch.commit();
       deletedCount += batchDocs.length;
-      console.log(`Deleted ${deletedCount}/${userEvents.length} events`);
     }
-    
-    console.log(`✅ Successfully deleted ${deletedCount} events for user ${userId}`);
     return deletedCount;
   } catch (error) {
-    console.error('❌ Error deleting user events:', error);
     throw error;
   }
 }
@@ -62,27 +53,20 @@ export async function deleteUserEvents(userId) {
  */
 export async function deleteAllUserData(userId) {
   try {
-    console.log('🗑️ Deleting all data for user:', userId);
-    
     const eventsDeleted = await deleteUserEvents(userId);
 
     try {
       const savedTodosRef = doc(db, 'savedTodos', userId);
       await deleteDoc(savedTodosRef);
-      console.log('✅ Deleted saved todos');
-    } catch (e) {
-      console.warn('Could not delete saved todos (may not exist):', e);
+    } catch {
+      // Saved todos may not exist
     }
     
-    const summary = {
+    return {
       eventsDeleted,
       totalDeleted: eventsDeleted
     };
-    
-    console.log('✅ User data deletion summary:', summary);
-    return summary;
   } catch (error) {
-    console.error('❌ Error deleting user data:', error);
     throw error;
   }
 }

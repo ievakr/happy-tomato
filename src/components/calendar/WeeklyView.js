@@ -4,10 +4,13 @@ import CalendarContext from '../../context/CalendarContext';
 import EventContext from '../../context/EventContext';
 import { getWeekByIndex, getWeekDateRange, getDayHeaders, getCurrentWeekIndex } from '../../utils';
 import { useResponsive, useSwipeGestures } from '../../hooks';
+import { useToast } from '../../context/ToastContext';
+import { ConfirmModal } from '../common';
 import EventItem from './EventItem';
 import '../../index.css';
 
 const WeeklyView = () => {
+  const { showError } = useToast();
   const { 
     monthIndex, 
     weekIndex, 
@@ -111,8 +114,8 @@ const WeeklyView = () => {
         await dispatchCallEvent({ type: "delete", payload: eventToDelete });
         setShowDeleteConfirm(false);
         setEventToDelete(null);
-      } catch (error) {
-        console.error('Delete failed:', error);
+      } catch {
+        showError('Failed to delete event. Please try again.');
       }
     }
   };
@@ -271,66 +274,24 @@ const WeeklyView = () => {
         </div>
       </div>
       
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && eventToDelete && (
-        <>
-          <div className="modal fade show d-block" role="dialog" aria-modal="true">
-            <div className="modal-dialog modal-dialog-centered modal-sm">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h6 className="modal-title">Delete Event</h6>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={() => {
-                      setShowDeleteConfirm(false);
-                      setEventToDelete(null);
-                    }}
-                    aria-label="Close"
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="modal-body">
-                  <p className="mb-2 text-muted">
-                    Delete "{eventToDelete.title || eventToDelete.toDo}"?
-                  </p>
-                  <p className="mb-0 text-muted small">This action cannot be undone.</p>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => {
-                      setShowDeleteConfirm(false);
-                      setEventToDelete(null);
-                    }}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-danger"
-                    onClick={confirmDelete}
-                    disabled={isLoading}
-                  >
-                    {isLoading && loadingOperation === 'delete' ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status">
-                          <span className="visually-hidden">Deleting...</span>
-                        </span>
-                        Deleting...
-                      </>
-                    ) : (
-                      'Delete'
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="modal-backdrop fade show" />
-        </>
+        <ConfirmModal
+          title="Delete Event"
+          message={
+            <>
+              <p className="mb-2">Delete "{eventToDelete.title || eventToDelete.toDo}"?</p>
+              <p className="mb-0 small">This action cannot be undone.</p>
+            </>
+          }
+          confirmLabel="Delete"
+          variant="danger"
+          onConfirm={confirmDelete}
+          onCancel={() => {
+            setShowDeleteConfirm(false);
+            setEventToDelete(null);
+          }}
+          isLoading={isLoading && loadingOperation === 'delete'}
+        />
       )}
     </div>
   );

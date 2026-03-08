@@ -46,9 +46,7 @@ export const register = (config) => {
         // Handle already waiting updates (e.g., devtools Update)
         notifyWaitingUpdate();
       })
-      .catch((error) => {
-        console.error('Service worker registration failed:', error);
-      });
+      .catch(() => undefined);
   });
 };
 

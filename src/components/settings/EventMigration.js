@@ -23,7 +23,6 @@ function EventMigration({ onClose }) {
       const count = await countEventsWithoutUser();
       setEventCount(count);
     } catch (err) {
-      console.error('Error checking events:', err);
       setError('Failed to check for unassigned events');
     } finally {
       setLoading(false);
@@ -56,7 +55,6 @@ function EventMigration({ onClose }) {
         window.location.reload();
       }, 2000);
     } catch (err) {
-      console.error('Migration error:', err);
       setError('Failed to migrate events. Please try again.');
     } finally {
       setProcessing(false);
@@ -91,7 +89,6 @@ function EventMigration({ onClose }) {
         window.location.reload();
       }, 2000);
     } catch (err) {
-      console.error('Delete error:', err);
       setError('Failed to delete events. Please try again.');
     } finally {
       setProcessing(false);

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 
 const CalendarContext = React.createContext({
     monthIndex: 0,
@@ -15,5 +15,13 @@ const CalendarContext = React.createContext({
     currentDayIndex: 0,
     setCurrentDayIndex: (index) => {}
 });
+
+export function useCalendarContext() {
+  const ctx = useContext(CalendarContext);
+  if (!ctx) {
+    throw new Error("useCalendarContext must be used within a CalendarProvider");
+  }
+  return ctx;
+}
 
 export default CalendarContext;

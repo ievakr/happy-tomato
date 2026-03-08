@@ -1,5 +1,9 @@
 export { useCalendar } from './useCalendar';
 export { useEvents } from './useEvents';
+export { useEventsQuery } from './useEventsQuery';
+export { useEventOperations } from './useEventOperations';
+export { useEventFiltering } from './useEventFiltering';
+export { useCalendarState } from './useCalendarState';
 export { useResponsive } from './useResponsive';
 export { useErrorHandler } from './useErrorHandler';
 export { useRecurringActions } from './useRecurringActions';

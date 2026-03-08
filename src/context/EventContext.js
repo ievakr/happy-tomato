@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 
 const EventContext = React.createContext({
     showEventModal: false,
@@ -26,5 +26,13 @@ const EventContext = React.createContext({
     isInitialLoading: true,
     loadingOperation: null
 });
+
+export function useEventContext() {
+  const ctx = useContext(EventContext);
+  if (!ctx) {
+    throw new Error("useEventContext must be used within an EventProvider");
+  }
+  return ctx;
+}
 
 export default EventContext;
