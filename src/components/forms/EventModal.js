@@ -429,7 +429,7 @@ export default function EventModal() {
                                             Plants
                                         </label>
                                         <CustomDropdown
-                                            title="Select plant"
+                                            title={(plantNames || []).length ? "Select plant" : "You don't have any plants - create a plant"}
                                             options={plantNames || []}
                                             selectedOptions={selectedLabels || []}
                                             onSelect={setSelectedLabels}
