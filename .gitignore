@@ -25,3 +25,9 @@ yarn-error.log*
 
 # Local Netlify folder
 .netlify
+
+# Capacitor / native
+ios/App/Pods
+android/.gradle
+android/app/build
+android/build

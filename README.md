@@ -47,7 +47,7 @@ Runs the app at [http://localhost:3000](http://localhost:3000).
 ### Build
 
 ```bash
-npm build
+npm run build
 ```
 
 Builds the app for production to the `build` folder.
@@ -100,3 +100,55 @@ firebase deploy --only functions
 ```
 
 Reminders run on a schedule (Europe/Vilnius timezone). Without Functions, email reminders work in-browser only when the app is open.
+
+## Mobile (Capacitor)
+
+The app can be built as native iOS and Android apps using [Capacitor](https://capacitorjs.com/). The web version is unchanged; Capacitor wraps the same build in a native shell.
+
+### Prerequisites
+
+- **iOS**: Xcode (macOS only) and [CocoaPods](https://cocoapods.org/) (`brew install cocoapods`)
+- **Android**: [Android Studio](https://developer.android.com/studio) and Android SDK
+
+### First-time setup
+
+1. Install dependencies and build:
+
+   ```bash
+   npm install
+   npm run build
+   ```
+
+2. Add the native platforms (run once):
+
+   ```bash
+   npx cap add ios
+   npx cap add android
+   ```
+
+3. For iOS, install CocoaPods dependencies:
+
+   ```bash
+   cd ios/App && pod install && cd ../..
+   ```
+
+### Running on device or simulator
+
+After making changes to the React app:
+
+```bash
+npm run cap:sync    # Builds web app and syncs to native projects
+```
+
+Then open in your IDE:
+
+```bash
+npm run cap:ios     # Opens Xcode (build + sync + open)
+npm run cap:android # Opens Android Studio (build + sync + open)
+```
+
+From Xcode or Android Studio, run the app on a simulator/emulator or connected device.
+
+### App configuration
+
+Edit `capacitor.config.ts` to change the app ID (`appId`) or display name (`appName`). The app ID is used for app store submission (e.g. `com.happytomato.app`).
