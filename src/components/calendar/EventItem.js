@@ -15,10 +15,20 @@ const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, show
   // Check if this is a completed todo item
   const isCompletedTodo = toDo && event.completed;
   
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick?.();
+    }
+  };
+
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={`event-item d-flex flex-column align-items-start position-relative ${compact ? 'event-item-compact' : ''} ${isCompletedTodo ? 'event-item-completed' : ''}`}
       onClick={onClick}
+      onKeyDown={handleKeyDown}
       title={tooltipText}
     >
       {/* Event content */}

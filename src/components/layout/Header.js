@@ -125,6 +125,7 @@ export default function Header() {
                                     className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
                                     onClick={switchToMonthView}
                                     title="Month view"
+                                    aria-label="Month view"
                                     style={{ width: '30px', height: '30px' }}
                                 >
                                     <span className="material-icons-outlined" style={{ fontSize: '0.85rem', lineHeight: '1' }}>
@@ -135,6 +136,7 @@ export default function Header() {
                                     className={`btn btn-sm ${currentView === 'daily' ? 'btn-danger' : 'btn-outline-danger'}`}
                                     onClick={switchToDailyView}
                                     title="Daily view"
+                                    aria-label="Daily view"
                                     style={{ width: '30px', height: '30px' }}
                                 >
                                     <span className="material-icons-outlined" style={{ fontSize: '0.85rem', lineHeight: '1' }}>
@@ -228,6 +230,7 @@ export default function Header() {
                             className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
                             onClick={switchToMonthView}
                             title="Month view"
+                            aria-label="Month view"
                         >
                             <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
                                 calendar_view_month
@@ -239,6 +242,7 @@ export default function Header() {
                             className={`btn btn-sm ${currentView === 'week' ? 'btn-danger' : 'btn-outline-danger'}`}
                             onClick={switchToWeekView}
                             title="Week view"
+                            aria-label="Week view"
                         >
                             <span className="material-icons-outlined me-1" style={{ fontSize: '0.9rem' }}>
                                 calendar_view_week
