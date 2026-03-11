@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import CalendarContext from '../../context/CalendarContext';
-import EventContext from '../../context/EventContext';
+import { useEventContext } from '../../context/EventContext';
 import { UI_CONSTANTS } from '../../constants';
 import { useResponsive, useRecurringActions } from '../../hooks';
 import Icon from '../common/Icon';
@@ -9,7 +9,7 @@ import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
     const { setDaySelected, setCurrentView, monthIndex } = useContext(CalendarContext);
-    const { setShowEventModal, filteredEvents, setSelectedEvent, plantsById } = useContext(EventContext);
+    const { setShowEventModal, filteredEvents, setSelectedEvent, plantsById } = useEventContext();
     const { isMobile } = useResponsive();
     const { isTodoEvent, isCompletedTodoAction } = useRecurringActions();
     const [dayEvents, setDayEvents] = useState([]);
@@ -125,7 +125,7 @@ export default function CalendarDay({ day, rowIndex }) {
                 
                 {dayEvents.slice(0, 3).map((evt, idx) => (
                     <div
-                        key={idx}
+                        key={evt.id || idx}
                         onClick={(e) => handleEventClick(evt, e)}
                         className={getEventClasses(evt)}
                         style={{ 

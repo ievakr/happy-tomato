@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import CalendarContext from '../../context/CalendarContext';
-import EventContext from '../../context/EventContext';
+import { useEventContext } from '../../context/EventContext';
 import { getWeekByIndex, getWeekDateRange, getDayHeaders, getCurrentWeekIndex } from '../../utils';
 import { useResponsive, useSwipeGestures } from '../../hooks';
 import { useToast } from '../../context/ToastContext';
@@ -52,7 +52,7 @@ const WeeklyView = () => {
     isLoading,
     loadingOperation,
     plantsById
-  } = useContext(EventContext);
+  } = useEventContext();
   
   const { isMobile } = useResponsive();
   const [currentWeek, setCurrentWeek] = useState([]);

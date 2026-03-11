@@ -1,8 +1,8 @@
-import React, { useContext } from 'react';
-import EventContext from '../../context/EventContext';
+import React from 'react';
+import { useEventContext } from '../../context/EventContext';
 
 export default function CreateEventButton() {
-    const { setShowPlantModal } = useContext(EventContext);
+    const { setShowPlantModal } = useEventContext();
     return (
         <button
             onClick={() => setShowPlantModal(true)}

@@ -1,6 +1,6 @@
 import React, { useContext, useState, useEffect } from "react";
 import CalendarContext from "../../context/CalendarContext";
-import EventContext from "../../context/EventContext";
+import { useEventContext } from "../../context/EventContext";
 import { useToast } from "../../context/ToastContext";
 import DatePicker from "react-widgets/DatePicker";
 import { Localization } from "react-widgets";
@@ -14,7 +14,7 @@ import TodoCombobox from "../common/TodoCombobox";
 
 export default function EventModal() {
     const { daySelected } = useContext(CalendarContext);
-    const { setShowEventModal, dispatchCallEvent, selectedEvent, setDosage, isLoading, loadingOperation, plantNames, displayNameToPlantId, plantIdToDisplayName } = useContext(EventContext); 
+    const { setShowEventModal, dispatchCallEvent, selectedEvent, setDosage, isLoading, loadingOperation, plantNames, displayNameToPlantId, plantIdToDisplayName } = useEventContext(); 
     const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
     const { savedItems: savedTodoItems, addItem: addSavedTodo, removeItem: removeSavedTodo } = useSavedTodos();
     const { showError } = useToast();

@@ -1,9 +1,9 @@
-import React, { useContext, useMemo } from "react";
-import EventContext from "../../context/EventContext";
+import React, { useMemo } from "react";
+import { useEventContext } from "../../context/EventContext";
 import { EventListSkeleton, CustomDropdown } from "../common";
 
 export default function Labels() {
-    const { labels, setLabels, isInitialLoading } = useContext(EventContext);
+    const { labels, setLabels, isInitialLoading } = useEventContext();
     
     // Get display names for dropdown options
     const labelOptions = useMemo(() => {

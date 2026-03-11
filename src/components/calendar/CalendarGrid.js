@@ -2,7 +2,7 @@ import React, { useContext } from 'react';
 import CalendarDay from './CalendarDay';
 import { CalendarDaySkeleton } from '../common';
 import CalendarContext from '../../context/CalendarContext';
-import EventContext from '../../context/EventContext';
+import { useEventContext } from '../../context/EventContext';
 import { useSwipeGestures, useResponsive } from '../../hooks';
 
 /**
@@ -10,7 +10,7 @@ import { useSwipeGestures, useResponsive } from '../../hooks';
  * @param {Array<Array<dayjs.Dayjs>>} month - 2D array of days representing the calendar month
  */
 const CalendarGrid = ({ month }) => {
-  const { isInitialLoading } = useContext(EventContext);
+  const { isInitialLoading } = useEventContext();
   const { monthIndex, setMonthIndex } = useContext(CalendarContext);
   const { isMobile } = useResponsive();
   

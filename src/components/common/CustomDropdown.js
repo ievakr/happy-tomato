@@ -83,7 +83,7 @@ export default function CustomDropdown({ title, options, selectedOptions = [], o
         >
             {options.map((option, index) => (
                 <li
-                    key={index}
+                    key={typeof option === 'object' && option?.id != null ? option.id : (option ?? index)}
                     onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();

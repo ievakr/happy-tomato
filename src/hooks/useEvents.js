@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import dayjs from 'dayjs';
 import CalendarContext from '../context/CalendarContext';
-import EventContext from '../context/EventContext';
+import { useEventContext } from '../context/EventContext';
 import { DATE_FORMATS, EVENT_ACTIONS } from '../constants';
 
 /**
@@ -14,7 +14,7 @@ export const useEvents = () => {
     selectedEvent,
     setSelectedEvent,
     setShowEventModal
-  } = useContext(EventContext);
+  } = useEventContext();
   const { setDaySelected } = useContext(CalendarContext);
 
   /**

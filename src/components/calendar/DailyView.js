@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState, useRef, useCallback } from 'react';
 import dayjs from 'dayjs';
 import CalendarContext from '../../context/CalendarContext';
-import EventContext from '../../context/EventContext';
+import { useEventContext } from '../../context/EventContext';
 import { getDayHeaders } from '../../utils';
 import { useResponsive, useSwipeGestures } from '../../hooks';
 import { useToast } from '../../context/ToastContext';
@@ -26,7 +26,7 @@ const DailyView = () => {
     isLoading,
     loadingOperation,
     plantsById
-  } = useContext(EventContext);
+  } = useEventContext();
   
   const { isMobile } = useResponsive();
   const scrollContainerRef = useRef(null);

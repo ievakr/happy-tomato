@@ -2,13 +2,13 @@ import React, { useContext, useState, useEffect } from 'react';
 import CreateEventButton from '../forms/CreateEventButton';
 import Labels from '../calendar/Labels';
 import LayoutContext from '../../context/LayoutContext';
-import EventContext from '../../context/EventContext';
+import { useEventContext } from '../../context/EventContext';
 import EventMigration from '../settings/EventMigration';
 import { countEventsWithoutUser } from '../../utils/migrateEvents';
 
 export default function Sidebar() {
     const { showSidebar, setShowSidebar } = useContext(LayoutContext);
-    const { setShowManagePlantsModal } = useContext(EventContext);
+    const { setShowManagePlantsModal } = useEventContext();
     const [showMigration, setShowMigration] = useState(false);
     const [hasUnassignedEvents, setHasUnassignedEvents] = useState(false);
     const [isPlantManagementExpanded, setIsPlantManagementExpanded] = useState(false);

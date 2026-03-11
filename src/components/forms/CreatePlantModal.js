@@ -1,5 +1,5 @@
-import React, { useContext, useState } from 'react';
-import EventContext from '../../context/EventContext';
+import React, { useState } from 'react';
+import { useEventContext } from '../../context/EventContext';
 import { usePlants } from '../../hooks/usePlants';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -7,7 +7,7 @@ import { VEGETABLE_ICONS } from '../../constants';
 import { Modal, Icon } from '../common';
 
 export default function CreatePlantModal() {
-    const { setShowPlantModal } = useContext(EventContext);
+    const { setShowPlantModal } = useEventContext();
     const { currentUser } = useAuth();
     const { addPlant, addPlantMutation } = usePlants(currentUser?.uid);
     const { showError, showSuccess } = useToast();
