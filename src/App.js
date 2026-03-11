@@ -56,12 +56,12 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emailNotifications.emailPreferences.enabled]);
   
-  // Update the hook reference on EVERY render to prevent stale closures
+  // Update the hook reference when emailNotifications changes to prevent stale closures
   useEffect(() => {
     if (notificationService.isRunning) {
       notificationService.updateEmailHook(emailNotifications);
     }
-  });
+  }, [emailNotifications]);
 
   const inlineFallback = (
     <div className="d-flex justify-content-center p-3">
