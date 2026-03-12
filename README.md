@@ -12,7 +12,7 @@ cd happy-tomato
 npm install
 ```
 
-### 2. Environment variables
+### 2. Environment variables  
 
 Copy the example env file and fill in your Firebase credentials:
 
