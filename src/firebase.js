@@ -24,6 +24,15 @@ const requiredEnvVars = [
     'REACT_APP_FIREBASE_APP_ID'
 ];
 
+if (process.env.NODE_ENV !== 'production') {
+    const presence = requiredEnvVars.reduce((acc, key) => {
+        acc[key] = Boolean(process.env[key]);
+        return acc;
+    }, {});
+    // eslint-disable-next-line no-console
+    console.info('[firebase env] presence', { NODE_ENV: process.env.NODE_ENV, ...presence });
+}
+
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {

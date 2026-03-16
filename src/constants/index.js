@@ -70,7 +70,8 @@ export const TODO_ACTIONS = {
   "TO DO: Plant seeds": "",
   "TO DO: Transplant": "",
   "TO DO: Water": "",
-  "TO DO: Fertilize": "Use every 7 days", 
+  // Fertilize should not be recurring by default when selected from the TO DO field
+  "TO DO: Fertilize": "",
   "TO DO: Kytos": "Use every 14 days",
   "TO DO: Copfort": "Use every 14 days",
   "TO DO: Altozan B/Zn": "Use every 7 days",

@@ -40,11 +40,15 @@ export const useRecurringActions = () => {
         return;
       }
       
-      // Legacy behavior for actions and TODOs without user recurring config
-      // First create the main action event
+      // Legacy behavior for actions and TODOs without explicit user recurring config
+      // First create the main event itself
       await dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: actionEvent });
       
-      // Check if we should generate recurring TO DOs for both actions and todos
+      // Decide if we should auto-generate recurring TO DOs.
+      // IMPORTANT:
+      // - For plant actions, we still support legacy auto-recurring based on PLANT_ACTIONS.
+      // - For user-created TODOs, we now ONLY recur when the user explicitly enables
+      //   recurring via userRecurringConfig (handled in the block above).
       const firstAction = actionEvent.actions && actionEvent.actions.length > 0 
         ? actionEvent.actions[0] 
         : actionEvent.title;
@@ -53,15 +57,16 @@ export const useRecurringActions = () => {
         ? actionEvent.toDo[0] 
         : actionEvent.toDo;
       
-      // Check PLANT_ACTIONS first
-      let dosageText = PLANT_ACTIONS[firstAction];
-      let sourceItem = firstAction;
-      
-      // If no plant action dosage found, check TODO_ACTIONS
-      if (!dosageText && firstTodo) {
-        dosageText = TODO_ACTIONS[firstTodo];
-        sourceItem = firstTodo;
+      // If this is a pure TODO (no plant action) and userRecurringConfig is not enabled,
+      // do NOT auto-create a recurring series based on old hardcoded TODO_ACTIONS.
+      const hasPlantAction = !!firstAction && !!PLANT_ACTIONS[firstAction];
+      if (!hasPlantAction && firstTodo && !isUserTodoWithRecurring) {
+        return;
       }
+      
+      // For plant actions, use PLANT_ACTIONS dosage text (legacy support)
+      const dosageText = hasPlantAction ? PLANT_ACTIONS[firstAction] : null;
+      const sourceItem = firstAction;
       
       if (shouldGenerateRecurringTodos(sourceItem, dosageText, actionEvent.userRecurringConfig)) {
         // Check if this action has been marked as having its recurring series cancelled
@@ -569,13 +574,12 @@ export const useRecurringActions = () => {
             // Update the main event
             await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
             
-            // Generate new recurring todos if applicable
-            let dosageText = PLANT_ACTIONS[firstAction];
-            if (!dosageText && firstTodo) {
-              dosageText = TODO_ACTIONS[firstTodo];
-            }
+            // Generate new recurring todos if applicable.
+            // As with creation, we only auto-generate based on PLANT_ACTIONS for plant actions.
+            const hasPlantActionForUpdate = !!firstAction && !!PLANT_ACTIONS[firstAction];
+            const dosageText = hasPlantActionForUpdate ? PLANT_ACTIONS[firstAction] : null;
             
-            if (shouldGenerateRecurringTodos(sourceItem, dosageText, updatedEvent.userRecurringConfig)) {
+            if (hasPlantActionForUpdate && shouldGenerateRecurringTodos(sourceItem, dosageText, updatedEvent.userRecurringConfig)) {
               const recurringTodos = generateRecurringToDos(updatedEvent, dosageText, 6, filteredEvents, false);
               
               for (const todo of recurringTodos) {

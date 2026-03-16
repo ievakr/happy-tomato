@@ -29,7 +29,7 @@ export default function EventModal() {
     // Recurring event configuration
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurringInterval, setRecurringInterval] = useState(7);
-    const [recurringMaxOccurrences, setRecurringMaxOccurrences] = useState(12);
+    const [recurringMaxOccurrences, setRecurringMaxOccurrences] = useState(2);
 
     // Initialize component state when modal opens
     useEffect(() => {
@@ -75,17 +75,17 @@ export default function EventModal() {
                 // User has configured recurring settings
                 setIsRecurring(true);
                 setRecurringInterval(selectedEvent.userRecurringConfig.interval || 7);
-                setRecurringMaxOccurrences(selectedEvent.userRecurringConfig.maxOccurrences || 12);
+                setRecurringMaxOccurrences(selectedEvent.userRecurringConfig.maxOccurrences || 2);
             } else if (selectedEvent.recurringInterval) {
                 // Legacy event with recurring pattern
                 setIsRecurring(true);
                 setRecurringInterval(selectedEvent.recurringInterval || 7);
-                setRecurringMaxOccurrences(12); // Default for legacy events
+                setRecurringMaxOccurrences(2); // Default for legacy events now 2
             } else {
                 // Not recurring
                 setIsRecurring(false);
                 setRecurringInterval(7);
-                setRecurringMaxOccurrences(12);
+                setRecurringMaxOccurrences(2);
             }
         } else {
             // Reset for new event
@@ -96,7 +96,7 @@ export default function EventModal() {
             setDosage("");
             setIsRecurring(false);
             setRecurringInterval(7);
-            setRecurringMaxOccurrences(12);
+            setRecurringMaxOccurrences(2);
         }
         // Reset confirmation states
         setShowDeleteConfirm(false);
@@ -164,7 +164,7 @@ export default function EventModal() {
         const userRecurringConfig = isRecurring ? {
             enabled: true,
             interval: Number(recurringInterval) || 7,
-            maxOccurrences: Number(recurringMaxOccurrences) || 12,
+            maxOccurrences: Number(recurringMaxOccurrences) || 2,
             unit: 'days' // Currently only supporting days
         } : null;
         
