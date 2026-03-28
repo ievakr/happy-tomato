@@ -190,9 +190,15 @@ export default function EventModal() {
             const today = dayjs().startOf("day");
             const isPastDate = eventDate.isBefore(today);
             const isTodo = !!toDoValue;
+            // Past completed to-dos: strip "TO DO:" from title so UI matches manual "Complete" (useRecurringActions.completeTodo)
+            const rawTitle = toDoValue || title;
+            const newEventTitle =
+                isTodo && isPastDate && toDoValue
+                    ? toDoValue.replace(/^TO DO:\s*/i, "").trim() || rawTitle
+                    : rawTitle;
 
             calendarEvent = {
-                title: toDoValue || title,
+                title: newEventTitle,
                 actions: [],
                 description,
                 labels: labelsToSave,

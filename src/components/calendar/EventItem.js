@@ -48,13 +48,15 @@ const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, show
           maxWidth: "100%", 
           wordWrap: 'break-word'
         }}>
-          {/* To-do items (special styling) */}
-          {toDo && !title && (
-            <TodoItem text={toDo} compact={compact} isCompleted={event.completed} />
+          {/* To-do line: pill styling (red/green). Prefer title when set (e.g. after Complete) so pill shows with cleaned text */}
+          {toDo && (
+            <TodoItem
+              text={title || toDo}
+              compact={compact}
+              isCompleted={!!event.completed}
+            />
           )}
-          
-          {/* Regular event title */}
-          {title && (
+          {!toDo && title && (
             <EventTitle text={title} compact={compact} />
           )}
           

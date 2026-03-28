@@ -32,19 +32,21 @@ export default function CalendarDay({ day, rowIndex }) {
     function getEventClasses(evt) {
         let baseClasses = "calendar-event text-xs rounded p-1 m-1 d-flex align-items-center cursor-pointer";
         
+        if (isCompletedTodoAction(evt)) {
+            return `${baseClasses} calendar-event--completed border border-success bg-success bg-opacity-10 text-success-emphasis`;
+        }
         if (isTodoEvent(evt)) {
             return `${baseClasses} calendar-event--todo border border-danger bg-danger bg-opacity-10 text-danger-emphasis`;
-        } else if (isCompletedTodoAction(evt)) {
-            return `${baseClasses} calendar-event--completed border border-success bg-success bg-opacity-10 text-success-emphasis`;
         }
         return `${baseClasses} calendar-event--default border border-primary bg-primary bg-opacity-10 text-primary-emphasis`;
     }
 
     function getEventIcon(evt) {
+        if (isCompletedTodoAction(evt)) {
+            return "check_circle"; // Completed to-do / action
+        }
         if (isTodoEvent(evt)) {
             return "radio_button_unchecked"; // Unchecked circle for TO DO
-        } else if (isCompletedTodoAction(evt)) {
-            return "check_circle"; // Checked circle for completed
         } else {
             return "event"; // Default event icon
         }

@@ -41,7 +41,7 @@ export default function Sidebar() {
             
             {/* Sidebar */}
             <aside 
-                className={`sidebar border-end bg-white p-3 ${showSidebar ? 'mobile-sidebar-open' : ''}`}
+                className={`sidebar border-end bg-white p-3 h-100 d-flex flex-column ${showSidebar ? 'mobile-sidebar-open' : ''}`}
                 style={{ width: '300px' }}
             >
                 {/* Mobile close button */}

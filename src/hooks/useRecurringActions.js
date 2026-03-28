@@ -179,8 +179,13 @@ export const useRecurringActions = () => {
    * @returns {boolean}
    */
   const isCompletedTodoAction = (event) => {
-    // Enhanced detection: check for both createdFromAction and toDo property
-    return (event.createdFromAction && event.completed) || (event.toDo && event.completed);
+    if (!event?.completed) return false;
+    // Distinguish from generic completed events: todo/recurring markers or any saved to-do line
+    if (event.createdFromAction) return true;
+    if (event.isRecurringTodo) return true;
+    if (typeof event.toDo === 'string' && event.toDo.trim().length > 0) return true;
+    if (typeof event.title === 'string' && event.title.startsWith('TO DO:')) return true;
+    return false;
   };
 
   /**

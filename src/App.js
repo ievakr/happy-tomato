@@ -170,8 +170,8 @@ function App() {
                 overflow: 'hidden'
               }}
             >
-              {/* Desktop sidebar */}
-              <div className={`d-none d-md-block ${showSidebar ? 'd-block' : ''}`}>
+              {/* Desktop sidebar — h-100 so the border column matches calendar height */}
+              <div className={`d-none d-md-block h-100 ${showSidebar ? 'd-block' : ''}`}>
                 <Suspense fallback={inlineFallback}>
                   <ComponentErrorBoundary
                     componentName="Sidebar"

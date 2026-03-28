@@ -1,5 +1,11 @@
 import dayjs from 'dayjs';
 
+/** Match display after manual "Complete" — same as useRecurringActions.completeTodo */
+function stripTodoPrefixForCompleted(title) {
+  if (!title || typeof title !== 'string') return title;
+  return title.replace(/^TO DO:\s*/i, '').trim() || title;
+}
+
 /**
  * Parse dosage text or user config to extract recurring interval information
  * @param {string} dosageText - Text like "Use every 7 days" or "Use every 14 days"
@@ -179,7 +185,7 @@ export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6
       const isPastDate = currentDate.isBefore(dayjs().startOf("day"));
       const todoEvent = {
         // Don't pre-assign ID - let Firebase generate it to avoid ID conflicts
-        title: title,
+        title: isPastDate ? stripTodoPrefixForCompleted(title) : title,
         actions: actionEvent.actions || [],
         toDo: actionEvent.toDo || '',
         description: actionEvent.description || '',

@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import CalendarContext from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
 import { getDayHeaders } from '../../utils';
-import { useResponsive, useSwipeGestures } from '../../hooks';
+import { useResponsive, useSwipeGestures, useRecurringActions } from '../../hooks';
 import { useToast } from '../../context/ToastContext';
 import { ConfirmModal } from '../common';
 import EventItem from './EventItem';
@@ -29,6 +29,7 @@ const DailyView = () => {
   } = useEventContext();
   
   const { isMobile } = useResponsive();
+  const { isCompletedTodoAction } = useRecurringActions();
   const scrollContainerRef = useRef(null);
   const dayElementMapRef = useRef(new Map());
   const [displayedMonth, setDisplayedMonth] = useState(dayjs());
@@ -394,9 +395,8 @@ const DailyView = () => {
                   <div className="events-list">
                     <h6 className="mb-3">Events ({dayEvents.length})</h6>
                     {dayEvents.map((evt, idx) => {
-                        // Check if this is a completed todo
-                        const isCompletedTodo = evt.toDo && evt.completed;
-                        
+                        const isCompletedTodo = isCompletedTodoAction(evt);
+
                         return (
                         <div 
                           key={evt.id || idx}

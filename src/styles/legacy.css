@@ -52,6 +52,12 @@
   cursor: pointer;
 }
 
+/* Month grid: completed to-do — solid green tint (Bootstrap bg-opacity-10 can look invisible) */
+.calendar-event.calendar-event--completed {
+  background-color: rgba(25, 135, 84, 0.2) !important;
+  border-color: rgba(25, 135, 84, 0.45) !important;
+}
+
 /* Overflow dropdown - appears outside parent containers */
 .custom-dropdown__list--overflow {
   border-radius: 0.5rem;
@@ -261,13 +267,13 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
+/* Completed to-dos: no extra row tint — green is only on .event-item-todo-completed */
 .event-item-daily-completed {
-  background-color: rgba(40, 167, 69, 0.05);
-  border-color: rgba(40, 167, 69, 0.4);
+  background-color: transparent;
 }
 
 .event-item-daily-completed:hover {
-  background-color: rgba(40, 167, 69, 0.15);
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 .event-item-daily .quick-delete-btn {
@@ -305,8 +311,13 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
 }
 
 .event-item-completed {
-  background-color: rgba(40, 167, 69, 0.1);
-  border-color: rgba(40, 167, 69, 0.3);
+  background-color: transparent;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Override default .event-item tint for completed to-dos */
+.event-item.event-item-completed {
+  background-color: transparent;
 }
 
 .event-item-time {
@@ -334,8 +345,12 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   background-color: #dc3545;
 }
 
-.event-item-todo-completed {
-  background-color: #28a745;
+/* Completed to-do pill — visible green (must override .event-item-todo base) */
+.event-item-todo.event-item-todo-completed {
+  background-color: rgba(25, 135, 84, 0.28);
+  color: #0f5132;
+  border: 1px solid rgba(25, 135, 84, 0.55);
+  font-weight: 600;
 }
 
 .event-item-title {
