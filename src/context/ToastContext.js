@@ -76,8 +76,11 @@ export function ToastProvider({ children }) {
       {children}
       {toast.open && (
         <div
-          className="position-fixed bottom-0 start-50 translate-middle-x p-3 mb-3"
-          style={{ zIndex: 9999 }}
+          className="position-fixed start-50 translate-middle-x p-3"
+          style={{
+            zIndex: 9999,
+            bottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
+          }}
         >
           <div
             className={`d-flex align-items-center rounded shadow-sm ${SEVERITY_CLASSES[toast.severity]}`}

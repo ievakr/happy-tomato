@@ -6,7 +6,11 @@ import {
   persistentMultipleTabManager,
   persistentSingleTabManager
 } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import {
+    getAuth,
+    initializeAuth,
+    browserLocalPersistence
+} from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { Capacitor } from "@capacitor/core";
 
@@ -58,7 +62,20 @@ const db = initializeFirestore(app, {
     localCache: persistentLocalCache({ tabManager })
 });
 
-const auth = getAuth(app);
+// WKWebView IndexedDB auth persistence can stall onAuthStateChanged; localStorage is reliable in Capacitor.
+const auth = (() => {
+    if (Capacitor.isNativePlatform()) {
+        try {
+            return initializeAuth(app, { persistence: browserLocalPersistence });
+        } catch (e) {
+            if (e && typeof e === "object" && "code" in e && e.code === "auth/already-initialized") {
+                return getAuth(app);
+            }
+            throw e;
+        }
+    }
+    return getAuth(app);
+})();
 
 const functions = getFunctions(app);
 

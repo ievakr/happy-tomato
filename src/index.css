@@ -1,5 +1,45 @@
+html {
+  /* Lets iOS report non-zero safe-area-inset-* (with viewport-fit=cover). */
+  height: 100%;
+}
+
 body {
   font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+  min-height: 100%;
+}
+
+/* Whole app: sit above home indicator (viewport-fit=cover) */
+.app-shell {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+}
+
+/* Capacitor iOS: 100vh is taller than the visible webview — clip bottom. Use JS-set --app-vh (see index.js). */
+html.capacitor-ios-native .app-shell.vh-100 {
+  height: var(--app-vh, 100vh) !important;
+  max-height: var(--app-vh, 100vh) !important;
+}
+
+html.capacitor-ios-native .app-shell {
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 768px) {
+  html.capacitor-ios-native .daily-view-footer-actions {
+    padding-bottom: 20px !important;
+  }
+}
+
+/*
+ * Web / mobile Safari: header below notch (viewport-fit=cover).
+ * capacitor-ios-native: skip — ios.contentInset "automatic" already insets the webview.
+ */
+.calendar-header {
+  padding-top: calc(0.5rem + env(safe-area-inset-top, 0px)) !important;
+}
+
+html.capacitor-ios-native .calendar-header {
+  padding-top: 0.5rem !important;
 }
 
 .material-icons-outlined {

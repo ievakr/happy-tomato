@@ -428,8 +428,8 @@ const DailyView = () => {
               })()}
         </div>
         
-        {/* Add event button - always visible at bottom */}
-        <div className="mt-3 pt-3 border-top">
+        {/* Add event button - always visible at bottom (extra class for iOS safe inset; see index.css) */}
+        <div className="mt-3 pt-3 border-top daily-view-footer-actions">
           <button 
             className="btn btn-danger w-100"
             onClick={() => handleDayClick(currentDay)}

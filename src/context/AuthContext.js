@@ -14,6 +14,7 @@ import {
   reauthenticateWithPopup
 } from 'firebase/auth';
 import { auth } from '../firebase';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const AuthContext = createContext();
 
@@ -184,7 +185,13 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {loading ? (
+        <div className="d-flex min-vh-100 w-100 justify-content-center align-items-center bg-white">
+          <LoadingSpinner size="lg" text="Loading session…" />
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 }

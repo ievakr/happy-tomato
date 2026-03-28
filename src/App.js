@@ -142,7 +142,7 @@ function App() {
           
           {/* Main application layout */}
           <div 
-            className='d-flex flex-column vh-100' 
+            className="d-flex flex-column vh-100 app-shell" 
             style={{ overflow: 'hidden' }}
           >
             {!isOnline && <OfflineBanner />}

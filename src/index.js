@@ -22,6 +22,28 @@ import { persistQueryClient } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { register as registerServiceWorker } from './serviceWorkerRegistration';
 
+// Native iOS: mark html + fix shell height. Bootstrap vh-100 uses 100vh, which on WKWebView is often
+// taller than the visible area, so the bottom of the flex layout is clipped past the home indicator.
+function syncCapacitorIosViewportHeight() {
+  const vv = window.visualViewport;
+  const h = vv ? Math.round(vv.height) : Math.round(window.innerHeight);
+  document.documentElement.style.setProperty('--app-vh', `${h}px`);
+}
+
+if (
+  typeof document !== 'undefined' &&
+  Capacitor.isNativePlatform() &&
+  Capacitor.getPlatform() === 'ios'
+) {
+  document.documentElement.classList.add('capacitor-ios-native');
+  syncCapacitorIosViewportHeight();
+  window.addEventListener('resize', syncCapacitorIosViewportHeight);
+  window.addEventListener('orientationchange', syncCapacitorIosViewportHeight);
+  window.addEventListener('load', syncCapacitorIosViewportHeight);
+  window.addEventListener('pageshow', syncCapacitorIosViewportHeight);
+  window.visualViewport?.addEventListener('resize', syncCapacitorIosViewportHeight);
+}
+
 function initGoogleTagManager() {
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' });
