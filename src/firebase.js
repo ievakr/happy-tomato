@@ -1,8 +1,14 @@
 // src/firebase.js
 import { initializeApp } from "firebase/app";
-import { enableIndexedDbPersistence, getFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  persistentSingleTabManager
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { Capacitor } from "@capacitor/core";
 
 const firebaseConfig = {
     apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
@@ -43,12 +49,16 @@ if (missingEnvVars.length > 0) {
 }
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
 
-enableIndexedDbPersistence(db).catch(() => {
-    // Persistence disabled (e.g. multiple tabs, unsupported browser)
+const tabManager = Capacitor.isNativePlatform()
+    ? persistentSingleTabManager()
+    : persistentMultipleTabManager();
+
+const db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager })
 });
+
+const auth = getAuth(app);
 
 const functions = getFunctions(app);
 

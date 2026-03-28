@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core';
 import errorLogger from './errorLogger';
 
 /**
@@ -17,8 +18,17 @@ class GlobalErrorHandler {
 
     // Handle uncaught JavaScript errors
     window.addEventListener('error', (event) => {
+      // WKWebView does not expose filename/line for errors in cross-origin scripts (message-only "Script error.").
+      if (
+        Capacitor.isNativePlatform() &&
+        event.message === 'Script error.' &&
+        !event.filename
+      ) {
+        return;
+      }
+
       console.error('Global error caught:', event.error);
-      
+
       errorLogger.logError(
         event.error || new Error(event.message),
         null,

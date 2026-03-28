@@ -1693,6 +1693,16 @@
   resolved "https://registry.npmjs.org/@floating-ui/utils/-/utils-0.2.9.tgz"
   integrity sha512-MDWhGtE+eHw5JW7lq4qhc5yRLS11ERl1c7Z6Xd0a58DozHES6EnNNwUWbMiG4J9Cgj053Bhk8zvlhFYKVhULwg==
 
+"@fontsource/material-icons-outlined@^5.2.6":
+  version "5.2.6"
+  resolved "https://registry.npmjs.org/@fontsource/material-icons-outlined/-/material-icons-outlined-5.2.6.tgz"
+  integrity sha512-99XKAkwnCg0s0/ywax+o3m01HSNM5gGzSBw+WnlWG2+WY3wOjcN+wXMfm4zP37Yme7Yze2DvKxF78tHWOrlwFw==
+
+"@fontsource/open-sans@^5.2.7":
+  version "5.2.7"
+  resolved "https://registry.npmjs.org/@fontsource/open-sans/-/open-sans-5.2.7.tgz"
+  integrity sha512-8yfgDYjE5O0vmTPdrcjV35y4yMnctsokmi9gN49Gcsr0sjzkMkR97AnKDe6OqZh2SFkYlR28fxOvi21bYEgMSw==
+
 "@grpc/grpc-js@~1.9.0":
   version "1.9.15"
   resolved "https://registry.npmjs.org/@grpc/grpc-js/-/grpc-js-1.9.15.tgz"

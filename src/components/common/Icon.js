@@ -2,7 +2,7 @@ import React from 'react';
 
 /**
  * Standardized icon component. Uses Material Icons (Outlined) by default.
- * Material Icons are loaded from Google Fonts - see public/index.html.
+ * Material Icons Outlined are bundled via @fontsource (see src/index.js).
  *
  * For plant/garden icons, use Flaticon via the plantIcon prop (fi fi-rr-*).
  *

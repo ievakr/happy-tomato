@@ -1,6 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { Capacitor } from '@capacitor/core';
+import '@fontsource/open-sans/400.css';
+import '@fontsource/open-sans/600.css';
+import '@fontsource/open-sans/700.css';
+import '@fontsource/material-icons-outlined/400.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './index.css';
 import './styles/legacy.css';
 import App from './App';
@@ -15,6 +21,30 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { persistQueryClient } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import { register as registerServiceWorker } from './serviceWorkerRegistration';
+
+function initGoogleTagManager() {
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' });
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-TS72DX4R';
+  document.head.appendChild(s);
+}
+
+function injectFlaticonUiconsStylesheet() {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href =
+    'https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css';
+  document.head.appendChild(link);
+}
+
+// Web only: GTM loads third-party scripts; WKWebView reports their failures as opaque "Script error."
+if (!Capacitor.isNativePlatform()) {
+  initGoogleTagManager();
+}
+
+injectFlaticonUiconsStylesheet();
 
 // Initialize global error handling
 globalErrorHandler.init();
@@ -82,4 +112,6 @@ root.render(
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
-registerServiceWorker();
+if (!Capacitor.isNativePlatform()) {
+  registerServiceWorker();
+}
