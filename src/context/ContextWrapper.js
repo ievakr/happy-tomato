@@ -50,6 +50,7 @@ export default function ContextWrapper(props) {
   const [showEventModal, setShowEventModal] = useState(false);
   const [showPlantModal, setShowPlantModal] = useState(false);
   const [showManagePlantsModal, setShowManagePlantsModal] = useState(false);
+  const [showManageTodoModal, setShowManageTodoModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [dosage, setDosage] = useState('');
 
@@ -80,6 +81,8 @@ export default function ContextWrapper(props) {
           setShowPlantModal,
           showManagePlantsModal,
           setShowManagePlantsModal,
+          showManageTodoModal,
+          setShowManageTodoModal,
           dispatchCallEvent,
           savedEvents,
           selectedEvent,

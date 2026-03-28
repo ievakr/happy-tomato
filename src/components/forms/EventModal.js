@@ -16,7 +16,7 @@ export default function EventModal() {
     const { daySelected } = useContext(CalendarContext);
     const { setShowEventModal, dispatchCallEvent, selectedEvent, setDosage, isLoading, loadingOperation, plantNames, displayNameToPlantId, plantIdToDisplayName } = useEventContext(); 
     const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
-    const { savedItems: savedTodoItems, addItem: addSavedTodo, removeItem: removeSavedTodo } = useSavedTodos();
+    const { savedItems: savedTodoItems, addItem: addSavedTodo } = useSavedTodos();
     const { showError } = useToast();
     const [description, setDescription] = useState("");
     const [selectedLabels, setSelectedLabels] = useState([]);
@@ -25,8 +25,7 @@ export default function EventModal() {
     const [todoText, setTodoText] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
-    
-    // Recurring event configuration
+
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurringInterval, setRecurringInterval] = useState(7);
     const [recurringMaxOccurrences, setRecurringMaxOccurrences] = useState(2);
@@ -69,20 +68,16 @@ export default function EventModal() {
             }
             
             setDescription(selectedEvent.description || "");
-            
-            // Initialize recurring settings from event
+
             if (selectedEvent.userRecurringConfig) {
-                // User has configured recurring settings
                 setIsRecurring(true);
                 setRecurringInterval(selectedEvent.userRecurringConfig.interval || 7);
                 setRecurringMaxOccurrences(selectedEvent.userRecurringConfig.maxOccurrences || 2);
             } else if (selectedEvent.recurringInterval) {
-                // Legacy event with recurring pattern
                 setIsRecurring(true);
                 setRecurringInterval(selectedEvent.recurringInterval || 7);
-                setRecurringMaxOccurrences(2); // Default for legacy events now 2
+                setRecurringMaxOccurrences(2);
             } else {
-                // Not recurring
                 setIsRecurring(false);
                 setRecurringInterval(7);
                 setRecurringMaxOccurrences(2);
@@ -159,17 +154,19 @@ export default function EventModal() {
         e.preventDefault();
         
         let calendarEvent;
-        
-        // Build user recurring configuration if enabled
-        const userRecurringConfig = isRecurring ? {
-            enabled: true,
-            interval: Number(recurringInterval) || 7,
-            maxOccurrences: Number(recurringMaxOccurrences) || 2,
-            unit: 'days' // Currently only supporting days
-        } : null;
-        
+
         const rawTodo = todoText.trim();
         const toDoValue = rawTodo ? (rawTodo.startsWith("TO DO:") ? rawTodo : `TO DO: ${rawTodo}`) : null;
+
+        const userRecurringConfig =
+            toDoValue && isRecurring
+                ? {
+                      enabled: true,
+                      interval: Number(recurringInterval) || 7,
+                      maxOccurrences: Number(recurringMaxOccurrences) || 2,
+                      unit: 'days',
+                  }
+                : null;
 
         // Convert display names to plant IDs for storage (legacy names kept as-is)
         const labelsToSave = (selectedLabels || []).map(
@@ -177,21 +174,18 @@ export default function EventModal() {
         );
 
         if (selectedEvent) {
-            // For updates, start with the original event to preserve all properties (isRecurringTodo, completed, etc.)
             calendarEvent = {
-                ...selectedEvent,  // Preserve all original properties including isRecurringTodo
-                // Override with form updates
+                ...selectedEvent,
                 title: toDoValue || title,
-                actions: [],  // Actions removed from UI
+                actions: [],
                 description,
                 labels: labelsToSave,
                 toDo: toDoValue,
                 day: selectedDate.valueOf(),
-                id: selectedEvent.id,  // Ensure ID is preserved
-                userRecurringConfig // Store user's recurring configuration
+                id: selectedEvent.id,
+                userRecurringConfig,
             };
         } else {
-            // For new events, create fresh object
             const eventDate = dayjs(selectedDate).startOf("day");
             const today = dayjs().startOf("day");
             const isPastDate = eventDate.isBefore(today);
@@ -209,7 +203,7 @@ export default function EventModal() {
                     completedAt: Date.now(),
                     createdFromAction: true
                 }),
-                userRecurringConfig
+                userRecurringConfig,
             };
         }
         
@@ -317,12 +311,11 @@ export default function EventModal() {
                                         <TodoCombobox
                                             value={todoText}
                                             onChange={handleTodoChange}
-                                            placeholder="Add to-do"
                                             savedItems={savedTodoItems}
-                                            removeItem={removeSavedTodo}
+                                            emptyLabel="Select a to-do"
                                         />
                                     </div>
-                                    
+
                                     {todoText.trim() && (
                                         <div className="border rounded p-3 bg-light">
                                             <div className="form-check">
@@ -340,7 +333,7 @@ export default function EventModal() {
                                                     Make this a recurring event
                                                 </label>
                                             </div>
-                                            
+
                                             {isRecurring && (
                                                 <div className="mt-3">
                                                     <div className="mb-3">

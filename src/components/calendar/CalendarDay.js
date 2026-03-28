@@ -5,6 +5,7 @@ import { useEventContext } from '../../context/EventContext';
 import { UI_CONSTANTS } from '../../constants';
 import { useResponsive, useRecurringActions } from '../../hooks';
 import Icon from '../common/Icon';
+import { plantLabelDisplayText } from './EventItem';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
@@ -113,17 +114,11 @@ export default function CalendarDay({ day, rowIndex }) {
         );
     };
 
-    // Desktop view: Show detailed events (existing implementation)
+    // Desktop view: Show detailed events (scroll inside cell when many)
     const renderDesktopEvents = () => {
         return (
             <>
-                {dayEvents.length > 3 && (
-                    <div className="text-muted small text-center mb-1" style={{ fontSize: '0.6rem' }}>
-                        {dayEvents.length} events - tap to view all
-                    </div>
-                )}
-                
-                {dayEvents.slice(0, 3).map((evt, idx) => (
+                {dayEvents.map((evt, idx) => (
                     <div
                         key={evt.id || idx}
                         onClick={(e) => handleEventClick(evt, e)}
@@ -181,7 +176,7 @@ export default function CalendarDay({ day, rowIndex }) {
                                                 {visibleLabels.map((label, labelIdx) => {
                                                     const plant = plantsById?.[label];
                                                     const iconClass = plant?.icon || 'leaf';
-                                                    const displayText = plant?.variety || (plant ? '' : label);
+                                                    const displayText = plantLabelDisplayText(plant, label);
                                                     const title = plant ? (plant.variety ? `${plant.category} - ${plant.variety}` : plant.category) : label;
                                                     return (
                                                         <span key={labelIdx} className="d-inline-flex align-items-center me-1" title={title} style={{ fontSize: "12px", lineHeight: "1" }}>
@@ -204,14 +199,6 @@ export default function CalendarDay({ day, rowIndex }) {
 
                     </div>
                 ))}
-                
-                {dayEvents.length > 3 && (
-                    <div className="text-center mt-1">
-                        <small className="text-muted" style={{ fontSize: '0.6rem' }}>
-                            +{dayEvents.length - 3} more events
-                        </small>
-                    </div>
-                )}
             </>
         );
     };
@@ -231,7 +218,9 @@ export default function CalendarDay({ day, rowIndex }) {
             <div 
                 className="day-cell-body flex-grow-1 position-relative"
                 style={{ 
-                    overflowY: isMobile ? 'hidden' : 'auto'
+                    minHeight: 0,
+                    overflowY: isMobile ? 'hidden' : 'auto',
+                    WebkitOverflowScrolling: isMobile ? undefined : 'touch',
                 }}
             >
                 {isMobile ? renderMobileEventCount() : renderDesktopEvents()}

@@ -100,12 +100,15 @@ export function usePlants(userId) {
             return { ...p, category: name, variety: '' };
         });
         const plantDisplayName = (p) => p.variety ? `${p.category} - ${p.variety}` : p.category;
+        const sorted = [...normalized].sort((a, b) =>
+            plantDisplayName(a).localeCompare(plantDisplayName(b), undefined, { sensitivity: 'base' })
+        );
         return {
-            normalizedPlants: normalized,
-            plantsById: Object.fromEntries(normalized.map(p => [p.id, p])),
-            plantNames: normalized.map(p => plantDisplayName(p)),
-            displayNameToPlantId: Object.fromEntries(normalized.map(p => [plantDisplayName(p), p.id])),
-            plantIdToDisplayName: Object.fromEntries(normalized.map(p => [p.id, plantDisplayName(p)])),
+            normalizedPlants: sorted,
+            plantsById: Object.fromEntries(sorted.map(p => [p.id, p])),
+            plantNames: sorted.map(p => plantDisplayName(p)),
+            displayNameToPlantId: Object.fromEntries(sorted.map(p => [plantDisplayName(p), p.id])),
+            plantIdToDisplayName: Object.fromEntries(sorted.map(p => [p.id, plantDisplayName(p)])),
         };
     }, [plantsData]);
 

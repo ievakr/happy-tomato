@@ -7,6 +7,8 @@ const EventContext = React.createContext({
     setShowPlantModal: () => {},
     showManagePlantsModal: false,
     setShowManagePlantsModal: () => {},
+    showManageTodoModal: false,
+    setShowManageTodoModal: () => {},
     dispatchCallEvent: ({ type, payload }) => {},
     savedEvents: [],
     selectedEvent: null,

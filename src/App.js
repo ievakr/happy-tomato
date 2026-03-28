@@ -25,13 +25,22 @@ const DailyView = lazy(() => import('./components/calendar/DailyView'));
 const EventModal = lazy(() => import('./components/forms/EventModal'));
 const CreatePlantModal = lazy(() => import('./components/forms/CreatePlantModal'));
 const ManagePlantsModal = lazy(() => import('./components/forms/ManagePlantsModal'));
+const ManageTodoModal = lazy(() => import('./components/forms/ManageTodoModal'));
 
 /**
  * Main application component with responsive layout
  */
 function App() {
   const { currentMonth } = useCalendar();
-  const { showEventModal, showPlantModal, showManagePlantsModal, setShowManagePlantsModal, isInitialLoading, loadingOperation } = useEventContext();
+  const {
+    showEventModal,
+    showPlantModal,
+    showManagePlantsModal,
+    setShowManagePlantsModal,
+    showManageTodoModal,
+    isInitialLoading,
+    loadingOperation,
+  } = useEventContext();
   const { showSidebar } = useLayoutContext();
   const { currentView } = useCalendarContext();
   const emailNotifications = useEmailNotifications();
@@ -120,6 +129,15 @@ function App() {
                 <ManagePlantsModal onClose={() => setShowManagePlantsModal(false)} />
               </ComponentErrorBoundary>
             </Suspense>
+          )}
+
+          {showManageTodoModal && createPortal(
+            <Suspense fallback={<LoadingOverlay text="Loading..." backdrop={true} />}>
+              <ComponentErrorBoundary componentName="ManageTodoModal" onError={handleError}>
+                <ManageTodoModal />
+              </ComponentErrorBoundary>
+            </Suspense>,
+            document.body
           )}
           
           {/* Main application layout */}

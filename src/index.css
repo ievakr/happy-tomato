@@ -376,3 +376,18 @@
         font-size: 1rem;
     }
 }
+
+/* Modal header dismiss (X) — red, consistent with Close actions */
+.modal-header .btn-close {
+    opacity: 1;
+    filter: invert(25%) sepia(95%) saturate(5000%) hue-rotate(330deg) brightness(95%) contrast(95%);
+}
+
+.modal-header .btn-close:hover {
+    opacity: 0.85;
+}
+
+.modal-header .btn-close:disabled {
+    opacity: 0.35;
+    filter: none;
+}

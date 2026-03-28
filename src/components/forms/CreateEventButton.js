@@ -6,7 +6,7 @@ export default function CreateEventButton() {
     return (
         <button
             onClick={() => setShowPlantModal(true)}
-            className="btn btn-danger d-flex align-items-center justify-content-center"
+            className="btn btn-danger d-flex align-items-center justify-content-center w-100"
         >
             <span>+ Create Plant</span>
         </button>

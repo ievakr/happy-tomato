@@ -90,8 +90,14 @@ const EventTitle = memo(({ text, compact = false }) => (
   </div>
 ));
 
+/** Category and variety (or category only), matching plant lists elsewhere */
+export function plantLabelDisplayText(plant, fallbackLabel) {
+  if (!plant) return fallbackLabel;
+  return plant.variety ? `${plant.category} - ${plant.variety}` : plant.category || '';
+}
+
 /**
- * Event icons component with responsive display - shows icon + variety name
+ * Event icons component with responsive display - shows icon + category / variety
  */
 const EventIcons = memo(({ labels, plantsById = {}, compact = false, showAllIcons = false }) => {
   const { isMobile } = useResponsive();
@@ -120,7 +126,7 @@ const EventIcons = memo(({ labels, plantsById = {}, compact = false, showAllIcon
       {visibleLabels.map((label, index) => {
         const plant = plantsById[label];
         const iconClass = plant?.icon || 'leaf';
-        const displayText = plant?.variety || (plant ? '' : label);
+        const displayText = plantLabelDisplayText(plant, label);
         const title = plant ? (plant.variety ? `${plant.category} - ${plant.variety}` : plant.category) : label;
         
         return (

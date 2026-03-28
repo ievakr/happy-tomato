@@ -58,6 +58,13 @@ jest.mock('../hooks', () => ({
     updateEventWithRecurringRecalculation: mockUpdateEventWithRecurringRecalculation,
     deleteRecurringTodosForEvent: mockDeleteRecurringTodosForEvent,
   }),
+  useSavedTodos: () => ({
+    savedItems: [],
+    addItem: jest.fn(),
+    removeItem: jest.fn(),
+    setItems: jest.fn(),
+    isLoading: false,
+  }),
 }));
 
 // Helper to create context values

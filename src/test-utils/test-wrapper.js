@@ -32,6 +32,8 @@ export const createWrapper = (contextValue = {}) => {
     setShowEventModal: jest.fn(),
     setShowPlantModal: jest.fn(),
     setShowManagePlantsModal: jest.fn(),
+    showManageTodoModal: false,
+    setShowManageTodoModal: jest.fn(),
     labels: [],
     setLabels: jest.fn(),
     updateLabel: jest.fn(),

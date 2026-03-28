@@ -129,7 +129,7 @@ function EventMigration({ onClose }) {
                 <p className="mb-0">All events in your database are properly assigned to users.</p>
               </div>
               <div className="modal-footer">
-                <button className="btn btn-primary" onClick={onClose} type="button">
+                <button className="btn btn-danger" onClick={onClose} type="button">
                   Close
                 </button>
               </div>
@@ -199,7 +199,7 @@ function EventMigration({ onClose }) {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-outline-secondary" onClick={onClose} disabled={processing} type="button">
+              <button className="btn btn-danger" onClick={onClose} disabled={processing} type="button">
                 Close
               </button>
             </div>
