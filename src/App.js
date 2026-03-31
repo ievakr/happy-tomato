@@ -11,8 +11,9 @@ import { useLayoutContext } from './context/LayoutContext';
 import { getLoadingMessage } from './utils';
 import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay, LoadingSpinner, OfflineBanner, ServiceWorkerUpdateBanner } from './components/common';
 import errorLogger from './utils/errorLogger';
-import { useEmailNotifications } from './hooks/useEmailNotifications';
+import { usePushNotifications } from './hooks/usePushNotifications';
 import notificationService from './services/notificationService';
+import { getFirebaseMessaging } from './firebase';
 import 'react-tooltip/dist/react-tooltip.css';
 
 const AuthWrapper = lazy(() => import('./components/auth/AuthWrapper'));
@@ -43,7 +44,7 @@ function App() {
   } = useEventContext();
   const { showSidebar } = useLayoutContext();
   const { currentView } = useCalendarContext();
-  const emailNotifications = useEmailNotifications();
+  const pushNotifications = usePushNotifications();
   const isOnline = useOnlineStatus();
   const { updateReady, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
 
@@ -53,24 +54,53 @@ function App() {
 
   // Initialize notification service
   useEffect(() => {
-    if (emailNotifications.emailPreferences.enabled) {
-      notificationService.start(emailNotifications);
+    if (pushNotifications.pushPreferences.enabled) {
+      notificationService.start(pushNotifications);
     } else {
       notificationService.stop();
     }
-    
+
     return () => {
       notificationService.stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [emailNotifications.emailPreferences.enabled]);
-  
-  // Update the hook reference when emailNotifications changes to prevent stale closures
+  }, [pushNotifications.pushPreferences.enabled]);
+
   useEffect(() => {
     if (notificationService.isRunning) {
-      notificationService.updateEmailHook(emailNotifications);
+      notificationService.updateReminderHook(pushNotifications);
     }
-  }, [emailNotifications]);
+  }, [pushNotifications]);
+
+  // Foreground FCM: show a system notification when the tab is active
+  useEffect(() => {
+    let unsubscribe;
+    (async () => {
+      const messaging = await getFirebaseMessaging();
+      if (!messaging) return;
+      const { onMessage } = await import('firebase/messaging');
+      unsubscribe = onMessage(messaging, (payload) => {
+        if (
+          typeof document !== 'undefined' &&
+          document.visibilityState === 'visible' &&
+          payload?.notification?.title
+        ) {
+          try {
+            // eslint-disable-next-line no-new
+            new Notification(payload.notification.title, {
+              body: payload.notification.body || '',
+              icon: '/logo192.png',
+            });
+          } catch (e) {
+            // Ignore duplicate or blocked notifications
+          }
+        }
+      });
+    })();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   const inlineFallback = (
     <div className="d-flex justify-content-center p-3">
@@ -86,6 +116,8 @@ function App() {
     >
       <Suspense fallback={<LoadingOverlay text="Loading application..." backdrop={true} />}>
         <AuthWrapper>
+          {/* Single column wrapper so .app-shell is a flex child and fills the screen on iOS WKWebView */}
+          <div className="app-viewport-root">
           {/* Initial loading overlay */}
           {isInitialLoading && (
             <LoadingOverlay 
@@ -198,7 +230,7 @@ function App() {
               
               {/* Calendar area */}
               <section 
-                className="flex-grow-1 d-flex flex-column" 
+                className={`flex-grow-1 d-flex flex-column${currentView === 'daily' ? ' calendar-section-daily' : ''}`}
                 style={{ 
                   minHeight: 0,
                   overflow: 'hidden'
@@ -249,6 +281,7 @@ function App() {
 
               </section>
             </main>
+          </div>
           </div>
         </AuthWrapper>
       </Suspense>

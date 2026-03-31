@@ -12,6 +12,7 @@ import {
     browserLocalPersistence
 } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
+import { getMessaging, isSupported } from "firebase/messaging";
 import { Capacitor } from "@capacitor/core";
 
 const firebaseConfig = {
@@ -78,5 +79,20 @@ const auth = (() => {
 })();
 
 const functions = getFunctions(app);
+
+let messagingPromise = null;
+
+/**
+ * Firebase Cloud Messaging instance (web only). Resolves null on native or unsupported browsers.
+ */
+export function getFirebaseMessaging() {
+  if (Capacitor.isNativePlatform()) {
+    return Promise.resolve(null);
+  }
+  if (!messagingPromise) {
+    messagingPromise = isSupported().then((ok) => (ok ? getMessaging(app) : null));
+  }
+  return messagingPromise;
+}
 
 export { db, auth, functions, httpsCallable };

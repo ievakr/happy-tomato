@@ -1,4 +1,29 @@
 /* eslint-disable no-restricted-globals */
+importScripts('/__firebase-sw-config.js');
+importScripts('https://www.gstatic.com/firebasejs/11.7.3/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/11.7.3/firebase-messaging-compat.js');
+
+try {
+  const cfg = self.__FIREBASE_CONFIG__;
+  if (cfg && cfg.apiKey) {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(cfg);
+    }
+    const messaging = firebase.messaging();
+    messaging.onBackgroundMessage((payload) => {
+      const title = payload.notification?.title || 'Happy Tomato';
+      const options = {
+        body: payload.notification?.body || '',
+        icon: '/logo192.png',
+        data: payload.data || {},
+      };
+      return self.registration.showNotification(title, options);
+    });
+  }
+} catch (e) {
+  console.error('[FCM service worker]', e);
+}
+
 const PRECACHE_NAME = 'happy-tomato-precache-v2';
 const RUNTIME_CACHE = 'happy-tomato-runtime-v1';
 

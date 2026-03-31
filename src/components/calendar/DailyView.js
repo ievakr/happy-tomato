@@ -1,12 +1,13 @@
-import React, { useContext, useEffect, useState, useRef, useCallback } from 'react';
+import React, { useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import dayjs from 'dayjs';
 import CalendarContext from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
 import { getDayHeaders } from '../../utils';
-import { useResponsive, useSwipeGestures, useRecurringActions } from '../../hooks';
+import { useResponsive } from '../../hooks';
 import { useToast } from '../../context/ToastContext';
 import { ConfirmModal } from '../common';
 import EventItem from './EventItem';
+import CalendarEventChip from './CalendarEventChip';
 import '../../index.css';
 
 const DailyView = () => {
@@ -29,21 +30,30 @@ const DailyView = () => {
   } = useEventContext();
   
   const { isMobile } = useResponsive();
-  const { isCompletedTodoAction } = useRecurringActions();
   const scrollContainerRef = useRef(null);
   const dayElementMapRef = useRef(new Map());
-  const [displayedMonth, setDisplayedMonth] = useState(dayjs());
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const initialLoadRef = useRef(true);
+  /** Strip cell `YYYY-MM-DD` for red highlight — matches calendar selection when daily view opens (e.g. from month view). */
+  const [stripTapHighlightKey, setStripTapHighlightKey] = useState(() =>
+    (daySelected || dayjs()).format('YYYY-MM-DD')
+  );
+  const daysToShow = 60;
+
+  // Anchor the strip independently of the selected day so scrolling does not re-build the row and jump.
+  const [stripStart, setStripStart] = useState(() =>
+    (daySelected || dayjs()).subtract(Math.floor(daysToShow / 2), 'day')
+  );
 
   const applyMonthChange = useCallback((newMonth) => {
     const currentDayValue = daySelected || dayjs();
     const dayOfMonth = currentDayValue.date();
     const newDay = dayjs(new Date(currentDayValue.year(), newMonth, dayOfMonth));
+    setStripTapHighlightKey(null);
     setMonthIndex(newMonth);
     setDaySelected(newDay);
-  }, [daySelected, setMonthIndex, setDaySelected]);
+    setStripStart(newDay.subtract(Math.floor(daysToShow / 2), 'day'));
+  }, [daySelected, setMonthIndex, setDaySelected, daysToShow]);
 
   const scrollToDay = useCallback((targetEl) => {
     const container = scrollContainerRef.current;
@@ -51,81 +61,135 @@ const DailyView = () => {
       return;
     }
 
-    const targetCenter = targetEl.offsetLeft + (targetEl.offsetWidth / 2);
-    const desiredLeft = targetCenter - (container.clientWidth / 2);
+    // Use viewport-relative positions — offsetLeft is unreliable on iOS WebKit for nested flex scrollers.
+    const cr = container.getBoundingClientRect();
+    const er = targetEl.getBoundingClientRect();
+    const containerCenter = (cr.left + cr.right) / 2;
+    const elCenter = (er.left + er.right) / 2;
+    const delta = elCenter - containerCenter;
     const maxLeft = container.scrollWidth - container.clientWidth;
-    const targetLeft = Math.max(0, Math.min(desiredLeft, maxLeft));
-    container.scrollLeft = targetLeft;
+    const nextLeft = Math.max(0, Math.min(container.scrollLeft + delta, maxLeft));
+
+    container.scrollLeft = nextLeft;
   }, []);
 
-  // Swipe handlers for month navigation in selected day area
-  const handleSwipeLeft = () => {
-    if (isMobile) {
-      applyMonthChange(monthIndex + 1); // Next month
+  /** Month shown in the header label — follows strip scroll, not only the selected day */
+  const [visibleStripMonthKey, setVisibleStripMonthKey] = useState(() =>
+    (daySelected || dayjs()).format('YYYY-MM')
+  );
+
+  const selectedDayCalendarKey = useMemo(
+    () => (daySelected || dayjs()).format('YYYY-MM-DD'),
+    [daySelected]
+  );
+
+  const getCenteredDayFromScroll = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return null;
+
+    const rect = container.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const nodes = container.querySelectorAll('[data-daily-strip-date]');
+    let best = null;
+    let bestDist = Infinity;
+
+    nodes.forEach((node) => {
+      const r = node.getBoundingClientRect();
+      const mid = (r.left + r.right) / 2;
+      const dist = Math.abs(mid - centerX);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = node;
+      }
+    });
+
+    if (!best) return null;
+    const dateStr = best.getAttribute('data-daily-strip-date');
+    return dateStr ? dayjs(dateStr) : null;
+  }, []);
+
+  const syncVisibleMonthFromScroll = useCallback(() => {
+    if (!isMobile) return;
+    const centered = getCenteredDayFromScroll();
+    if (!centered || !centered.isValid()) return;
+    const key = centered.format('YYYY-MM');
+    setVisibleStripMonthKey(key);
+    setMonthIndex(centered.month());
+  }, [getCenteredDayFromScroll, isMobile, setMonthIndex]);
+
+  // When the selected calendar day changes (tap, Today, month arrows, open from month view), align label + month index
+  useEffect(() => {
+    const d = dayjs(selectedDayCalendarKey);
+    setVisibleStripMonthKey(d.format('YYYY-MM'));
+    setMonthIndex(d.month());
+  }, [selectedDayCalendarKey, setMonthIndex]);
+
+  // Strip scroll updates the month label (does not change the selected day)
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !isMobile) return;
+
+    const supportsScrollEnd =
+      typeof document !== 'undefined' && 'onscrollend' in document.createElement('div');
+
+    let debounceId;
+    const run = () => syncVisibleMonthFromScroll();
+    const debounced = () => {
+      clearTimeout(debounceId);
+      debounceId = setTimeout(run, supportsScrollEnd ? 450 : 320);
+    };
+
+    container.addEventListener('scroll', debounced, { passive: true });
+    if (supportsScrollEnd) {
+      container.addEventListener('scrollend', run, { passive: true });
     }
-  };
-  
-  const handleSwipeRight = () => {
-    if (isMobile) {
-      applyMonthChange(monthIndex - 1); // Previous month
-    }
-  };
-  
-  const swipeRef = useSwipeGestures(handleSwipeLeft, handleSwipeRight, 50, 0.3);
+    return () => {
+      container.removeEventListener('scroll', debounced);
+      if (supportsScrollEnd) {
+        container.removeEventListener('scrollend', run);
+      }
+      clearTimeout(debounceId);
+    };
+  }, [syncVisibleMonthFromScroll, isMobile]);
+
+  // After strip re-renders / re-anchors, read scroll position so the label matches what's on screen
+  useEffect(() => {
+    if (!isMobile) return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        syncVisibleMonthFromScroll();
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [stripStart, isMobile, syncVisibleMonthFromScroll]);
 
   // Get current day or fallback to today
   const currentDay = daySelected || dayjs();
 
-  // Generate days around the current day for mobile scrolling
-  const daysToShow = 60; // Show 30 days before and 30 days after current day
-  const startDay = currentDay.subtract(Math.floor(daysToShow / 2), 'day');
-  const allDays = Array.from({ length: daysToShow }, (_, i) => 
-    startDay.add(i, 'day')
+  const visibleMonthLabel = useMemo(
+    () => dayjs(`${visibleStripMonthKey}-01`).format('MMMM YYYY'),
+    [visibleStripMonthKey]
+  );
+
+  const allDays = useMemo(
+    () =>
+      Array.from({ length: daysToShow }, (_, i) => stripStart.add(i, 'day')),
+    [stripStart, daysToShow]
   );
 
   const dayHeaders = getDayHeaders('short');
 
-  // Function to calculate which day is currently centered in viewport
-  const updateDisplayedMonth = useCallback(() => {
-    if (!scrollContainerRef.current || !isMobile) return;
-    
-    const container = scrollContainerRef.current;
-    const scrollLeft = container.scrollLeft;
-    const containerWidth = container.clientWidth;
-    const dayWidth = 70; // Width of each day
-    
-    // Calculate which day is in the center of the viewport
-    const centerPosition = scrollLeft + (containerWidth / 2);
-    const centeredDayIndex = Math.floor(centerPosition / dayWidth);
-    
-    if (centeredDayIndex >= 0 && centeredDayIndex < allDays.length) {
-      const centeredDay = allDays[centeredDayIndex];
-      // Only update if the month actually changed
-      if (!displayedMonth.isSame(centeredDay, 'month')) {
-        setDisplayedMonth(centeredDay);
-      }
-    }
-  }, [allDays, displayedMonth, isMobile]);
-
-  // Scroll to current day only on initial mount
+  // If selected day jumps outside the strip (e.g. open modal from elsewhere), re-anchor the strip.
   useEffect(() => {
-    if (scrollContainerRef.current && isMobile && initialLoadRef.current) {
-      const currentDayIndex = allDays.findIndex(day => 
-        day.format("DD-MM-YY") === currentDay.format("DD-MM-YY")
-      );
-      
-      if (currentDayIndex !== -1) {
-        const scrollPosition = currentDayIndex * 70 - (window.innerWidth / 2) + 35; // Center the current day
-        scrollContainerRef.current.scrollTo({
-          left: Math.max(0, scrollPosition),
-          behavior: 'smooth'
-        });
-        initialLoadRef.current = false;
-      }
+    if (!isMobile || !daySelected) return;
+    const stripEnd = stripStart.add(daysToShow - 1, 'day');
+    if (daySelected.isBefore(stripStart, 'day') || daySelected.isAfter(stripEnd, 'day')) {
+      setStripStart(daySelected.subtract(Math.floor(daysToShow / 2), 'day'));
     }
-  }, [isMobile, allDays, currentDay]);
+  }, [daySelected, isMobile, stripStart, daysToShow]);
 
-  // Keep the day scroller aligned when selected day changes externally
+  // Keep the strip scrolled so the selected day stays visible when selection changes (tap, Today, month nav, etc.).
+  // Scrolling alone does not change the selected day.
   useEffect(() => {
     if (!isMobile) {
       return;
@@ -136,63 +200,32 @@ const DailyView = () => {
     if (selectedEl) {
       scrollToDay(selectedEl);
     }
-  }, [currentDay, isMobile, scrollToDay]);
+  }, [currentDay, stripStart, isMobile, scrollToDay]);
 
-  // Update displayed month when currentDay changes
+  // Clear tap highlight if the calendar day changes without a matching strip tap (e.g. month view).
   useEffect(() => {
-    setDisplayedMonth(currentDay);
-  }, [currentDay]);
-
-  // Add scroll event listener
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (container && isMobile) {
-      let scrollTimeout;
-      const handleScroll = () => {
-        // Debounce scroll events
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(updateDisplayedMonth, 150);
-      };
-      
-      container.addEventListener('scroll', handleScroll);
-      return () => {
-        container.removeEventListener('scroll', handleScroll);
-        clearTimeout(scrollTimeout);
-      };
+    if (!stripTapHighlightKey) return;
+    if (currentDay.format('YYYY-MM-DD') !== stripTapHighlightKey) {
+      setStripTapHighlightKey(null);
     }
-  }, [updateDisplayedMonth, isMobile]);
-
-  // Update month index when displayed month changes
-  useEffect(() => {
-    if (displayedMonth.month() !== monthIndex) {
-      setMonthIndex(displayedMonth.month());
-    }
-  }, [displayedMonth, monthIndex, setMonthIndex]);
+  }, [currentDay, stripTapHighlightKey]);
 
   const handleDayClick = (day) => {
     setDaySelected(day);
     setShowEventModal(true);
   };
 
-  const handleDaySelection = useCallback((day, index, event) => {
+  const handleDaySelection = useCallback((day) => {
+    const key = day.format('YYYY-MM-DD');
+    setStripTapHighlightKey(key);
     setDaySelected(day);
     if (!isMobile) {
       return;
     }
 
-    const target = event?.currentTarget;
-    if (target) {
-      scrollToDay(target);
-      return;
-    }
-
-    // Fallback to manual centering if needed
-    const scrollPosition = index * 70 - (window.innerWidth / 2) + 35;
-    scrollContainerRef.current?.scrollTo({
-      left: Math.max(0, scrollPosition),
-      behavior: 'smooth'
-    });
-  }, [isMobile, scrollToDay, setDaySelected]);
+    setStripStart(day.subtract(Math.floor(daysToShow / 2), 'day'));
+    // Scroll alignment runs in useEffect after strip re-renders (scrollToDay here would run too early).
+  }, [isMobile, setDaySelected, daysToShow]);
 
   const handleEventClick = (evt, e) => {
     e.stopPropagation();
@@ -230,15 +263,13 @@ const DailyView = () => {
       : '';
   };
 
-  const isSelectedDay = (day) => {
-    return day.format("DD-MM-YY") === currentDay.format("DD-MM-YY");
-  };
-
   const jumpToToday = useCallback(() => {
     const today = dayjs();
+    setStripTapHighlightKey(today.format('YYYY-MM-DD'));
     setDaySelected(today);
     setMonthIndex(today.month());
-  }, [setDaySelected, setMonthIndex]);
+    setStripStart(today.subtract(Math.floor(daysToShow / 2), 'day'));
+  }, [setDaySelected, setMonthIndex, daysToShow]);
 
   if (isInitialLoading) {
     return (
@@ -268,7 +299,7 @@ const DailyView = () => {
               </span>
             </button>
             <span className="calendar-month-label">
-              {displayedMonth.format("MMMM YYYY")}
+              {visibleMonthLabel}
             </span>
             <button
               className="btn btn-sm btn-light"
@@ -306,7 +337,7 @@ const DailyView = () => {
                 }
               `
             }} />
-            {allDays.map((day, index) => {
+            {allDays.map((day) => {
               // Convert dayjs day index (0=Sunday) to getDayHeaders index (0=Monday)
               const dayOfWeek = (day.day() + 6) % 7;
               const dayEvents = getEventsForDay(day);
@@ -314,8 +345,11 @@ const DailyView = () => {
               return (
                 <div
                   key={day.format('YYYY-MM-DD')}
-                  className={`daily-week-day text-center ${getCurrentDayClass(day)} ${isSelectedDay(day) ? 'selected' : ''}`}
-                  onClick={(event) => handleDaySelection(day, index, event)}
+                  data-daily-strip-date={day.format('YYYY-MM-DD')}
+                  className={`daily-week-day text-center ${getCurrentDayClass(day)}${
+                    stripTapHighlightKey === day.format('YYYY-MM-DD') ? ' selected' : ''
+                  }`}
+                  onClick={() => handleDaySelection(day)}
                   ref={(node) => {
                     const key = day.format('YYYY-MM-DD');
                     if (node) {
@@ -347,9 +381,9 @@ const DailyView = () => {
         </div>
       )}
 
-      {/* Selected Day Info and Events */}
+      {/* Selected Day Info and Events — no horizontal swipe-to-change-month here: on iPhone, vertical
+          scrolling the events list often looks "horizontal" to touch heuristics and was changing months. */}
         <div 
-          ref={isMobile ? swipeRef : null} 
           className="selected-day-info flex-grow-1 p-3 d-flex flex-column"
           style={{ 
             touchAction: isMobile ? 'pan-y' : 'auto',
@@ -395,12 +429,29 @@ const DailyView = () => {
                   <div className="events-list">
                     <h6 className="mb-3">Events ({dayEvents.length})</h6>
                     {dayEvents.map((evt, idx) => {
-                        const isCompletedTodo = isCompletedTodoAction(evt);
+                        if (isMobile) {
+                          return (
+                            <div
+                              key={evt.id || idx}
+                              className="position-relative"
+                            >
+                              <CalendarEventChip
+                                event={evt}
+                                plantsById={plantsById || {}}
+                                listMode
+                                preferFullPlantIcons
+                                onClick={(e) => handleEventClick(evt, e)}
+                              />
+                            </div>
+                          );
+                        }
+
+                        const isDone = !!evt.completed;
 
                         return (
                         <div 
                           key={evt.id || idx}
-                          className={`event-item-daily mb-2 p-2 border rounded position-relative ${isCompletedTodo ? 'event-item-daily-completed' : ''}`}
+                          className={`event-item-daily mb-2 p-2 border rounded position-relative ${isDone ? 'event-item-daily-completed' : ''}`}
                           onClick={(e) => handleEventClick(evt, e)}
                         >
                           <EventItem 
@@ -411,15 +462,13 @@ const DailyView = () => {
                             showAllIcons={true}
                           />
                           {/* Quick delete button */}
-                          {!isMobile && (
-                            <button
-                              className="quick-delete-btn btn btn-sm btn-danger position-absolute"
-                              onClick={(e) => handleQuickDelete(evt, e)}
-                              title="Delete event"
-                            >
-                              ×
-                            </button>
-                          )}
+                          <button
+                            className="quick-delete-btn btn btn-sm btn-danger position-absolute"
+                            onClick={(e) => handleQuickDelete(evt, e)}
+                            title="Delete event"
+                          >
+                            ×
+                          </button>
                         </div>
                         );
                       })}

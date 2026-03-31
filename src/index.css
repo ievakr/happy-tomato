@@ -8,6 +8,31 @@ body {
   min-height: 100%;
 }
 
+/* Capacitor iOS: fill WKWebView — #root must participate in height or flex layout leaves a gap at the bottom */
+html.capacitor-ios-native {
+  height: 100%;
+  min-height: -webkit-fill-available;
+}
+
+html.capacitor-ios-native body {
+  margin: 0;
+  height: 100%;
+  min-height: 100%;
+  min-height: -webkit-fill-available;
+  /* Same as daily panel so any stray gap is not harsh white */
+  background-color: #f8f9fa;
+  /* overflow:hidden caused visible “lift” + dead band; clip horizontally only */
+  overflow-x: hidden;
+}
+
+html.capacitor-ios-native #root {
+  height: 100%;
+  min-height: 100%;
+  min-height: -webkit-fill-available;
+  display: flex;
+  flex-direction: column;
+}
+
 /* Whole app: sit above home indicator (viewport-fit=cover) */
 .app-shell {
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -20,26 +45,81 @@ html.capacitor-ios-native .app-shell.vh-100 {
   max-height: var(--app-vh, 100vh) !important;
 }
 
+/*
+ * Capacitor iOS: padding on .app-shell sits *below* <main>, so it reads as an empty strip under the
+ * gray daily card. Put the home-indicator inset inside the daily panel instead (.calendar-section-daily).
+ */
 html.capacitor-ios-native .app-shell {
-  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  padding-bottom: 0;
 }
 
-@media (max-width: 768px) {
-  html.capacitor-ios-native .daily-view-footer-actions {
-    padding-bottom: 20px !important;
-  }
+/* Fills #root — percentage height avoids mismatch when --app-vh was shorter than WKWebView layout */
+html.capacitor-ios-native .app-viewport-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+
+/*
+ * Shell fills the wrapper — do not override with height:auto (that dropped --app-vh and left a white gap).
+ */
+html.capacitor-ios-native .app-viewport-root .app-shell {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: none !important;
+}
+
+/* Month / week: keep inset on the calendar section so content stays above the home indicator. */
+html.capacitor-ios-native main > section:not(.calendar-section-daily) {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+}
+
+html.capacitor-ios-native main {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  align-items: stretch;
+}
+
+html.capacitor-ios-native .calendar-section-daily {
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  width: 100%;
+  /* Continues gray behind flex gaps so a short flex chain is not a white strip */
+  background-color: #f8f9fa;
+}
+
+/* Capacitor iOS: default flex-basis:auto leaves unused space below the last flex child (dead band above home indicator). */
+html.capacitor-ios-native .daily-view {
+  flex: 1 1 0 !important;
+  min-height: 0;
+}
+
+html.capacitor-ios-native .daily-view .selected-day-info {
+  flex: 1 1 0 !important;
+  min-height: 0;
+}
+
+/* Safe area + spacing below Add Event — inside the gray card, not below it */
+html.capacitor-ios-native .calendar-section-daily .daily-view-footer-actions {
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 /*
  * Web / mobile Safari: header below notch (viewport-fit=cover).
- * capacitor-ios-native: skip — ios.contentInset "automatic" already insets the webview.
+ * capacitor-ios-native with ios.contentInset "never": env() provides insets (use same as web).
  */
 .calendar-header {
   padding-top: calc(0.5rem + env(safe-area-inset-top, 0px)) !important;
 }
 
 html.capacitor-ios-native .calendar-header {
-  padding-top: 0.5rem !important;
+  padding-top: calc(0.5rem + env(safe-area-inset-top, 0px)) !important;
 }
 
 .material-icons-outlined {
@@ -201,10 +281,15 @@ html.capacitor-ios-native .calendar-header {
     transition: all 0.2s ease;
     border: 1px solid transparent;
     min-height: 72px;
+    /* Avoid iOS/WKWebView sticking :hover after horizontal scroll (looked like random gray cells) */
+    -webkit-tap-highlight-color: transparent;
 }
 
-.daily-week-day:hover {
-    background-color: #f8f9fa;
+/* Real pointing devices only — touch UIs keep “hover” on the wrong day after panning */
+@media (hover: hover) and (pointer: fine) {
+    .daily-week-day:hover {
+        background-color: #f8f9fa;
+    }
 }
 
 .daily-week-day.selected {
@@ -264,8 +349,6 @@ html.capacitor-ios-native .calendar-header {
     color: #fff;
     background-color: #c82333;
 }
-
-
 
 .selected-day-info {
     background-color: #f8f9fa;
@@ -394,6 +477,8 @@ html.capacitor-ios-native .calendar-header {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch;
         scroll-behavior: auto;
+        touch-action: pan-x;
+        overscroll-behavior-x: contain;
     }
 
     .daily-week-day {
@@ -448,4 +533,14 @@ html.capacitor-ios-native .calendar-header {
 .modal-header .btn-close:disabled {
     opacity: 0.35;
     filter: none;
+}
+
+/* Phones / Capacitor: keep modal content below status bar and above home indicator */
+@media (max-width: 768px) {
+    .modal.show {
+        padding-top: calc(var(--bs-modal-margin, 0.5rem) + env(safe-area-inset-top, 0px));
+        padding-bottom: calc(var(--bs-modal-margin, 0.5rem) + env(safe-area-inset-bottom, 0px));
+        padding-left: calc(var(--bs-modal-margin, 0.5rem) + env(safe-area-inset-left, 0px));
+        padding-right: calc(var(--bs-modal-margin, 0.5rem) + env(safe-area-inset-right, 0px));
+    }
 }

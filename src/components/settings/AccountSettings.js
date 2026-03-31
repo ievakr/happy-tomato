@@ -2,18 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { deleteAllUserData } from '../../utils/deleteUserData';
-import { useEmailNotifications } from '../../hooks/useEmailNotifications';
+import { Capacitor } from '@capacitor/core';
+import { usePushNotifications } from '../../hooks/usePushNotifications';
+import pushService from '../../services/pushService';
 
 function AccountSettings({ onClose }) {
   const { currentUser, deleteAccount, updateUserProfile } = useAuth();
   const { showSuccess, showError } = useToast();
-  const emailNotifications = useEmailNotifications();
+  const pushNotifications = usePushNotifications();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState('account'); // 'account' or 'notifications'
-  const [emailDraft, setEmailDraft] = useState(emailNotifications.emailPreferences);
+  const [emailDraft, setEmailDraft] = useState(pushNotifications.pushPreferences);
   const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
   const [savingProfile, setSavingProfile] = useState(false);
 
@@ -21,29 +23,35 @@ function AccountSettings({ onClose }) {
     provider => provider.providerId === 'google.com'
   );
 
-  const handleSaveEmailPreferences = () => {
+  const handleSaveEmailPreferences = async () => {
+    if (emailDraft.enabled) {
+      if (Capacitor.isNativePlatform()) {
+        await pushService.requestNativePushPermission();
+      } else if (
+        typeof Notification !== 'undefined' &&
+        Notification.permission === 'default'
+      ) {
+        await Notification.requestPermission();
+      }
+    }
     const payload = {
       ...emailDraft,
       userId: currentUser?.uid || emailDraft.userId,
-      // Use auth email when logged in so it matches Firestore rules
       ...(currentUser?.email && { userEmail: currentUser.email }),
-      // Use display name for email personalization
       userName: currentUser?.displayName || emailDraft.userName
     };
-    emailNotifications.updateEmailPreferences(payload);
-    showSuccess('Email notification settings saved.');
+    pushNotifications.updatePushPreferences(payload);
+    showSuccess('Notification settings saved.');
   };
 
   useEffect(() => {
     setEmailDraft({
-      ...emailNotifications.emailPreferences,
-      userId: currentUser?.uid || emailNotifications.emailPreferences.userId,
-      // Use auth email when logged in so it matches Firestore rules
+      ...pushNotifications.pushPreferences,
+      userId: currentUser?.uid || pushNotifications.pushPreferences.userId,
       ...(currentUser?.email && { userEmail: currentUser.email }),
-      // Use display name for email personalization
-      userName: currentUser?.displayName || emailNotifications.emailPreferences.userName
+      userName: currentUser?.displayName || pushNotifications.pushPreferences.userName
     });
-  }, [currentUser?.uid, currentUser?.email, currentUser?.displayName, emailNotifications.emailPreferences]);
+  }, [currentUser?.uid, currentUser?.email, currentUser?.displayName, pushNotifications.pushPreferences]);
 
   useEffect(() => {
     setDisplayName(currentUser?.displayName || '');
@@ -55,11 +63,10 @@ function AccountSettings({ onClose }) {
     try {
       const newName = displayName.trim() || null;
       await updateUserProfile({ displayName: newName });
-      // Sync name to email preferences so it's used in reminder emails
-      emailNotifications.updateEmailPreferences({
-        ...emailNotifications.emailPreferences,
+      pushNotifications.updatePushPreferences({
+        ...pushNotifications.pushPreferences,
         userId: currentUser.uid,
-        userEmail: currentUser.email || emailNotifications.emailPreferences.userEmail,
+        userEmail: currentUser.email || pushNotifications.pushPreferences.userEmail,
         userName: newName || currentUser.displayName
       });
       showSuccess('Profile updated.');
@@ -261,7 +268,7 @@ function AccountSettings({ onClose }) {
                 <div className="d-grid gap-3">
                   <div className="card">
                     <div className="card-body">
-                      <h5 className="card-title">Email Notifications</h5>
+                      <h5 className="card-title">Push notifications</h5>
                       <div className="form-check form-switch">
                         <input
                           className="form-check-input"
@@ -274,7 +281,7 @@ function AccountSettings({ onClose }) {
                           }))}
                         />
                         <label className="form-check-label" htmlFor="email-notifications">
-                          Enable email notifications
+                          Enable browser push notifications
                         </label>
                       </div>
 

@@ -2,68 +2,71 @@ import React, { useState } from 'react';
 import { Modal, Button, Form, Alert, Card, Row, Col, Badge, Spinner, Accordion, Table } from 'react-bootstrap';
 import notificationService from '../../services/notificationService';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
+import { Capacitor } from '@capacitor/core';
 
 /**
- * Email Notification Settings Component
- * Allows users to configure email reminders for TODOs
+ * Push notification settings for TODO reminders (web push / FCM)
  */
-export default function EmailNotificationSettings({ show, onHide, emailNotifications }) {
+export default function PushNotificationSettings({ show, onHide, pushNotifications }) {
+  const { currentUser } = useAuth();
   const {
-    emailPreferences,
-    updateEmailPreferences,
-    resetEmailPreferences,
+    pushPreferences,
+    updatePushPreferences,
+    resetPushPreferences,
     forceUpdateReminderTime,
-    testEmailConfiguration,
-    isEmailServiceReady,
-    getEmailServiceStatus,
+    testPushConfiguration,
+    isPushServiceReady,
     getTodoSummary
-  } = emailNotifications;
+  } = pushNotifications;
 
-  const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [isTestingPush, setIsTestingPush] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const { showSuccess, showError } = useToast();
 
-  const emailServiceStatus = getEmailServiceStatus();
   const todoSummary = getTodoSummary();
+  const isNativeApp = Capacitor.isNativePlatform();
 
   const handleInputChange = (field, value) => {
-    updateEmailPreferences({ [field]: value });
-    setTestResult(null); // Clear test result when settings change
+    updatePushPreferences({ [field]: value });
+    setTestResult(null);
   };
 
-  const handleTestEmail = async () => {
-    if (!emailPreferences.userEmail) {
-      setTestResult({ success: false, message: 'Please enter your email address first' });
+  const handleTestPush = async () => {
+    if (!currentUser?.email) {
+      setTestResult({ success: false, message: 'Sign in to test push notifications' });
       return;
     }
 
-    setIsTestingEmail(true);
+    setIsTestingPush(true);
     setTestResult(null);
 
     try {
-      const success = await testEmailConfiguration();
+      const success = await testPushConfiguration();
       setTestResult({
         success,
-        message: success 
-          ? 'Test email sent successfully! Check your inbox.' 
-          : 'Failed to send test email. Please check your configuration.'
+        message: success
+          ? 'Test push sent. Check your system notifications.'
+          : `Failed to send test push. Allow notifications${
+              isNativeApp ? ' and check Firebase native config.' : ' and ensure VAPID key is set.'
+            }`,
       });
     } catch (error) {
       setTestResult({
         success: false,
-        message: error.message || 'Failed to send test email'
+        message: error.message || 'Failed to send test push',
       });
     } finally {
-      setIsTestingEmail(false);
+      setIsTestingPush(false);
     }
   };
 
   const handleSaveAndClose = () => {
-    if (emailPreferences.enabled && !emailPreferences.userEmail) {
+    if (pushPreferences.enabled && !currentUser?.email) {
       setTestResult({
         success: false,
-        message: 'Please enter your email address before enabling notifications'
+        message: 'Sign in to enable push notifications',
       });
       return;
     }
@@ -73,7 +76,7 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
   return (
     <Modal show={show} onHide={onHide} size="lg" centered>
       <Modal.Header closeButton>
-        <Modal.Title>Email Notification Settings</Modal.Title>
+        <Modal.Title>Push Notification Settings</Modal.Title>
       </Modal.Header>
       
       <Modal.Body>
@@ -82,35 +85,48 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
           <Card.Header>
             <Row className="align-items-center">
               <Col>
-                <h6 className="mb-0">Email Service Status</h6>
+                <h6 className="mb-0">Push service status</h6>
               </Col>
               <Col xs="auto">
-                {isEmailServiceReady() ? (
+                {isPushServiceReady() ? (
                   <Badge bg="success">Ready</Badge>
                 ) : (
-                  <Badge bg="warning">Configuration Required</Badge>
+                  <Badge bg="warning">Configuration required</Badge>
                 )}
               </Col>
             </Row>
           </Card.Header>
           <Card.Body>
-            {!isEmailServiceReady() && (
+            {isNativeApp && (
+              <Alert variant="info" className="mb-3">
+                <h6 className="mb-2">iOS / Android app</h6>
+                <p className="mb-2 small mb-0">
+                  Use <code>GoogleService-Info.plist</code> (iOS) and <code>google-services.json</code>{' '}
+                  (Android) from Firebase, enable <strong>Push Notifications</strong> in Xcode, and
+                  upload your APNs key to Firebase Cloud Messaging. Then run{' '}
+                  <code>npx cap sync</code> and rebuild the native project.
+                </p>
+              </Alert>
+            )}
+
+            {!isNativeApp && !isPushServiceReady() && (
               <Alert variant="warning">
-                <h6>Email service not configured</h6>
-                <p className="mb-2">To enable email notifications, configure SendGrid in Firebase Functions:</p>
-                <ul className="mb-0">
-                  <li><code>firebase functions:config:set sendgrid.api_key="..."</code></li>
-                  <li><code>firebase functions:config:set sendgrid.from_email="..."</code></li>
-                </ul>
+                <h6>Web push not fully configured</h6>
+                <p className="mb-2">
+                  Add your Web Push certificate key pair to the app environment as{' '}
+                  <code>REACT_APP_FIREBASE_VAPID_KEY</code> (Firebase Console → Project settings →
+                  Cloud Messaging → Web Push certificates).
+                </p>
                 <small className="text-muted">
-                  See project documentation for setup instructions.
+                  Rebuild the app after setting the variable. Scheduled reminders use the same FCM
+                  tokens stored in Firestore.
                 </small>
               </Alert>
             )}
-            
-            {isEmailServiceReady() && (
+
+            {(isNativeApp || isPushServiceReady()) && (
               <div className="text-success">
-                ✅ Email service is properly configured and ready to send reminders.
+                ✅ Push is enabled for this {isNativeApp ? 'native' : 'web'} build (FCM).
               </div>
             )}
           </Card.Body>
@@ -138,7 +154,7 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
               <Col md={3}>
                 <div className="text-center">
                   <div className="h4 text-primary">{todoSummary.advance}</div>
-                  <small className="text-muted">In {emailPreferences.advanceDays} Days</small>
+                  <small className="text-muted">In {pushPreferences.advanceDays} Days</small>
                 </div>
               </Col>
               <Col md={3}>
@@ -151,36 +167,33 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
           </Card.Body>
         </Card>
 
-        {/* Email Settings Form */}
+        {/* Push settings form */}
         <Form>
           {/* Enable/Disable Notifications */}
           <Form.Group className="mb-4">
             <Form.Check
               type="switch"
               id="enable-notifications"
-              label="Enable email notifications"
-              checked={emailPreferences.enabled}
+              label="Enable push notifications"
+              checked={pushPreferences.enabled}
               onChange={(e) => handleInputChange('enabled', e.target.checked)}
-              disabled={!isEmailServiceReady()}
+              disabled={!isPushServiceReady()}
             />
             <Form.Text className="text-muted">
-              Receive email reminders for your garden TODOs
+              Browser reminders for your garden TODOs (allow notifications when prompted)
             </Form.Text>
           </Form.Group>
 
-          {/* User Email */}
           <Form.Group className="mb-3">
-            <Form.Label>Your Email Address</Form.Label>
+            <Form.Label>Account</Form.Label>
             <Form.Control
-              type="email"
-              placeholder="Enter your email address"
-              value={emailPreferences.userEmail}
-              onChange={(e) => handleInputChange('userEmail', e.target.value)}
-              disabled={!isEmailServiceReady()}
-              required={emailPreferences.enabled}
+              type="text"
+              readOnly
+              value={currentUser?.email || 'Sign in to sync reminders'}
+              className="bg-light"
             />
             <Form.Text className="text-muted">
-              Where to send your TODO reminders
+              Preferences sync to Firestore using your account email
             </Form.Text>
           </Form.Group>
 
@@ -189,25 +202,25 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
             <Form.Check
               type="checkbox"
               id="daily-reminder"
-              label="Daily reminder email"
-              checked={emailPreferences.dailyReminder}
+              label="Daily reminder"
+              checked={pushPreferences.dailyReminder}
               onChange={(e) => handleInputChange('dailyReminder', e.target.checked)}
-              disabled={!emailPreferences.enabled}
+              disabled={!pushPreferences.enabled}
             />
             <Form.Text className="text-muted">
-              Get a daily email with your pending TODOs
+              Push at your chosen time with pending TODOs (today and overdue)
             </Form.Text>
           </Form.Group>
 
           {/* Reminder Time */}
-          {emailPreferences.dailyReminder && (
+          {pushPreferences.dailyReminder && (
             <Form.Group className="mb-3">
               <Form.Label>Daily reminder time</Form.Label>
               <Form.Control
                 type="time"
-                value={emailPreferences.reminderTime}
+                value={pushPreferences.reminderTime}
                 onChange={(e) => handleInputChange('reminderTime', e.target.value)}
-                disabled={!emailPreferences.enabled}
+                disabled={!pushPreferences.enabled}
               />
               <Form.Text className="text-muted">
                 What time to send your daily reminder
@@ -229,31 +242,31 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
             <Form.Check
               type="checkbox"
               id="advance-reminders"
-              label="Advance reminder emails"
-              checked={emailPreferences.advanceReminders}
+              label="Advance reminders"
+              checked={pushPreferences.advanceReminders}
               onChange={(e) => handleInputChange('advanceReminders', e.target.checked)}
-              disabled={!emailPreferences.enabled}
+              disabled={!pushPreferences.enabled}
             />
             <Form.Text className="text-muted">
-              Get notified a few days before TODOs are due
+              Push a few days before TODOs are due
             </Form.Text>
           </Form.Group>
 
           {/* Advance Days Setting */}
-          {emailPreferences.advanceReminders && (
+          {pushPreferences.advanceReminders && (
             <Form.Group className="mb-3">
               <Form.Label>How many days in advance?</Form.Label>
               <Form.Control
                 type="number"
                 min="1"
                 max="14"
-                value={emailPreferences.advanceDays}
+                value={pushPreferences.advanceDays}
                 onChange={(e) => handleInputChange('advanceDays', parseInt(e.target.value) || 3)}
-                disabled={!emailPreferences.enabled}
+                disabled={!pushPreferences.enabled}
                 style={{ width: '120px' }}
               />
               <Form.Text className="text-muted">
-                Send reminders {emailPreferences.advanceDays} day(s) before TODOs are due
+                Send reminders {pushPreferences.advanceDays} day(s) before TODOs are due
               </Form.Text>
             </Form.Group>
           )}
@@ -263,24 +276,24 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
             <Form.Check
               type="checkbox"
               id="weekly-summary"
-              label="Weekly summary email"
-              checked={emailPreferences.weeklySummary ?? false}
+              label="Weekly summary"
+              checked={pushPreferences.weeklySummary ?? false}
               onChange={(e) => handleInputChange('weeklySummary', e.target.checked)}
-              disabled={!emailPreferences.enabled}
+              disabled={!pushPreferences.enabled}
             />
             <Form.Text className="text-muted">
-              A short &quot;here&apos;s your week ahead&quot; email on Sunday or Monday morning
+              A &quot;week ahead&quot; push on Sunday or Monday morning
             </Form.Text>
           </Form.Group>
 
-          {emailPreferences.weeklySummary && (
+          {pushPreferences.weeklySummary && (
             <Form.Group className="mb-3 ms-3">
               <Form.Label>Weekly summary time</Form.Label>
               <Form.Control
                 type="time"
-                value={emailPreferences.weeklySummaryTime || '08:00'}
+                value={pushPreferences.weeklySummaryTime || '08:00'}
                 onChange={(e) => handleInputChange('weeklySummaryTime', e.target.value)}
-                disabled={!emailPreferences.enabled}
+                disabled={!pushPreferences.enabled}
               />
               <Form.Text className="text-muted">
                 When to send your week-ahead summary (Sunday/Monday)
@@ -297,9 +310,9 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
                     type="checkbox"
                     id="due-today-reminders"
                     label="Remind me of TODOs due today"
-                    checked={emailPreferences.dueTodayReminders}
+                    checked={pushPreferences.dueTodayReminders}
                     onChange={(e) => handleInputChange('dueTodayReminders', e.target.checked)}
-                    disabled={!emailPreferences.enabled}
+                    disabled={!pushPreferences.enabled}
                   />
                 </Form.Group>
 
@@ -308,38 +321,38 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
                     type="checkbox"
                     id="overdue-reminders"
                     label="Remind me of overdue TODOs"
-                    checked={emailPreferences.overdueReminders}
+                    checked={pushPreferences.overdueReminders}
                     onChange={(e) => handleInputChange('overdueReminders', e.target.checked)}
-                    disabled={!emailPreferences.enabled}
+                    disabled={!pushPreferences.enabled}
                   />
                 </Form.Group>
               </Card.Body>
             </Card>
           )}
 
-          {/* Test Email */}
+          {/* Test push */}
           <Card className="mb-3">
             <Card.Body>
               <Row className="align-items-center">
                 <Col>
-                  <h6 className="mb-1">Test Email Configuration</h6>
+                  <h6 className="mb-1">Test push</h6>
                   <small className="text-muted">
-                    Send a test email to verify your settings
+                    Send a sample reminder to this device
                   </small>
                 </Col>
                 <Col xs="auto">
                   <Button
                     variant="outline-primary"
-                    onClick={handleTestEmail}
-                    disabled={!isEmailServiceReady() || !emailPreferences.userEmail || isTestingEmail}
+                    onClick={handleTestPush}
+                    disabled={!isPushServiceReady() || !currentUser?.email || isTestingPush}
                   >
-                    {isTestingEmail ? (
+                    {isTestingPush ? (
                       <>
                         <Spinner as="span" animation="border" size="sm" className="me-2" />
                         Sending...
                       </>
                     ) : (
-                      'Send Test Email'
+                      'Send test push'
                     )}
                   </Button>
                 </Col>
@@ -364,12 +377,13 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
           </Alert>
 
           {/* Debug Panel */}
-          <DebugPanel 
-            emailPreferences={emailPreferences}
+          <DebugPanel
+            pushPreferences={pushPreferences}
             todoSummary={todoSummary}
-            isEmailServiceReady={isEmailServiceReady}
-            updateEmailPreferences={updateEmailPreferences}
-            resetEmailPreferences={resetEmailPreferences}
+            isPushServiceReady={isPushServiceReady}
+            currentUserEmail={currentUser?.email}
+            updatePushPreferences={updatePushPreferences}
+            resetPushPreferences={resetPushPreferences}
             forceUpdateReminderTime={forceUpdateReminderTime}
           />
         </Form>
@@ -388,9 +402,17 @@ export default function EmailNotificationSettings({ show, onHide, emailNotificat
 }
 
 /**
- * Debug Panel Component - helps troubleshoot email notification issues
+ * Debug panel for push reminder issues
  */
-function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, updateEmailPreferences, resetEmailPreferences, forceUpdateReminderTime }) {
+function DebugPanel({
+  pushPreferences,
+  todoSummary,
+  isPushServiceReady,
+  currentUserEmail,
+  updatePushPreferences,
+  resetPushPreferences,
+  forceUpdateReminderTime,
+}) {
   const [showDebug, setShowDebug] = useState(false);
   const [debugInfo, setDebugInfo] = useState(null);
   const [isLoadingDebug, setIsLoadingDebug] = useState(false);
@@ -411,7 +433,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
     const currentDate = now.toLocaleDateString();
     
     // Parse reminder time
-    const [reminderHour, reminderMinute] = emailPreferences.reminderTime.split(':').map(Number);
+    const [reminderHour, reminderMinute] = pushPreferences.reminderTime.split(':').map(Number);
     const reminderDateTime = new Date();
     reminderDateTime.setHours(reminderHour, reminderMinute, 0, 0);
     
@@ -419,24 +441,24 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
     const isPastReminderTime = now >= reminderDateTime;
     
     // Check last reminder sent
-    const lastReminderSent = emailPreferences.lastReminderSent 
-      ? new Date(emailPreferences.lastReminderSent).toLocaleString()
+    const lastReminderSent = pushPreferences.lastReminderSent 
+      ? new Date(pushPreferences.lastReminderSent).toLocaleString()
       : 'Never';
-    const lastAdvanceReminderSent = emailPreferences.lastAdvanceReminderSent
-      ? new Date(emailPreferences.lastAdvanceReminderSent).toLocaleString()
+    const lastAdvanceReminderSent = pushPreferences.lastAdvanceReminderSent
+      ? new Date(pushPreferences.lastAdvanceReminderSent).toLocaleString()
       : 'Never';
 
     // Determine why reminders might not be sending
     const issues = [];
     
-    if (!emailPreferences.enabled) {
-      issues.push("Email notifications are disabled");
+    if (!pushPreferences.enabled) {
+      issues.push('Push notifications are disabled');
     }
-    if (!emailPreferences.userEmail) {
-      issues.push("No email address configured");
+    if (!currentUserEmail) {
+      issues.push('Not signed in (account email is used to sync preferences)');
     }
-    if (!isEmailServiceReady()) {
-      issues.push("Email service not configured (check SendGrid in Firebase Functions)");
+    if (!isPushServiceReady()) {
+      issues.push('Push not configured (set REACT_APP_FIREBASE_VAPID_KEY and rebuild)');
     }
     if (!serviceStatus.isRunning) {
       issues.push("Notification service is not running");
@@ -444,15 +466,15 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
     if (todoSummary.dueToday === 0 && todoSummary.overdue === 0) {
       issues.push("No TODOs are due today or overdue");
     }
-    if (!emailPreferences.dailyReminder) {
+    if (!pushPreferences.dailyReminder) {
       issues.push("Daily reminders are disabled");
     }
     if (!isPastReminderTime) {
-      issues.push(`Current time (${currentTime}) is before daily reminder time (${emailPreferences.reminderTime})`);
+      issues.push(`Current time (${currentTime}) is before daily reminder time (${pushPreferences.reminderTime})`);
     }
 
     // Check localStorage directly for debugging
-    const localStorageData = localStorage.getItem('email-preferences');
+    const localStorageData = localStorage.getItem('push-notification-preferences');
     const parsedLocalStorage = localStorageData ? JSON.parse(localStorageData) : null;
 
     const debugData = {
@@ -463,12 +485,12 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
       notificationLogs,
       currentTime,
       currentDate,
-      reminderTime: emailPreferences.reminderTime,
+      reminderTime: pushPreferences.reminderTime,
       isPastReminderTime,
       lastReminderSent,
       lastAdvanceReminderSent,
       issues,
-      preferences: emailPreferences,
+      preferences: pushPreferences,
       localStorage: {
         raw: localStorageData,
         parsed: parsedLocalStorage,
@@ -505,7 +527,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
     try {
       const success = await notificationService.sendManualReminder(type);
       if (success) {
-        showSuccess(`Manual ${type} reminder sent successfully! Check your email.`);
+        showSuccess(`Manual ${type} reminder sent. Check your system notifications.`);
         loadDebugInfo(); // Refresh debug info
       } else {
         showError(`Failed to send manual ${type} reminder. Check the debug info below for details.`);
@@ -556,11 +578,11 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                 <Accordion.Body>
                   {debugInfo.issues.length === 0 ? (
                     <Alert variant="success">
-                      ✅ No issues detected! Your email notifications should be working.
+                      ✅ No issues detected! Push reminders should work.
                     </Alert>
                   ) : (
                     <Alert variant="warning">
-                      <strong>Potential issues preventing email reminders:</strong>
+                      <strong>Potential issues preventing push reminders:</strong>
                       <ul className="mb-0 mt-2">
                         {debugInfo.issues.map((issue, idx) => (
                           <li key={idx}>{issue}</li>
@@ -581,7 +603,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                       variant="outline-success" 
                       size="sm" 
                       onClick={() => handleSendManualReminder('daily')}
-                      disabled={!emailPreferences.enabled || !emailPreferences.userEmail}
+                      disabled={!pushPreferences.enabled || !currentUserEmail}
                     >
                       📧 Manual Daily Reminder
                     </Button>
@@ -589,7 +611,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                       variant="outline-warning"
                       size="sm"
                       onClick={() => handleSendManualReminder('advance')}
-                      disabled={!emailPreferences.enabled || !emailPreferences.userEmail}
+                      disabled={!pushPreferences.enabled || !currentUserEmail}
                     >
                       🔔 Manual Advance Reminder
                     </Button>
@@ -597,7 +619,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                       variant="outline-secondary"
                       size="sm"
                       onClick={() => handleSendManualReminder('weekly')}
-                      disabled={!emailPreferences.enabled || !emailPreferences.userEmail}
+                      disabled={!pushPreferences.enabled || !currentUserEmail}
                     >
                       📅 Manual Weekly Summary
                     </Button>
@@ -605,7 +627,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                 variant="outline-danger"
                 size="sm"
                 onClick={() => {
-                  resetEmailPreferences();
+                  resetPushPreferences();
                   showSuccess('Complete reset done! All preferences and timestamps cleared. Please re-configure your settings.');
                   loadDebugInfo();
                 }}
@@ -617,7 +639,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                 variant="outline-secondary"
                 size="sm"
                 onClick={() => {
-                  updateEmailPreferences({
+                  updatePushPreferences({
                     lastAutoReminderSent: null,
                     lastAutoAdvanceReminderSent: null
                   });
@@ -660,7 +682,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                       <strong>Overdue:</strong> {debugInfo.todos.overdue}
                     </Col>
                     <Col md={3}>
-                      <strong>In {emailPreferences.advanceDays} Days:</strong> {debugInfo.todos.advance}
+                      <strong>In {pushPreferences.advanceDays} Days:</strong> {debugInfo.todos.advance}
                     </Col>
                     <Col md={3}>
                       <strong>Total:</strong> {debugInfo.todos.total}
@@ -698,7 +720,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                       <strong>No TODOs found that need reminders.</strong>
                       <br />
                       <small>
-                        To create TODOs for email reminders, you can:
+                        To create TODOs for push reminders, you can:
                         <ol>
                           <li><strong>Manual TODOs:</strong> Go to your calendar → click on a day → "Add TODO" → choose items like "TO DO: Plant seeds", "TO DO: Water", etc.</li>
                           <li><strong>Recurring TODOs:</strong> Go to your calendar → click on a day → "Add Action" → choose actions like "Fertilized" (creates recurring "TO DO: Fertilized" every 7 days)</li>
@@ -721,7 +743,7 @@ function DebugPanel({ emailPreferences, todoSummary, isEmailServiceReady, update
                       <strong>Notification Service:</strong> {debugInfo.serviceStatus.isRunning ? '✅ Running' : '❌ Not Running'}
                     </Col>
                     <Col md={6}>
-                      <strong>Email Service:</strong> {isEmailServiceReady() ? '✅ Ready' : '❌ Not Configured'}
+                      <strong>Push (FCM):</strong> {isPushServiceReady() ? '✅ Ready' : '❌ Not configured'}
                     </Col>
                   </Row>
                   <Row className="mt-2">

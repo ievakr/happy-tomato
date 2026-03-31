@@ -31,8 +31,10 @@ const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, show
       onKeyDown={handleKeyDown}
       title={tooltipText}
     >
-      {/* Event content */}
-      <div className="d-flex align-items-center w-100">
+      {/* Event content — green row when completed todo (see .event-item-completed-main-row) */}
+      <div
+        className={`d-flex align-items-center w-100 ${isCompletedTodo ? 'event-item-completed-main-row' : ''}`}
+      >
         {/* Checkmark icon for completed todos */}
         {isCompletedTodo && (
           <Icon name="check_circle" className="text-success me-1" style={{ fontSize: compact ? '14px' : '18px' }} />

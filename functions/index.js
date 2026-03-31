@@ -1,6 +1,5 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const sgMail = require("@sendgrid/mail");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const timezone = require("dayjs/plugin/timezone");
@@ -36,83 +35,6 @@ async function getPlantIdToDisplayName(userId) {
     map[d.id] = name;
   });
   return map;
-}
-
-/**
- * Format TODO list for email
- * @param {Array} todos - Array of TODO objects
- * @param {boolean} isAdvanceReminder - Whether this is an advance reminder
- * @param {number} advanceDays - Number of days in advance (if applicable)
- * @param {Object} plantIdToDisplayName - Map of plant ID to display name
- * @return {string} Formatted TODO list string
- */
-function formatTodoList(
-    todos, isAdvanceReminder = false, advanceDays = 0,
-    plantIdToDisplayName = {},
-) {
-  if (!todos || todos.length === 0) {
-    return "No TODOs found.";
-  }
-
-  return todos.map((todo) => {
-    const dueDate = new Date(todo.day).toLocaleDateString();
-
-    // Get action name
-    let actionName = "";
-    if (todo.actions && todo.actions.length > 0) {
-      actionName = todo.actions.join(", ");
-    } else if (todo.toDo) {
-      const todoText = Array.isArray(todo.toDo) ?
-        todo.toDo.join(", ") : todo.toDo;
-      actionName = todoText.replace(/^TO DO:\s*/i, "");
-    } else if (todo.title) {
-      actionName = todo.title.replace(/^TO DO:\s*/i, "");
-    }
-
-    // Resolve plant IDs to display names
-    const plantLabels = todo.labels && todo.labels.length > 0 ?
-      todo.labels.map((id) => plantIdToDisplayName[id] || id).join(", ") :
-      "";
-
-    // Determine status relative to today (not advance date)
-    const today = new Date();
-    const dueDateObj = new Date(todo.day);
-    today.setHours(0, 0, 0, 0);
-    dueDateObj.setHours(0, 0, 0, 0);
-
-    let statusEmoji = "📝";
-    let statusText = "";
-
-    if (isAdvanceReminder) {
-      // For advance reminders, show status relative to the advance date
-      statusEmoji = "📅";
-      const dayWord = advanceDays !== 1 ? "s" : "";
-      statusText = ` - Coming up in ${advanceDays} day${dayWord}`;
-    } else if (dueDateObj < today) {
-      statusEmoji = "⚠️";
-      statusText = " - OVERDUE";
-    } else if (dueDateObj.getTime() === today.getTime()) {
-      statusEmoji = "📅";
-      statusText = " - Due Today";
-    }
-
-    // Build todo line
-    let todoLine = `${statusEmoji} `;
-    if (actionName) {
-      todoLine += actionName;
-      if (plantLabels) {
-        todoLine += ` (${plantLabels})`;
-      }
-    } else {
-      todoLine += "Unnamed TODO";
-      if (plantLabels) {
-        todoLine += ` (${plantLabels})`;
-      }
-    }
-
-    todoLine += ` - Due: ${dueDate}${statusText}`;
-    return todoLine;
-  }).join("\n");
 }
 
 /**
@@ -220,119 +142,118 @@ function formatTodoLine(todo, plantIdToDisplayName = {}) {
 }
 
 /**
- * Send weekly summary email (here's your week ahead)
- * @param {string} userEmail - Recipient email
- * @param {string} userName - Recipient name
- * @param {Object} weekData - { overdue, byDay, weekStart, weekEnd }
- * @param {Object} plantIdToDisplayName - Map of plant ID to display name
- * @return {Promise<boolean>} Success status
+ * Collect FCM registration tokens for a user from emailPreferences docs
+ * @param {string} userId - Firebase Auth UID
+ * @return {Promise<string[]>}
  */
-async function sendWeeklySummaryEmail(userEmail, userName, weekData,
-    plantIdToDisplayName = {}) {
-  const config = functions.config().sendgrid;
-  sgMail.setApiKey(config.api_key);
-
-  const {overdue, byDay, weekStart, weekEnd} = weekData;
-  const dayNames = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-  const htmlSections = [];
-  const textSections = [];
-
-  if (overdue.length > 0) {
-    const overdueLines = overdue.map((t) =>
-      `⚠️ ${formatTodoLine(t, plantIdToDisplayName)}`,
-    );
-    htmlSections.push(
-        `<p style="margin-bottom: 8px;"><strong>Overdue</strong></p>` +
-        `<ul style="list-style: none; padding-left: 0; margin-bottom: 20px;">` +
-        overdueLines.map((l) =>
-          `<li style="margin: 6px 0;">${l}</li>`).join("") +
-        `</ul>`,
-    );
-    textSections.push("Overdue:\n" + overdueLines.join("\n") + "\n");
-  }
-
-  for (let d = weekStart;
-    d.isSameOrBefore(weekEnd, "day");
-    d = d.add(1, "day")) {
-    const key = d.format("YYYY-MM-DD");
-    const todos = byDay[key] || [];
-    if (todos.length === 0) continue;
-
-    const dayLabel = dayNames[d.day()] + " " + d.format("MMM D");
-    const lines = todos.map((t) => formatTodoLine(t, plantIdToDisplayName));
-
-    htmlSections.push(
-        `<p style="margin-bottom: 8px;"><strong>${dayLabel}</strong></p>` +
-        `<ul style="list-style: none; padding-left: 0; margin-bottom: 20px;">` +
-        lines.map((l) => `<li style="margin: 6px 0;">• ${l}</li>`).join("") +
-        `</ul>`,
-    );
-    const textPart = lines.map((l) => `  • ${l}`).join("\n");
-    textSections.push(`${dayLabel}:\n` + textPart + "\n");
-  }
-
-  const totalCount = overdue.length +
-    Object.values(byDay).reduce((sum, arr) => sum + arr.length, 0);
-
-  if (totalCount === 0) {
-    return true; // Nothing to send
-  }
-
-  const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; 
-    margin: 0 auto; padding: 20px; background-color: #f9fafb;">
-      <div style="background-color: white; border-radius: 8px; 
-      padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h1 style="color: #10b981; margin: 0 0 20px 0;">
-        📅 Your Week Ahead</h1>
-        <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">
-          Hi ${userName || "Garden Friend"}! 👋
-        </p>
-        <p style="font-size: 14px; color: #6b7280; margin-bottom: 24px;">
-          Here's your garden at a glance for the week:
-        </p>
-        ${htmlSections.join("")}
-        <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
-          Happy Gardening! 🌻<br>
-          <em>Happy Tomato Garden Planner</em>
-        </p>
-      </div>
-      <p style="text-align: center; color: #9ca3af; 
-      font-size: 12px; margin-top: 20px;">
-        ${new Date().toLocaleDateString()} | 
-        <a href="https://happytomato-c4fed.web.app" 
-        style="color: #10b981; text-decoration: none;">Open App</a>
-      </p>
-    </div>
-  `;
-
-  const msg = {
-    to: userEmail,
-    from: {
-      email: config.from_email,
-      name: "Happy Tomato Garden Planner",
-    },
-    subject: `Your Week Ahead – ${totalCount} Task${
-      totalCount !== 1 ? "s" : ""} for Your Garden`,
-    text: `Hi ${userName || "Garden Friend"}!\n\n` +
-          "Here's your week ahead:\n\n" +
-          textSections.join("\n") +
-          "\nHappy Gardening!\n- Happy Tomato Garden Planner",
-    html: htmlContent,
-  };
-
-  try {
-    await sgMail.send(msg);
-    console.log(`✅ Weekly summary sent to ${userEmail}`);
-    return true;
-  } catch (error) {
-    console.error(`❌ Failed to send weekly summary to ${userEmail}:`, error);
-    if (error.response) {
-      console.error("SendGrid error details:", error.response.body);
+async function getFcmTokensForUser(userId) {
+  const snap = await admin.firestore()
+      .collection("emailPreferences")
+      .where("userId", "==", userId)
+      .limit(20)
+      .get();
+  const tokens = new Set();
+  snap.docs.forEach((d) => {
+    const arr = d.data().fcmTokens;
+    if (Array.isArray(arr)) {
+      arr.forEach((t) => {
+        if (typeof t === "string" && t.length > 0) tokens.add(t);
+      });
     }
+  });
+  return [...tokens];
+}
+
+/**
+ * Remove invalid FCM tokens from preference docs for this user
+ * @param {string} userId - Firebase Auth UID
+ * @param {string[]} invalidTokens - Tokens to remove
+ * @return {Promise<void>}
+ */
+async function removeInvalidFcmTokens(userId, invalidTokens) {
+  if (!invalidTokens.length) return;
+  const snap = await admin.firestore()
+      .collection("emailPreferences")
+      .where("userId", "==", userId)
+      .limit(20)
+      .get();
+  const batch = admin.firestore().batch();
+  let writes = 0;
+  snap.docs.forEach((d) => {
+    const cur = d.data().fcmTokens || [];
+    const next = cur.filter((t) => !invalidTokens.includes(t));
+    if (next.length !== cur.length) {
+      batch.update(d.ref, {fcmTokens: next});
+      writes++;
+    }
+  });
+  if (writes > 0) await batch.commit();
+}
+
+const PUSH_LINK = "https://happytomato-c4fed.web.app";
+
+/**
+ * Send web push to all registered devices for userId
+ * @param {string} userId - Firebase Auth UID
+ * @param {string} title - Notification title
+ * @param {string} body - Notification body
+ * @param {Object} dataPayload - Stringifiable data for the client
+ * @return {Promise<boolean>} Whether at least one push succeeded
+ */
+async function sendWebPushToUser(userId, title, body, dataPayload = {}) {
+  const tokens = await getFcmTokensForUser(userId);
+  if (tokens.length === 0) {
     return false;
   }
+
+  const dataStrings = {};
+  for (const [k, v] of Object.entries(dataPayload)) {
+    dataStrings[String(k)] = v == null ? "" : String(v);
+  }
+
+  const message = {
+    tokens,
+    notification: {title, body},
+    webpush: {
+      fcmOptions: {link: PUSH_LINK},
+    },
+    data: dataStrings,
+  };
+
+  const res = await admin.messaging().sendEachForMulticast(message);
+  const invalid = [];
+  res.responses.forEach((r, i) => {
+    if (!r.success && r.error) {
+      const c = r.error.code;
+      if (c === "messaging/invalid-registration-token" ||
+          c === "messaging/registration-token-not-registered") {
+        invalid.push(tokens[i]);
+      }
+    }
+  });
+  if (invalid.length) {
+    await removeInvalidFcmTokens(userId, invalid);
+  }
+  return res.successCount > 0;
+}
+
+/**
+ * Build short title/body for a TODO reminder push
+ * @param {Array} todos - TODO events
+ * @param {string} reminderType - Title line
+ * @param {Object} plantIdToDisplayName - Plant id to label
+ * @return {{title: string, body: string}}
+ */
+function buildTodoReminderPush(todos, reminderType, plantIdToDisplayName = {}) {
+  const title = reminderType || "Happy Tomato";
+  const n = todos.length;
+  const parts = todos.slice(0, 3).map((t) =>
+    formatTodoLine(t, plantIdToDisplayName));
+  let body = parts.join(" · ");
+  if (n > 3) body += ` (+${n - 3} more)`;
+  if (!body) body = `${n} garden task(s) — open the app for details.`;
+  if (body.length > 220) body = body.slice(0, 217) + "...";
+  return {title, body};
 }
 
 /**
@@ -366,156 +287,21 @@ function getTodosInAdvance(events, days) {
 }
 
 /**
- * Send email using SendGrid
- * @param {string} userEmail - Recipient email address
- * @param {string} userName - Recipient name
- * @param {Array} todos - Array of TODO objects
- * @param {string} reminderType - Type of reminder being sent
- * @param {Object} plantIdToDisplayName - Map of plant ID to display name
- * @return {Promise<boolean>} Success status
- */
-async function sendEmail(userEmail, userName, todos, reminderType,
-    plantIdToDisplayName = {}) {
-  const config = functions.config().sendgrid;
-
-  // Initialize SendGrid with API key
-  sgMail.setApiKey(config.api_key);
-
-  // Determine the context date and message based on reminder type
-  let contextDate = new Date();
-  let reminderMessage = "";
-  let isAdvanceReminder = false;
-  let daysAhead = 0;
-
-  if (reminderType.includes("Advance")) {
-    // Extract days from reminder type (e.g., "3-Day Advance Garden Reminder")
-    const match = reminderType.match(/(\d+)-Day/);
-    if (match) {
-      isAdvanceReminder = true;
-      daysAhead = parseInt(match[1], 10);
-      contextDate = new Date();
-      contextDate.setDate(contextDate.getDate() + daysAhead);
-      reminderMessage = `You have <strong>${todos.length} garden task${
-        todos.length !== 1 ? "s" : ""}</strong> coming up in ${daysAhead} day${
-        daysAhead !== 1 ? "s" : ""} (${contextDate.toLocaleDateString()}):`;
-    }
-  } else {
-    reminderMessage = `You have <strong>${todos.length} garden task${
-      todos.length !== 1 ? "s" : ""}</strong> for today (${
-      new Date().toLocaleDateString()}):`;
-  }
-
-  // Create email HTML content
-  const todoListHtml = formatTodoList(todos, isAdvanceReminder, daysAhead,
-      plantIdToDisplayName)
-      .split("\n")
-      .map((line) => `<li style="margin: 10px 0;">${line}</li>`)
-      .join("");
-
-  const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; 
-    margin: 0 auto; padding: 20px; background-color: #f9fafb;">
-      <div style="background-color: white; border-radius: 8px; 
-      padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h1 style="color: #10b981; margin: 0 0 20px 0;">
-        🌱 ${reminderType}</h1>
-        <p style="font-size: 16px; color: #374151; 
-        margin-bottom: 20px;">
-          Hi ${userName || "Garden Friend"}! 👋
-        </p>
-        <p style="font-size: 14px; color: #6b7280; 
-        margin-bottom: 20px;">
-          ${reminderMessage}
-        </p>
-        <ul style="list-style: none; padding: 0; margin: 20px 0;">
-          ${todoListHtml}
-        </ul>
-        <p style="font-size: 14px; color: #6b7280; margin-top: 30px;">
-          Happy Gardening! 🌻<br>
-          <em>Happy Tomato Garden Planner</em>
-        </p>
-      </div>
-      <p style="text-align: center; color: #9ca3af; 
-      font-size: 12px; margin-top: 20px;">
-        ${new Date().toLocaleDateString()} | 
-        <a href="https://happytomato-c4fed.web.app" 
-        style="color: #10b981; text-decoration: none;">Open App</a>
-      </p>
-    </div>
-  `;
-
-  // Create plain text version with appropriate message
-  let plainTextMessage = "";
-  if (isAdvanceReminder) {
-    plainTextMessage = `You have ${todos.length} garden task${
-      todos.length !== 1 ? "s" : ""} coming up in ${daysAhead} day${
-      daysAhead !== 1 ? "s" : ""} (${contextDate.toLocaleDateString()})`;
-  } else {
-    plainTextMessage = `You have ${todos.length} garden task${
-      todos.length !== 1 ? "s" : ""} for today (${
-      new Date().toLocaleDateString()})`;
-  }
-
-  const msg = {
-    to: userEmail,
-    from: {
-      email: config.from_email,
-      name: "Happy Tomato Garden Planner",
-    },
-    subject: `${reminderType} - ${todos.length} Task${
-      todos.length !== 1 ? "s" : ""} for Your Garden`,
-    text: `Hi ${userName || "Garden Friend"}!\n\n` +
-          `${plainTextMessage}:\n\n` +
-          formatTodoList(todos, isAdvanceReminder, daysAhead,
-              plantIdToDisplayName) +
-          `\n\nHappy Gardening!\n- Happy Tomato Garden Planner`,
-    html: htmlContent,
-  };
-
-  try {
-    await sgMail.send(msg);
-    console.log(`✅ Email sent to ${userEmail}`);
-    return true;
-  } catch (error) {
-    console.error(`❌ Failed to send email to ${userEmail}:`, error);
-    if (error.response) {
-      console.error("SendGrid error details:", error.response.body);
-    }
-    return false;
-  }
-}
-
-/**
- * Callable Cloud Function: Send TODO reminder email
- * Called by client for test emails and when app is open at reminder time
- * @param {Object} data - Call data (userEmail, userName, todos, reminderType)
- * @param {Object} context - Firebase call context (auth, etc.)
+ * Callable Cloud Function: Send TODO reminder as web push
+ * @param {Object} data - { todos, reminderType }
+ * @param {Object} context - Firebase call context
  * @return {Promise<{success: boolean}>}
  */
-const sendTodoReminderEmailHandler = async (data, context) => {
+const sendTodoReminderPushHandler = async (data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError(
         "unauthenticated",
-        "User must be authenticated to send reminder emails",
+        "User must be authenticated to send reminder pushes",
     );
   }
 
-  const {userEmail, userName, todos, reminderType} = data || {};
-
-  if (!userEmail || typeof userEmail !== "string") {
-    throw new functions.https.HttpsError(
-        "invalid-argument",
-        "userEmail is required",
-    );
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(userEmail.trim())) {
-    throw new functions.https.HttpsError(
-        "invalid-argument",
-        "Invalid email address",
-    );
-  }
+  const {todos, reminderType} = data || {};
+  const userId = context.auth.uid;
 
   if (!todos || !Array.isArray(todos) || todos.length === 0) {
     throw new functions.https.HttpsError(
@@ -529,56 +315,32 @@ const sendTodoReminderEmailHandler = async (data, context) => {
       reminderType.trim() :
       "TODO Reminder";
 
-  const userNameStr = typeof userName === "string" && userName.trim() ?
-    userName.trim() :
-    "Garden Friend";
-
-  const plantIdToDisplayName = await getPlantIdToDisplayName(context.auth.uid);
-  const success = await sendEmail(
-      userEmail.trim(),
-      userNameStr,
-      todos,
-      reminderTypeStr,
-      plantIdToDisplayName,
-  );
+  const plantIdToDisplayName = await getPlantIdToDisplayName(userId);
+  const {title, body} = buildTodoReminderPush(
+      todos, reminderTypeStr, plantIdToDisplayName);
+  const success = await sendWebPushToUser(userId, title, body, {
+    kind: "todo_reminder",
+  });
 
   return {success};
 };
-exports.sendTodoReminderEmail =
-  functions.https.onCall(sendTodoReminderEmailHandler);
+exports.sendTodoReminderPush =
+  functions.https.onCall(sendTodoReminderPushHandler);
 
 /**
- * Callable Cloud Function: Send Weekly Summary email
- * Called by client for test emails and manual "send now"
- * @param {Object} data - Call data (userEmail, userName)
+ * Callable Cloud Function: Send weekly summary as web push
  * @param {Object} context - Firebase call context (auth)
  * @return {Promise<{success: boolean}>}
  */
-const sendWeeklySummaryEmailHandler = async (data, context) => {
+const sendWeeklySummaryPushHandler = async (_data, context) => {
   if (!context.auth) {
     throw new functions.https.HttpsError(
         "unauthenticated",
-        "User must be authenticated to send weekly summary",
+        "User must be authenticated to send weekly summary push",
     );
   }
 
-  const {userEmail, userName} = data || {};
   const userId = context.auth.uid;
-
-  if (!userEmail || typeof userEmail !== "string") {
-    throw new functions.https.HttpsError(
-        "invalid-argument",
-        "userEmail is required",
-    );
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(userEmail.trim())) {
-    throw new functions.https.HttpsError(
-        "invalid-argument",
-        "Invalid email address",
-    );
-  }
 
   const eventsSnapshot = await admin.firestore()
       .collection("events")
@@ -595,22 +357,20 @@ const sendWeeklySummaryEmailHandler = async (data, context) => {
     Object.values(weekData.byDay).reduce((sum, arr) => sum + arr.length, 0);
 
   if (totalCount === 0) {
-    return {success: true}; // Nothing to send, not an error
+    return {success: true};
   }
 
-  const plantIdToDisplayName = await getPlantIdToDisplayName(userId);
-  const success = await sendWeeklySummaryEmail(
-      userEmail.trim(),
-      (typeof userName === "string" && userName.trim()) ?
-        userName.trim() : "Garden Friend",
-      weekData,
-      plantIdToDisplayName,
-  );
+  const title = "Your week ahead";
+  const body = `You have ${totalCount} garden task${
+    totalCount !== 1 ? "s" : ""} this week. Open the app to view them.`;
+  const success = await sendWebPushToUser(userId, title, body, {
+    kind: "weekly_summary",
+  });
 
   return {success};
 };
-exports.sendWeeklySummaryEmail =
-  functions.https.onCall(sendWeeklySummaryEmailHandler);
+exports.sendWeeklySummaryPush =
+  functions.https.onCall(sendWeeklySummaryPushHandler);
 
 /**
  * Cloud Function: Send Daily Reminders
@@ -705,18 +465,19 @@ exports.sendDailyReminders = functions.pubsub
             continue;
           }
 
-          console.log(`📧 Sending daily reminder to ${prefs.userEmail} ` +
+          console.log(`🔔 Sending daily push to ${prefs.userEmail} ` +
             `(${dueTodos.length} TODOs)`);
 
           const plantIdToDisplayName =
             await getPlantIdToDisplayName(userId);
-          const success = await sendEmail(
-              prefs.userEmail,
-              prefs.userName,
+          const {title, body} = buildTodoReminderPush(
               dueTodos,
               "Daily Garden Reminder",
               plantIdToDisplayName,
           );
+          const success = await sendWebPushToUser(userId, title, body, {
+            kind: "daily_reminder",
+          });
 
           if (success) {
             // Update last sent timestamp
@@ -896,19 +657,20 @@ exports.sendAdvanceReminders = functions.pubsub
               `   ✅ Found ${advanceTodos.length} TODO(s) for target date`,
           );
           console.log(
-              `📧 Sending ${advanceDays}-day advance reminder to ` +
+              `🔔 Sending ${advanceDays}-day advance push to ` +
               `${prefs.userEmail}`,
           );
 
           const plantIdToDisplayName =
             await getPlantIdToDisplayName(userId);
-          const success = await sendEmail(
-              prefs.userEmail,
-              prefs.userName,
+          const {title, body} = buildTodoReminderPush(
               advanceTodos,
               `${advanceDays}-Day Advance Garden Reminder`,
               plantIdToDisplayName,
           );
+          const success = await sendWebPushToUser(userId, title, body, {
+            kind: "advance_reminder",
+          });
 
           if (success) {
             // Update last sent timestamp
@@ -1024,18 +786,16 @@ exports.sendWeeklySummary = functions.pubsub
           }
 
           console.log(
-              `📧 Sending weekly summary to ${prefs.userEmail} ` +
+              `🔔 Sending weekly summary push to ${prefs.userEmail} ` +
               `(${totalCount} tasks)`,
           );
 
-          const plantIdToDisplayName =
-            await getPlantIdToDisplayName(userId);
-          const success = await sendWeeklySummaryEmail(
-              prefs.userEmail,
-              prefs.userName,
-              weekData,
-              plantIdToDisplayName,
-          );
+          const title = "Your week ahead";
+          const body = `You have ${totalCount} garden task${
+            totalCount !== 1 ? "s" : ""} this week. Open the app to view them.`;
+          const success = await sendWebPushToUser(userId, title, body, {
+            kind: "weekly_summary",
+          });
 
           if (success) {
             await admin.firestore()

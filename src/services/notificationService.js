@@ -1,6 +1,6 @@
 /**
  * Notification Service for TODO Reminders
- * Handles scheduled checks and automatic email sending
+ * Handles scheduled checks and automatic push delivery
  */
 
 class NotificationService {
@@ -13,16 +13,16 @@ class NotificationService {
 
   /**
    * Start the notification service
-   * @param {Object} emailHook - Email notifications hook instance
+   * @param {Object} reminderHook - usePushNotifications() instance
    */
-  start(emailHook) {
+  start(reminderHook) {
     if (this.isRunning) {
-      this.emailHook = emailHook;
+      this.reminderHook = reminderHook;
       return;
     }
 
     this.isRunning = true;
-    this.emailHook = emailHook;
+    this.reminderHook = reminderHook;
 
     // Check immediately
     this.checkForReminders();
@@ -34,11 +34,11 @@ class NotificationService {
   }
 
   /**
-   * Update the email hook reference without restarting the service
-   * @param {Object} emailHook - Updated email notifications hook instance
+   * Update the reminder hook reference without restarting the service
+   * @param {Object} reminderHook - Updated hook instance
    */
-  updateEmailHook(emailHook) {
-    this.emailHook = emailHook;
+  updateReminderHook(reminderHook) {
+    this.reminderHook = reminderHook;
   }
 
   /**
@@ -55,14 +55,14 @@ class NotificationService {
     }
 
     this.isRunning = false;
-    this.emailHook = null;
+    this.reminderHook = null;
   }
 
   /**
    * Check if reminders should be sent
    */
   async checkForReminders() {
-    if (!this.emailHook || !this.isRunning) {
+    if (!this.reminderHook || !this.isRunning) {
       return;
     }
 
@@ -70,14 +70,14 @@ class NotificationService {
       this.lastCheck = new Date();
       
       // Get current status for debugging
-      const shouldSendDaily = this.emailHook.shouldSendDailyReminder();
-      const shouldSendAdvance = this.emailHook.shouldSendAdvanceReminder();
-      const todoSummary = this.emailHook.getTodoSummary();
+      const shouldSendDaily = this.reminderHook.shouldSendDailyReminder();
+      const shouldSendAdvance = this.reminderHook.shouldSendAdvanceReminder();
+      const todoSummary = this.reminderHook.getTodoSummary();
 
       // Only send ONE type of reminder per check cycle to avoid race conditions
       // Priority: Daily reminder first, then advance reminder in next cycle
       if (shouldSendDaily) {
-        const success = await this.emailHook.sendDailyReminder(true); // isAutomatic = true
+        const success = await this.reminderHook.sendDailyReminder(true); // isAutomatic = true
         
         if (success) {
           this.logNotification('daily_reminder', 'success', `${todoSummary.dueToday + todoSummary.overdue} TODOs`);
@@ -86,8 +86,8 @@ class NotificationService {
         }
       } else if (shouldSendAdvance) {
         // Only check advance if daily wasn't sent
-        const advanceDays = this.emailHook.emailPreferences.advanceDays || 3;
-        const success = await this.emailHook.sendAdvanceReminder(true); // isAutomatic = true
+        const advanceDays = this.reminderHook.pushPreferences.advanceDays || 3;
+        const success = await this.reminderHook.sendAdvanceReminder(true); // isAutomatic = true
         
         if (success) {
           this.logNotification('advance_reminder', 'success', `${advanceDays} days ahead - ${todoSummary.advance} TODOs`);
@@ -119,7 +119,7 @@ class NotificationService {
    * @returns {Promise<boolean>} Success status
    */
   async sendManualReminder(reminderType = 'daily') {
-    if (!this.emailHook) {
+    if (!this.reminderHook) {
       return false;
     }
 
@@ -127,11 +127,11 @@ class NotificationService {
       let success = false;
       
       if (reminderType === 'advance') {
-        success = await this.emailHook.sendAdvanceReminder();
+        success = await this.reminderHook.sendAdvanceReminder();
       } else if (reminderType === 'weekly') {
-        success = await this.emailHook.sendWeeklySummary();
+        success = await this.reminderHook.sendWeeklySummary();
       } else {
-        success = await this.emailHook.sendDailyReminder();
+        success = await this.reminderHook.sendDailyReminder();
       }
       
       if (success) {
@@ -206,7 +206,7 @@ class NotificationService {
       isRunning: this.isRunning,
       lastCheck: this.lastCheck,
       checkFrequency: this.checkFrequency,
-      hasEmailHook: !!this.emailHook
+      hasReminderHook: !!this.reminderHook
     };
   }
 
@@ -224,7 +224,7 @@ class NotificationService {
     // Restart interval if service is running
     if (this.isRunning) {
       this.stop();
-      setTimeout(() => this.start(this.emailHook), 100);
+      setTimeout(() => this.start(this.reminderHook), 100);
     }
   }
 }

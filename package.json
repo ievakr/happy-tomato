@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@capacitor-firebase/messaging": "^7.5.0",
     "@capacitor/android": "^7.0.0",
     "@capacitor/cli": "^7.0.0",
     "@capacitor/core": "^7.0.0",
@@ -27,6 +28,8 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
+    "prestart": "node scripts/write-firebase-sw-config.js",
+    "prebuild": "node scripts/write-firebase-sw-config.js",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

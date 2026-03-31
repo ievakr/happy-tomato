@@ -11,6 +11,9 @@
 # production
 /build
 
+# FCM service worker config (generated from .env / CI env)
+public/__firebase-sw-config.js
+
 # misc
 .DS_Store
 .env

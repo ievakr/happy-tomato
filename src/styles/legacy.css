@@ -218,6 +218,8 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   scrollbar-width: none;
   -ms-overflow-style: none;
   padding: 0 12px;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 
 .daily-week-scroll::-webkit-scrollbar {
@@ -267,7 +269,7 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   background-color: rgba(0, 0, 0, 0.05);
 }
 
-/* Completed to-dos: no extra row tint — green is only on .event-item-todo-completed */
+/* Completed row wrapper on .event-item-daily is optional; green is on .event-item-completed-main-row inside EventItem */
 .event-item-daily-completed {
   background-color: transparent;
 }
@@ -345,11 +347,26 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   background-color: #dc3545;
 }
 
-/* Completed to-do pill — visible green (must override .event-item-todo base) */
+/* Completed to-do: green row is .event-item-completed-main-row; pill stays flat on that row */
 .event-item-todo.event-item-todo-completed {
   background-color: rgba(25, 135, 84, 0.28);
   color: #0f5132;
   border: 1px solid rgba(25, 135, 84, 0.55);
+  font-weight: 600;
+}
+
+/* Green highlight only on this row (check + todo + icons), not the whole card */
+.event-item-completed-main-row {
+  background-color: rgba(25, 135, 84, 0.2);
+  border: 1px solid rgba(25, 135, 84, 0.45);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+
+.event-item-completed-main-row .event-item-todo.event-item-todo-completed {
+  background-color: transparent;
+  border: none;
+  color: #0f5132;
   font-weight: 600;
 }
 
@@ -446,16 +463,15 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   .event-item:active:not([style*="background-color: red"]) {
     background-color: rgba(220,53,69,0.2) !important;
   }
-  
+
   /* TO DO items get darker red tap feedback on mobile */
   .event-item[style*="background-color: red"]:active {
     background-color: #8b0000 !important;
   }
 }
 
-/* Event count indicators */
+/* Event count indicators — color comes from Bootstrap bg-* on the element (do not set background here; it overrides utilities) */
 .event-count-indicator {
-  background: linear-gradient(135deg, #dc3545, #b71c1c);
   color: white;
   border-radius: 50%;
   width: 16px;
@@ -515,10 +531,8 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
     padding-top: calc(0.5rem + env(safe-area-inset-top, 0px)) !important;
   }
 
-  html.capacitor-ios-native .calendar-header {
-    padding-top: 0.5rem !important;
-  }
-  
+  /* Do not strip env(safe-area-inset-top) on Capacitor — ios.contentInset "never" relies on CSS env(). */
+
   .calendar-header h1 {
     font-size: 1.2rem !important;
   }
@@ -542,6 +556,12 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
     z-index: 1050 !important;
     background-color: white !important;
     transition: left 0.3s ease-in-out !important;
+    /* Below status bar / notch — matches Bootstrap p-3 (1rem) + safe areas (Capacitor / WKWebView) */
+    padding-top: calc(1rem + env(safe-area-inset-top, 0px)) !important;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)) !important;
+    padding-left: calc(1rem + env(safe-area-inset-left, 0px)) !important;
+    padding-right: 1rem !important;
+    box-sizing: border-box !important;
   }
   
   .sidebar.mobile-sidebar-open {

@@ -22,27 +22,36 @@ jest.mock('../firebase', () => ({
   db: {},
   functions: {},
   httpsCallable: jest.fn(() => jest.fn(() => Promise.resolve({ data: { success: true } }))),
+  getFirebaseMessaging: jest.fn(() => Promise.resolve(null)),
 }));
 
-// Mock email service
-jest.mock('../services/emailService', () => ({
+jest.mock('../services/pushService', () => ({
   __esModule: true,
   default: {
     sendTodoReminder: jest.fn(() => Promise.resolve(true)),
-    testEmailConfiguration: jest.fn(() => Promise.resolve(true)),
+    sendWeeklySummary: jest.fn(() => Promise.resolve(true)),
+    testPushConfiguration: jest.fn(() => Promise.resolve(true)),
+    ensureFcmTokenRegistered: jest.fn(() => Promise.resolve(null)),
     isReady: jest.fn(() => true),
-    getConfigurationStatus: jest.fn(() => ({ 
+    getConfigurationStatus: jest.fn(() => ({
       isConfigured: true,
-      provider: 'SendGrid via Firebase Cloud Functions',
+      provider: 'Firebase Cloud Messaging',
       missingVars: []
     })),
   }
 }));
 
-// Mock notification service
 jest.mock('../services/notificationService', () => ({
-  scheduleNotification: jest.fn(),
-  cancelNotification: jest.fn(),
+  __esModule: true,
+  default: {
+    start: jest.fn(),
+    stop: jest.fn(),
+    updateReminderHook: jest.fn(),
+    isRunning: false,
+    sendManualReminder: jest.fn(),
+    getStatus: jest.fn(() => ({ isRunning: false })),
+    getNotificationLogs: jest.fn(() => []),
+  },
 }));
 
 // Helper function to render app with context

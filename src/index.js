@@ -24,9 +24,13 @@ import { register as registerServiceWorker } from './serviceWorkerRegistration';
 
 // Native iOS: mark html + fix shell height. Bootstrap vh-100 uses 100vh, which on WKWebView is often
 // taller than the visible area, so the bottom of the flex layout is clipped past the home indicator.
+// With ios.contentInset "automatic", visualViewport.height can be *shorter* than the laid-out webview,
+// leaving a blank band at the bottom — use the larger of layout vs visual viewport.
 function syncCapacitorIosViewportHeight() {
+  const inner = Math.round(window.innerHeight);
   const vv = window.visualViewport;
-  const h = vv ? Math.round(vv.height) : Math.round(window.innerHeight);
+  const visual = vv ? Math.round(vv.height) : inner;
+  const h = Math.max(inner, visual);
   document.documentElement.style.setProperty('--app-vh', `${h}px`);
 }
 
@@ -37,6 +41,12 @@ if (
 ) {
   document.documentElement.classList.add('capacitor-ios-native');
   syncCapacitorIosViewportHeight();
+  // Layout / safe area can settle after first paint (esp. after contentInset config changes).
+  requestAnimationFrame(() => {
+    syncCapacitorIosViewportHeight();
+    setTimeout(syncCapacitorIosViewportHeight, 100);
+    setTimeout(syncCapacitorIosViewportHeight, 300);
+  });
   window.addEventListener('resize', syncCapacitorIosViewportHeight);
   window.addEventListener('orientationchange', syncCapacitorIosViewportHeight);
   window.addEventListener('load', syncCapacitorIosViewportHeight);

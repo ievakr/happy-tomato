@@ -21,15 +21,19 @@ import { TODO_ITEMS } from '../constants';
 jest.mock('../firebase', () => ({
   auth: {},
   db: {},
+  getFirebaseMessaging: jest.fn(() => Promise.resolve(null)),
 }));
 
 // Mock services
-jest.mock('../services/emailService', () => ({
+jest.mock('../services/pushService', () => ({
   __esModule: true,
   default: {
     sendTodoReminder: jest.fn(() => Promise.resolve(true)),
+    sendWeeklySummary: jest.fn(() => Promise.resolve(true)),
+    testPushConfiguration: jest.fn(() => Promise.resolve(true)),
+    ensureFcmTokenRegistered: jest.fn(() => Promise.resolve(null)),
     isReady: jest.fn(() => false),
-    getConfigurationStatus: jest.fn(() => ({ 
+    getConfigurationStatus: jest.fn(() => ({
       isConfigured: false,
       missingVars: []
     })),
