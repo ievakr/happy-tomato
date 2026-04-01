@@ -62,8 +62,10 @@ export const usePushNotifications = () => {
     nativePushEnabledRef.current = Boolean(pushPreferences.enabled);
   });
 
-  const prefsEmail = (prefs) =>
-    (prefs.userEmail || currentUser?.email || '').trim();
+  const prefsEmail = useCallback(
+    (prefs) => (prefs.userEmail || currentUser?.email || '').trim(),
+    [currentUser?.email],
+  );
 
   const syncPreferencesToFirestore = useCallback(
     async (preferences) => {
@@ -84,7 +86,7 @@ export const usePushNotifications = () => {
         // Non-fatal
       }
     },
-    [currentUser?.uid, currentUser?.email],
+    [currentUser?.uid, prefsEmail],
   );
 
   useEffect(() => {
@@ -136,7 +138,7 @@ export const usePushNotifications = () => {
     } catch (error) {
       // Non-fatal
     }
-  }, [syncPreferencesToFirestore, currentUser?.email]);
+  }, [syncPreferencesToFirestore, prefsEmail]);
 
   useEffect(() => {
     loadFromFirestore();
@@ -149,7 +151,7 @@ export const usePushNotifications = () => {
       }
     }, 30000);
     return () => clearInterval(intervalId);
-  }, [pushPreferences.userEmail, loadFromFirestore, currentUser?.email]);
+  }, [pushPreferences, loadFromFirestore, prefsEmail]);
 
   useEffect(() => {
     const run = async () => {
@@ -165,12 +167,7 @@ export const usePushNotifications = () => {
       await pushService.ensureFcmTokenRegistered(db, docId, currentUser.uid, email);
     };
     run();
-  }, [
-    pushPreferences.enabled,
-    pushPreferences.userEmail,
-    currentUser?.uid,
-    currentUser?.email,
-  ]);
+  }, [pushPreferences, prefsEmail, currentUser?.uid, currentUser?.email]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || !pushPreferences.enabled) {
