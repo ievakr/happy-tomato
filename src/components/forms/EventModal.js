@@ -29,6 +29,9 @@ export default function EventModal() {
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurringInterval, setRecurringInterval] = useState(7);
     const [recurringMaxOccurrences, setRecurringMaxOccurrences] = useState(2);
+    /** 'count' = number of occurrences; 'until' = repeat through end date (inclusive) */
+    const [recurringEndType, setRecurringEndType] = useState('count');
+    const [recurringUntilDate, setRecurringUntilDate] = useState(() => dayjs().add(1, 'month').toDate());
 
     // Initialize component state when modal opens
     useEffect(() => {
@@ -72,15 +75,33 @@ export default function EventModal() {
             if (selectedEvent.userRecurringConfig) {
                 setIsRecurring(true);
                 setRecurringInterval(selectedEvent.userRecurringConfig.interval || 7);
-                setRecurringMaxOccurrences(selectedEvent.userRecurringConfig.maxOccurrences || 2);
+                const cfg = selectedEvent.userRecurringConfig;
+                const useUntil =
+                    cfg.endType === 'count'
+                        ? false
+                        : cfg.endType === 'until'
+                          ? cfg.untilDate != null
+                          : cfg.untilDate != null;
+                if (useUntil && cfg.untilDate != null) {
+                    setRecurringEndType('until');
+                    setRecurringUntilDate(new Date(cfg.untilDate));
+                } else {
+                    setRecurringEndType('count');
+                    setRecurringMaxOccurrences(cfg.maxOccurrences || 2);
+                    setRecurringUntilDate(dayjs(selectedEvent.day).add(1, 'month').toDate());
+                }
             } else if (selectedEvent.recurringInterval) {
                 setIsRecurring(true);
                 setRecurringInterval(selectedEvent.recurringInterval || 7);
+                setRecurringEndType('count');
                 setRecurringMaxOccurrences(2);
+                setRecurringUntilDate(dayjs(selectedEvent.day).add(1, 'month').toDate());
             } else {
                 setIsRecurring(false);
                 setRecurringInterval(7);
                 setRecurringMaxOccurrences(2);
+                setRecurringEndType('count');
+                setRecurringUntilDate(dayjs(selectedEvent.day).add(1, 'month').toDate());
             }
         } else {
             // Reset for new event
@@ -92,6 +113,10 @@ export default function EventModal() {
             setIsRecurring(false);
             setRecurringInterval(7);
             setRecurringMaxOccurrences(2);
+            setRecurringEndType('count');
+            setRecurringUntilDate(
+                dayjs(daySelected ? daySelected.toDate() : new Date()).add(1, 'month').toDate()
+            );
         }
         // Reset confirmation states
         setShowDeleteConfirm(false);
@@ -163,10 +188,30 @@ export default function EventModal() {
                 ? {
                       enabled: true,
                       interval: Number(recurringInterval) || 7,
-                      maxOccurrences: Number(recurringMaxOccurrences) || 2,
                       unit: 'days',
+                      endType: recurringEndType,
+                      ...(recurringEndType === 'count'
+                          ? { maxOccurrences: Number(recurringMaxOccurrences) || 2 }
+                          : { untilDate: dayjs(recurringUntilDate).endOf('day').valueOf() }),
                   }
                 : null;
+
+        if (toDoValue && isRecurring) {
+            if (recurringEndType === 'count') {
+                const n = Number(recurringMaxOccurrences);
+                if (!Number.isFinite(n) || n < 1) {
+                    showError('Enter a valid number of occurrences (at least 1).');
+                    return;
+                }
+            } else {
+                const startDay = dayjs(selectedDate).startOf('day');
+                const untilDay = dayjs(recurringUntilDate).startOf('day');
+                if (untilDay.isBefore(startDay)) {
+                    showError('The end date must be on or after the event date.');
+                    return;
+                }
+            }
+        }
 
         // Convert display names to plant IDs for storage (legacy names kept as-is)
         const labelsToSave = (selectedLabels || []).map(
@@ -359,26 +404,84 @@ export default function EventModal() {
                                                             }}
                                                         />
                                                     </div>
-                                                    <div className="mb-2">
-                                                        <label htmlFor="recurringMaxOccurrences" className="form-label small text-muted">
-                                                            Maximum occurrences
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            className="form-control form-control-sm"
-                                                            id="recurringMaxOccurrences"
-                                                            min="1"
-                                                            max="50"
-                                                            value={recurringMaxOccurrences === "" ? "" : recurringMaxOccurrences}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                setRecurringMaxOccurrences(val === "" ? "" : (parseInt(val, 10) || 12));
-                                                            }}
-                                                        />
-                                                        <div className="form-text">
-                                                            Total number of times this event will occur (including the first one)
+                                                    <div className="mb-2" role="group" aria-label="How recurring ends">
+                                                        <div className="form-label small text-muted mb-2">
+                                                            Series ends
+                                                        </div>
+                                                        <div className="d-flex flex-column gap-2">
+                                                            <div className="form-check">
+                                                                <input
+                                                                    className="form-check-input"
+                                                                    type="radio"
+                                                                    name="recurringEndType"
+                                                                    id="recurringEndCount"
+                                                                    checked={recurringEndType === 'count'}
+                                                                    onChange={() => setRecurringEndType('count')}
+                                                                />
+                                                                <label className="form-check-label" htmlFor="recurringEndCount">
+                                                                    After a number of occurrences
+                                                                </label>
+                                                            </div>
+                                                            <div className="form-check">
+                                                                <input
+                                                                    className="form-check-input"
+                                                                    type="radio"
+                                                                    name="recurringEndType"
+                                                                    id="recurringEndUntil"
+                                                                    checked={recurringEndType === 'until'}
+                                                                    onChange={() => setRecurringEndType('until')}
+                                                                />
+                                                                <label className="form-check-label" htmlFor="recurringEndUntil">
+                                                                    On a date (repeat through this day, inclusive)
+                                                                </label>
+                                                            </div>
                                                         </div>
                                                     </div>
+
+                                                    {recurringEndType === 'count' && (
+                                                        <div className="mb-2">
+                                                            <label htmlFor="recurringMaxOccurrences" className="form-label small text-muted">
+                                                                Number of occurrences
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                className="form-control form-control-sm"
+                                                                id="recurringMaxOccurrences"
+                                                                min="1"
+                                                                max="50"
+                                                                value={recurringMaxOccurrences === "" ? "" : recurringMaxOccurrences}
+                                                                onChange={(e) => {
+                                                                    const val = e.target.value;
+                                                                    setRecurringMaxOccurrences(val === "" ? "" : (parseInt(val, 10) || 12));
+                                                                }}
+                                                            />
+                                                            <div className="form-text">
+                                                                Total times this event occurs, including the first one
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {recurringEndType === 'until' && (
+                                                        <div className="mb-2">
+                                                            <label className="form-label small text-muted d-flex align-items-center gap-2">
+                                                                <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                                                                    event_repeat
+                                                                </span>
+                                                                Repeat until
+                                                            </label>
+                                                            <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
+                                                                <DatePicker
+                                                                    value={recurringUntilDate}
+                                                                    onChange={(date) => date && setRecurringUntilDate(date)}
+                                                                    valueFormat={{ dateStyle: 'medium' }}
+                                                                    className="w-100"
+                                                                />
+                                                            </Localization>
+                                                            <div className="form-text">
+                                                                Last occurrence falls on this date or earlier in the series
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                         </div>

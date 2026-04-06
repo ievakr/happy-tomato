@@ -10,15 +10,38 @@ function stripTodoPrefixForCompleted(title) {
  * Parse dosage text or user config to extract recurring interval information
  * @param {string} dosageText - Text like "Use every 7 days" or "Use every 14 days"
  * @param {Object} userRecurringConfig - User-defined recurring configuration
- * @returns {Object} - {interval: number, unit: string, maxOccurrences: number}
+ * @returns {Object} - { interval, unit, endType?, maxOccurrences?, untilDate? }
  */
 export const parseRecurringInterval = (dosageText, userRecurringConfig = null) => {
   // Priority 1: Use user-defined configuration if available
   if (userRecurringConfig && userRecurringConfig.enabled) {
+    const interval = userRecurringConfig.interval || 7;
+    const unit = userRecurringConfig.unit || 'days';
+    if (userRecurringConfig.endType === 'count') {
+      return {
+        interval,
+        unit,
+        endType: 'count',
+        maxOccurrences: userRecurringConfig.maxOccurrences || 12,
+      };
+    }
+    if (
+      userRecurringConfig.untilDate != null &&
+      (userRecurringConfig.endType === 'until' || userRecurringConfig.endType == null)
+    ) {
+      return {
+        interval,
+        unit,
+        endType: 'until',
+        untilDate: userRecurringConfig.untilDate,
+        maxOccurrences: 9999,
+      };
+    }
     return {
-      interval: userRecurringConfig.interval || 7,
-      unit: userRecurringConfig.unit || 'days',
-      maxOccurrences: userRecurringConfig.maxOccurrences || 12
+      interval,
+      unit,
+      endType: 'count',
+      maxOccurrences: userRecurringConfig.maxOccurrences || 12,
     };
   }
   
@@ -38,7 +61,7 @@ export const parseRecurringInterval = (dosageText, userRecurringConfig = null) =
   
   // Handle "Use once" case
   if (patterns[3].test(dosageText)) {
-    return { interval: 0, unit: 'once', maxOccurrences: 1 };
+    return { interval: 0, unit: 'once', endType: 'count', maxOccurrences: 1 };
   }
   
   // Handle max occurrences pattern
@@ -47,6 +70,7 @@ export const parseRecurringInterval = (dosageText, userRecurringConfig = null) =
     return {
       interval: parseInt(maxOccurrencesMatch[1]),
       unit: 'days',
+      endType: 'count',
       maxOccurrences: parseInt(maxOccurrencesMatch[2])
     };
   }
@@ -57,6 +81,7 @@ export const parseRecurringInterval = (dosageText, userRecurringConfig = null) =
     return {
       interval: parseInt(intervalMatch[1]),
       unit: 'days',
+      endType: 'count',
       maxOccurrences: 12 // Default max occurrences to prevent infinite events
     };
   }
@@ -120,24 +145,49 @@ export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6
   
   const todos = [];
   const startDate = dayjs(actionEvent.day);
-  const endDate = startDate.add(futureMonths, 'months');
-  
+  const isUserConfig = !!(actionEvent.userRecurringConfig && actionEvent.userRecurringConfig.enabled);
+  const untilMode =
+    recurringInfo.endType === 'until' &&
+    recurringInfo.untilDate != null;
+
+  if (untilMode) {
+    const untilEnd = dayjs(recurringInfo.untilDate).endOf('day');
+    if (untilEnd.isBefore(startDate, 'day')) {
+      return [];
+    }
+  }
+
+  let generationEnd;
+  if (untilMode) {
+    generationEnd = dayjs(recurringInfo.untilDate).endOf('day');
+    const cap = startDate.add(10, 'year');
+    if (generationEnd.isAfter(cap)) {
+      generationEnd = cap;
+    }
+  } else if (isUserConfig) {
+    generationEnd = startDate.add(10, 'year');
+  } else {
+    generationEnd = startDate.add(futureMonths, 'months');
+  }
+
   // For user-created TODOs with recurring, generate ALL occurrences starting from the selected date
   // For actions that spawn TODOs, generate maxOccurrences-1 (the action itself is occurrence #1)
   let currentDate;
   let todosToGenerate;
-  
+
   if (generateAllOccurrences) {
-    currentDate = startDate; // Start from the selected date itself
-    todosToGenerate = recurringInfo.maxOccurrences; // Generate all occurrences
+    currentDate = startDate;
+    todosToGenerate = untilMode ? 5000 : recurringInfo.maxOccurrences;
   } else {
-    currentDate = startDate.add(recurringInfo.interval, recurringInfo.unit); // Start from next interval
-    todosToGenerate = recurringInfo.maxOccurrences - 1; // Generate additional todos
+    currentDate = startDate.add(recurringInfo.interval, recurringInfo.unit);
+    todosToGenerate = untilMode ? 5000 : recurringInfo.maxOccurrences - 1;
   }
-  
+
   let todosCreated = 0;
-  
-  while (currentDate.isBefore(endDate) && todosCreated < todosToGenerate) {
+
+  const isOnOrBeforeEnd = (d) => !d.isAfter(generationEnd, 'day');
+
+  while (isOnOrBeforeEnd(currentDate) && todosCreated < todosToGenerate) {
     // Check if a TODO already exists for this date and action combination
     const currentDateStr = currentDate.format("DD-MM-YY");
     const actionToMatch = actionEvent.actions && actionEvent.actions.length > 0 

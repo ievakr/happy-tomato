@@ -152,3 +152,5 @@ From Xcode or Android Studio, run the app on a simulator/emulator or connected d
 ### App configuration
 
 Edit `capacitor.config.ts` to change the app ID (`appId`) or display name (`appName`). The app ID is used for app store submission (e.g. `com.happytomato.app`).
+
+

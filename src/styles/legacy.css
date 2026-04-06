@@ -494,15 +494,20 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   opacity: 0.7;
 }
 
-/* Modal overflow handling - allow DatePicker calendar to overflow */
-.event-modal {
-  overflow: visible !important;
+/* Event modal: Bootstrap's modal-dialog-scrollable needs a scrolling .modal-body.
+   A blanket overflow:visible on .modal-body broke mobile scrolling for tall forms (e.g. recurring). */
+.event-modal .modal-dialog-scrollable .modal-content {
+  overflow: hidden !important;
 }
-.event-modal .modal-dialog,
-.event-modal .modal-content,
-.event-modal .modal-body,
-.event-modal .modal-body .d-grid {
-  overflow: visible !important;
+.event-modal .modal-dialog-scrollable .modal-body {
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  min-height: 0;
+}
+.event-modal .modal-dialog-scrollable .modal-body .d-grid {
+  min-height: min-content;
 }
 
 /* Mobile responsive styles */
@@ -628,7 +633,6 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
     width: 90% !important;
     max-width: 400px !important;
     margin: 1rem !important;
-    overflow: visible !important;
   }
   
   .custom-dropdown {
@@ -691,7 +695,6 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   .event-modal {
     width: 40% !important;
     max-width: 500px !important;
-    overflow: visible !important;
   }
   
   .calendar-event-box {
@@ -720,9 +723,6 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   
 
   
-  .event-modal {
-    overflow: visible !important;
-  }
 }
 
 /* Utility classes for mobile */
