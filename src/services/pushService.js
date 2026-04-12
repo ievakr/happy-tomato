@@ -130,6 +130,65 @@ class PushService {
     );
   }
 
+  /**
+   * iOS: Firebase logs I-FCM002022 if getToken runs before APNs device token is set. The native layer
+   * re-registers for remote notifications after authorization; we wait for tokenReceived and/or retry getToken.
+   */
+  async waitForIosFcmToken(FirebaseMessaging, timeoutMs = 60000) {
+    let listenerHandle;
+    let settled = false;
+    const tokenPromise = new Promise((resolve) => {
+      FirebaseMessaging.addListener('tokenReceived', (event) => {
+        const t = event?.token;
+        if (t && !settled) {
+          settled = true;
+          listenerHandle?.remove?.();
+          resolve(t);
+        }
+      }).then((handle) => {
+        listenerHandle = handle;
+      });
+    });
+
+    const delayMs = 500;
+    const maxPolls = Math.ceil(timeoutMs / delayMs);
+    const pollPromise = (async () => {
+      for (let i = 0; i < maxPolls && !settled; i += 1) {
+        try {
+          const { token } = await FirebaseMessaging.getToken();
+          if (token && !settled) {
+            settled = true;
+            listenerHandle?.remove?.();
+            return token;
+          }
+        } catch (e) {
+          const msg = `${e?.message || e?.errorMessage || e || ''}`;
+          const isApnsNotReady =
+            /APNS token|apns token|Code=505|No APNS|FCM002022/i.test(msg) ||
+            (typeof e === 'object' && e !== null && String(e.code || '') === '505');
+          if (!isApnsNotReady) {
+            break;
+          }
+        }
+        await new Promise((r) => setTimeout(r, delayMs));
+      }
+      return null;
+    })();
+
+    const winner = await Promise.race([
+      tokenPromise,
+      pollPromise,
+      new Promise((resolve) => {
+        setTimeout(() => resolve(null), timeoutMs);
+      }),
+    ]);
+    if (!settled) {
+      settled = true;
+    }
+    listenerHandle?.remove?.();
+    return winner || null;
+  }
+
   async ensureNativeFcmToken(db, prefsDocId, userId, userEmail) {
     try {
       const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
@@ -140,7 +199,40 @@ class PushService {
           return null;
         }
       }
-      const { token } = await FirebaseMessaging.getToken();
+
+      const isIos = Capacitor.getPlatform() === 'ios';
+      let token;
+      if (isIos) {
+        // Let AppDelegate re-register for remote notifications after permission (async) before we poll FCM.
+        await new Promise((r) => setTimeout(r, 350));
+        token = await this.waitForIosFcmToken(FirebaseMessaging);
+      } else {
+        const maxAttempts = 12;
+        const delayMs = 400;
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+          try {
+            const result = await FirebaseMessaging.getToken();
+            if (result?.token) {
+              token = result.token;
+              break;
+            }
+          } catch (e) {
+            const msg = `${e?.message || e?.errorMessage || e || ''}`;
+            const isApnsNotReady =
+              /APNS token|apns token|Code=505|No APNS/i.test(msg) ||
+              (typeof e === 'object' &&
+                e !== null &&
+                String(e.code || '') === '505');
+            if (!isApnsNotReady || attempt === maxAttempts - 1) {
+              break;
+            }
+          }
+          if (attempt < maxAttempts - 1) {
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+          }
+        }
+      }
+
       if (!token) {
         return null;
       }

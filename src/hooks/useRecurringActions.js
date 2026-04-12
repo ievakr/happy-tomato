@@ -8,6 +8,21 @@ import {
   parseRecurringInterval
 } from '../utils/recurringActions';
 
+/** True if the event carries a to-do (field or legacy title-only). Used before recurring recalculation. */
+function eventHasTodoContent(evt) {
+  if (!evt) return false;
+  const td = evt.toDo;
+  if (td) {
+    if (Array.isArray(td)) return td.length > 0;
+    return Boolean(String(td).trim());
+  }
+  return (
+    evt.title &&
+    typeof evt.title === 'string' &&
+    evt.title.trim().startsWith('TO DO:')
+  );
+}
+
 /**
  * Custom hook for managing recurring actions and TO DO completion
  */
@@ -359,7 +374,7 @@ export const useRecurringActions = () => {
       
       // Check if this event has recurring potential
       const hasActions = updatedEvent.actions && updatedEvent.actions.length > 0;
-      const hasTodos = updatedEvent.toDo && (Array.isArray(updatedEvent.toDo) ? updatedEvent.toDo.length > 0 : updatedEvent.toDo);
+      const hasTodos = eventHasTodoContent(updatedEvent);
       
       // Handle recurring todo events differently - they can still trigger recalculation
       const isRecurringTodo = originalEvent.isRecurringTodo === true;
@@ -375,11 +390,12 @@ export const useRecurringActions = () => {
       const newDate = dayjs(updatedEvent.day);
       const dateChanged = !originalDate.isSame(newDate, 'day');
       
-      // Check if user is converting a simple TODO to a recurring one
-      const isConvertingToRecurring = !originalEvent.isRecurringTodo && 
-                                      !originalEvent.userRecurringConfig &&
-                                      updatedEvent.userRecurringConfig && 
-                                      updatedEvent.userRecurringConfig.enabled;
+      // Converting a one-off todo into a recurring series. Use `enabled`, not object truthiness:
+      // `{}` or legacy partial configs are truthy but not enabled — `!userRecurringConfig` blocked bulk apply.
+      const isConvertingToRecurring =
+        !originalEvent.isRecurringTodo &&
+        !originalEvent.userRecurringConfig?.enabled &&
+        Boolean(updatedEvent.userRecurringConfig?.enabled);
       
       if (isConvertingToRecurring) {
         // Update the original event to mark it as recurring

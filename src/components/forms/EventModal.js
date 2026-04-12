@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import CalendarContext from "../../context/CalendarContext";
 import { useEventContext } from "../../context/EventContext";
 import { useToast } from "../../context/ToastContext";
@@ -11,10 +11,35 @@ import CustomDropdown from "../common/CustomDropdown";
 import { Modal, ConfirmModal } from "../common";
 import { useRecurringActions, useSavedTodos } from "../../hooks";
 import TodoCombobox from "../common/TodoCombobox";
+import { EVENT_ACTIONS } from "../../constants";
+
+function getTodoLineFromEvent(evt) {
+    if (!evt) return '';
+    if (evt.toDo) {
+        return Array.isArray(evt.toDo) ? evt.toDo.join(', ') : String(evt.toDo);
+    }
+    if (evt.title && typeof evt.title === 'string' && evt.title.startsWith('TO DO:')) {
+        return evt.title;
+    }
+    return '';
+}
 
 export default function EventModal() {
     const { daySelected } = useContext(CalendarContext);
-    const { setShowEventModal, dispatchCallEvent, selectedEvent, setDosage, isLoading, loadingOperation, plantNames, displayNameToPlantId, plantIdToDisplayName } = useEventContext(); 
+    const {
+        setShowEventModal,
+        dispatchCallEvent,
+        selectedEvent,
+        setDosage,
+        isLoading,
+        loadingOperation,
+        plantNames,
+        displayNameToPlantId,
+        plantIdToDisplayName,
+        filteredEvents,
+        bulkApplyMode,
+        bulkSelectedEventIds,
+    } = useEventContext(); 
     const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
     const { savedItems: savedTodoItems, addItem: addSavedTodo } = useSavedTodos();
     const { showError } = useToast();
@@ -24,6 +49,7 @@ export default function EventModal() {
     const [title, setTitle] = useState("");
     const [todoText, setTodoText] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
     const [isRecurring, setIsRecurring] = useState(false);
@@ -33,8 +59,103 @@ export default function EventModal() {
     const [recurringEndType, setRecurringEndType] = useState('count');
     const [recurringUntilDate, setRecurringUntilDate] = useState(() => dayjs().add(1, 'month').toDate());
 
+    const isBulkApply = bulkApplyMode && bulkSelectedEventIds.length > 0;
+
+    /** Only reset bulk form state when the bulk selection (or bulk mode) changes — not when `filteredEvents` refetches. */
+    const lastBulkSessionKeyRef = useRef(null);
+
     // Initialize component state when modal opens
     useEffect(() => {
+        const bulkSessionKey =
+            isBulkApply && bulkSelectedEventIds.length > 0
+                ? [...bulkSelectedEventIds].sort().join(',')
+                : '';
+
+        const firstBulk =
+            isBulkApply && bulkSelectedEventIds.length > 0 && filteredEvents?.length
+                ? filteredEvents.find((e) => e.id === bulkSelectedEventIds[0])
+                : null;
+
+        if (isBulkApply && bulkSelectedEventIds.length > 0) {
+            if (!firstBulk) {
+                return;
+            }
+            if (lastBulkSessionKeyRef.current === bulkSessionKey) {
+                return;
+            }
+            lastBulkSessionKeyRef.current = bulkSessionKey;
+
+            if (daySelected) {
+                setSelectedDate(daySelected.toDate());
+            } else {
+                setSelectedDate(new Date(firstBulk.day));
+            }
+            const labelDisplayNames = (firstBulk.labels || []).map(
+                (id) => (plantIdToDisplayName && plantIdToDisplayName[id]) || id
+            );
+            setSelectedLabels(labelDisplayNames);
+            const isTodoEvent =
+                firstBulk.isRecurringTodo ||
+                (firstBulk.title && typeof firstBulk.title === 'string' && firstBulk.title.startsWith('TO DO:')) ||
+                firstBulk.toDo;
+            if (isTodoEvent) {
+                const todoValue = firstBulk.toDo
+                    ? Array.isArray(firstBulk.toDo)
+                        ? firstBulk.toDo.join(', ')
+                        : firstBulk.toDo
+                    : firstBulk.title && firstBulk.title.startsWith('TO DO:')
+                      ? firstBulk.title
+                      : '';
+                const displayTodo = todoValue.replace(/^TO DO:\s*/i, '').trim() || todoValue;
+                setTodoText(displayTodo);
+                setTitle(firstBulk.title || todoValue);
+            } else {
+                const legacyText = firstBulk.actions?.length
+                    ? firstBulk.actions.join(', ')
+                    : firstBulk.title || '';
+                setTodoText(legacyText);
+                setTitle(firstBulk.title || legacyText);
+            }
+            setDescription(firstBulk.description || '');
+            if (firstBulk.userRecurringConfig) {
+                setIsRecurring(true);
+                setRecurringInterval(firstBulk.userRecurringConfig.interval || 7);
+                const cfg = firstBulk.userRecurringConfig;
+                const useUntil =
+                    cfg.endType === 'count'
+                        ? false
+                        : cfg.endType === 'until'
+                          ? cfg.untilDate != null
+                          : cfg.untilDate != null;
+                if (useUntil && cfg.untilDate != null) {
+                    setRecurringEndType('until');
+                    setRecurringUntilDate(new Date(cfg.untilDate));
+                } else {
+                    setRecurringEndType('count');
+                    setRecurringMaxOccurrences(cfg.maxOccurrences || 2);
+                    setRecurringUntilDate(dayjs(firstBulk.day).add(1, 'month').toDate());
+                }
+            } else if (firstBulk.recurringInterval) {
+                setIsRecurring(true);
+                setRecurringInterval(firstBulk.recurringInterval || 7);
+                setRecurringEndType('count');
+                setRecurringMaxOccurrences(2);
+                setRecurringUntilDate(dayjs(firstBulk.day).add(1, 'month').toDate());
+            } else {
+                setIsRecurring(false);
+                setRecurringInterval(7);
+                setRecurringMaxOccurrences(2);
+                setRecurringEndType('count');
+                setRecurringUntilDate(dayjs(firstBulk.day).add(1, 'month').toDate());
+            }
+            setShowDeleteConfirm(false);
+            setShowBulkDeleteConfirm(false);
+            setShowCompleteConfirm(false);
+            return;
+        }
+
+        lastBulkSessionKeyRef.current = null;
+
         // Set the date from daySelected
         if (daySelected) {
             setSelectedDate(daySelected.toDate());
@@ -120,8 +241,18 @@ export default function EventModal() {
         }
         // Reset confirmation states
         setShowDeleteConfirm(false);
+        setShowBulkDeleteConfirm(false);
         setShowCompleteConfirm(false);
-    }, [selectedEvent, daySelected, setDosage, plantIdToDisplayName]);
+    }, [
+        selectedEvent,
+        daySelected,
+        setDosage,
+        plantIdToDisplayName,
+        isBulkApply,
+        bulkSelectedEventIds,
+        filteredEvents,
+        bulkApplyMode,
+    ]);
 
     function handleTodoChange(value) {
         setTodoText(value);
@@ -166,6 +297,35 @@ export default function EventModal() {
         }
     }
 
+    async function handleBulkDelete() {
+        try {
+            for (const id of bulkSelectedEventIds) {
+                const evt = filteredEvents.find((e) => e.id === id);
+                if (!evt) continue;
+                if (evt.isRecurringTodo) {
+                    await dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: evt });
+                } else {
+                    if (evt.actions && evt.actions.length > 0) {
+                        try {
+                            await deleteRecurringTodosForEvent(
+                                evt.id,
+                                evt.actions[0],
+                                evt.labels
+                            );
+                        } catch {
+                            // Proceed with main delete
+                        }
+                    }
+                    await dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: evt });
+                }
+            }
+            setShowBulkDeleteConfirm(false);
+            setShowEventModal(false);
+        } catch {
+            showError('Failed to delete some events. Please try again.');
+        }
+    }
+
     async function handleComplete() {
         try {
             await completeTodo(selectedEvent);
@@ -177,7 +337,94 @@ export default function EventModal() {
 
     async function handleSubmit(e) {
         e.preventDefault();
-        
+
+        if (isBulkApply && bulkSelectedEventIds.length > 0 && filteredEvents?.length) {
+            if (isRecurring) {
+                if (recurringEndType === 'count') {
+                    const n = Number(recurringMaxOccurrences);
+                    if (!Number.isFinite(n) || n < 1) {
+                        showError('Enter a valid number of occurrences (at least 1).');
+                        return;
+                    }
+                } else {
+                    const startDay = dayjs(selectedDate).startOf('day');
+                    const untilDay = dayjs(recurringUntilDate).startOf('day');
+                    if (untilDay.isBefore(startDay)) {
+                        showError('The end date must be on or after the event date.');
+                        return;
+                    }
+                }
+            }
+            try {
+                for (const id of bulkSelectedEventIds) {
+                    const evt = filteredEvents.find((x) => x.id === id);
+                    if (!evt) continue;
+
+                    const todoLine = getTodoLineFromEvent(evt).trim();
+                    const toDoValue = todoLine
+                        ? todoLine.startsWith('TO DO:')
+                          ? todoLine
+                          : `TO DO: ${todoLine.replace(/^TO DO:\s*/i, '').trim()}`
+                        : null;
+
+                    const userRecurringConfig =
+                        toDoValue && isRecurring
+                            ? {
+                                  enabled: true,
+                                  interval: Number(recurringInterval) || 7,
+                                  unit: 'days',
+                                  endType: recurringEndType,
+                                  ...(recurringEndType === 'count'
+                                      ? { maxOccurrences: Number(recurringMaxOccurrences) || 2 }
+                                      : { untilDate: dayjs(recurringUntilDate).endOf('day').valueOf() }),
+                              }
+                            : null;
+
+                    const eventDate = dayjs(selectedDate).startOf('day');
+                    const today = dayjs().startOf('day');
+                    const isPastDate = eventDate.isBefore(today);
+                    const isTodo = !!toDoValue;
+                    const rawTitle = toDoValue || evt.title;
+                    const resolvedTitle =
+                        isTodo && isPastDate && toDoValue
+                            ? toDoValue.replace(/^TO DO:\s*/i, '').trim() || rawTitle
+                            : evt.title;
+
+                    const calendarEvent = {
+                        ...evt,
+                        title: resolvedTitle,
+                        actions: [],
+                        description: evt.description,
+                        labels: evt.labels,
+                        toDo: toDoValue ?? evt.toDo,
+                        day: selectedDate.valueOf(),
+                        id: evt.id,
+                        userRecurringConfig: isTodo && isPastDate ? null : userRecurringConfig,
+                        ...(isTodo && isPastDate
+                            ? {
+                                  completed: true,
+                                  completedAt: evt.completedAt || Date.now(),
+                                  createdFromAction: true,
+                                  isRecurringTodo: false,
+                              }
+                            : isTodo && !isPastDate
+                              ? {
+                                    completed: false,
+                                    completedAt: undefined,
+                                    createdFromAction: false,
+                                }
+                              : {}),
+                    };
+
+                    await updateEventWithRecurringRecalculation(calendarEvent, evt);
+                }
+                setShowEventModal(false);
+            } catch {
+                showError('Failed to update events. Please try again.');
+            }
+            return;
+        }
+
         let calendarEvent;
 
         const rawTodo = todoText.trim();
@@ -218,43 +465,58 @@ export default function EventModal() {
             dn => (displayNameToPlantId && displayNameToPlantId[dn]) || dn
         );
 
+        const eventDate = dayjs(selectedDate).startOf('day');
+        const today = dayjs().startOf('day');
+        const isPastDate = eventDate.isBefore(today);
+        const isTodo = !!toDoValue;
+        const rawTitle = toDoValue || title;
+        // Past to-dos: strip "TO DO:" from title so UI matches manual Complete (useRecurringActions.completeTodo)
+        const resolvedTitle =
+            isTodo && isPastDate && toDoValue
+                ? toDoValue.replace(/^TO DO:\s*/i, '').trim() || rawTitle
+                : rawTitle;
+
         if (selectedEvent) {
             calendarEvent = {
                 ...selectedEvent,
-                title: toDoValue || title,
+                title: resolvedTitle,
                 actions: [],
                 description,
                 labels: labelsToSave,
                 toDo: toDoValue,
                 day: selectedDate.valueOf(),
                 id: selectedEvent.id,
-                userRecurringConfig,
+                userRecurringConfig: isTodo && isPastDate ? null : userRecurringConfig,
+                ...(isTodo && isPastDate
+                    ? {
+                          completed: true,
+                          completedAt: selectedEvent.completedAt || Date.now(),
+                          createdFromAction: true,
+                          isRecurringTodo: false,
+                      }
+                    : isTodo && !isPastDate
+                      ? {
+                            completed: false,
+                            completedAt: undefined,
+                            createdFromAction: false,
+                        }
+                      : {}),
             };
         } else {
-            const eventDate = dayjs(selectedDate).startOf("day");
-            const today = dayjs().startOf("day");
-            const isPastDate = eventDate.isBefore(today);
-            const isTodo = !!toDoValue;
-            // Past completed to-dos: strip "TO DO:" from title so UI matches manual "Complete" (useRecurringActions.completeTodo)
-            const rawTitle = toDoValue || title;
-            const newEventTitle =
-                isTodo && isPastDate && toDoValue
-                    ? toDoValue.replace(/^TO DO:\s*/i, "").trim() || rawTitle
-                    : rawTitle;
-
             calendarEvent = {
-                title: newEventTitle,
+                title: resolvedTitle,
                 actions: [],
                 description,
                 labels: labelsToSave,
                 toDo: toDoValue,
                 day: selectedDate.valueOf(),
                 completed: isTodo && isPastDate,
-                ...(isTodo && isPastDate && {
-                    completedAt: Date.now(),
-                    createdFromAction: true
-                }),
-                userRecurringConfig,
+                ...(isTodo &&
+                    isPastDate && {
+                        completedAt: Date.now(),
+                        createdFromAction: true,
+                    }),
+                userRecurringConfig: isTodo && isPastDate ? null : userRecurringConfig,
             };
         }
         
@@ -291,7 +553,7 @@ export default function EventModal() {
 
     const headerExtra = (
         <>
-            {selectedEvent && isTodoEvent(selectedEvent) && (
+            {!isBulkApply && selectedEvent && isTodoEvent(selectedEvent) && (
                 <button
                     type="button"
                     className="btn btn-sm btn-outline-success"
@@ -304,7 +566,7 @@ export default function EventModal() {
                     </span>
                 </button>
             )}
-            {selectedEvent && (
+            {!isBulkApply && selectedEvent && (
                 <button
                     type="button"
                     className="btn btn-sm btn-outline-danger"
@@ -317,16 +579,35 @@ export default function EventModal() {
                     </span>
                 </button>
             )}
+            {isBulkApply && (
+                <button
+                    type="button"
+                    className="btn btn-sm btn-outline-danger"
+                    disabled={isLoading}
+                    onClick={() => setShowBulkDeleteConfirm(true)}
+                    title="Delete selected events"
+                    aria-label="Delete selected events"
+                >
+                    <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                        delete
+                    </span>
+                </button>
+            )}
         </>
     );
 
     return (
         <>
             <Modal
-                title={selectedEvent ? 'Edit Event' : 'New Event'}
+                title={
+                    isBulkApply
+                        ? `Bulk edit (${bulkSelectedEventIds.length} events)`
+                        : selectedEvent
+                          ? 'Edit Event'
+                          : 'New Event'
+                }
                 icon="event"
                 onClose={() => setShowEventModal(false)}
-                scrollable
                 className="event-modal"
                 headerExtra={headerExtra}
                 footer={
@@ -345,14 +626,18 @@ export default function EventModal() {
                                 </span>
                                 {loadingOperation === 'update' ? 'Updating...' : 'Saving...'}
                             </>
+                        ) : isBulkApply ? (
+                            `Apply to ${bulkSelectedEventIds.length} events`
+                        ) : selectedEvent ? (
+                            'Update'
                         ) : (
-                            selectedEvent ? 'Update' : 'Save'
+                            'Save'
                         )}
                     </button>
                 }
             >
                 <div className="d-grid gap-3">
-                                    <div>
+                                    <div className={isBulkApply ? 'pe-none opacity-50 user-select-none' : ''}>
                                         <label className="form-label d-flex align-items-center gap-2">
                                             <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
                                                 checklist
@@ -463,20 +748,27 @@ export default function EventModal() {
 
                                                     {recurringEndType === 'until' && (
                                                         <div className="mb-2">
-                                                            <label className="form-label small text-muted d-flex align-items-center gap-2">
+                                                            <label
+                                                                className="form-label small text-muted d-flex align-items-center gap-2"
+                                                                htmlFor="recurringUntilDate"
+                                                            >
                                                                 <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
                                                                     event_repeat
                                                                 </span>
                                                                 Repeat until
                                                             </label>
-                                                            <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
-                                                                <DatePicker
-                                                                    value={recurringUntilDate}
-                                                                    onChange={(date) => date && setRecurringUntilDate(date)}
-                                                                    valueFormat={{ dateStyle: 'medium' }}
-                                                                    className="w-100"
-                                                                />
-                                                            </Localization>
+                                                            {/* mx-n3: recurring card has p-3; calendar ~22em — full-bleed matches main Date row width */}
+                                                            <div className="mx-n3">
+                                                                <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
+                                                                    <DatePicker
+                                                                        id="recurringUntilDate"
+                                                                        value={recurringUntilDate}
+                                                                        onChange={(date) => date && setRecurringUntilDate(date)}
+                                                                        valueFormat={{ dateStyle: 'medium' }}
+                                                                        className="w-100"
+                                                                    />
+                                                                </Localization>
+                                                            </div>
                                                             <div className="form-text">
                                                                 Last occurrence falls on this date or earlier in the series
                                                             </div>
@@ -505,7 +797,7 @@ export default function EventModal() {
                                         </Localization>
                                     </div>
                                     
-                                    <div>
+                                    <div className={isBulkApply ? 'pe-none opacity-50 user-select-none' : ''}>
                                         <label className="form-label d-flex align-items-center gap-2">
                                             <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
                                                 segment
@@ -517,13 +809,13 @@ export default function EventModal() {
                                             name="description"
                                             placeholder="Add a description"
                                             value={description}
-                                            required
+                                            required={!isBulkApply}
                                             className="form-control"
                                             onChange={(e) => setDescription(e.target.value)}
                                         />
                                     </div>
                                     
-                                    <div>
+                                    <div className={isBulkApply ? 'pe-none opacity-50 user-select-none' : ''}>
                                         <label className="form-label d-flex align-items-center gap-2">
                                             <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
                                                 yard
@@ -550,6 +842,26 @@ export default function EventModal() {
                     onConfirm={handleDelete}
                     onCancel={() => setShowDeleteConfirm(false)}
                     isLoading={isLoading && loadingOperation === 'delete'}
+                />
+            )}
+
+            {showBulkDeleteConfirm && (
+                <ConfirmModal
+                    title="Delete events"
+                    message={
+                        <>
+                            <p className="mb-2">
+                                Delete {bulkSelectedEventIds.length} event
+                                {bulkSelectedEventIds.length !== 1 ? 's' : ''}? This cannot be undone.
+                            </p>
+                        </>
+                    }
+                    confirmLabel="Delete all"
+                    variant="danger"
+                    onConfirm={handleBulkDelete}
+                    onCancel={() => setShowBulkDeleteConfirm(false)}
+                    isLoading={isLoading && loadingOperation === 'delete'}
+                    zIndex={1060}
                 />
             )}
 

@@ -23,6 +23,13 @@ export default function Labels() {
         }));
         setLabels(updatedLabels);
     };
+
+    /** Uncheck every category (only events with no plant labels stay visible — see useEventFiltering). */
+    const handleClearAllFilters = () => {
+        setLabels((prev) => prev.map((lbl) => ({ ...lbl, checked: false })));
+    };
+
+    const noCategoriesSelected = selectedLabels.length === 0;
     
     // Create a custom title that doesn't show all selected items
     const dropdownTitle = useMemo(() => {
@@ -37,9 +44,25 @@ export default function Labels() {
     
     return (
         <React.Fragment>
-            <div className="d-flex align-items-center text-secondary fw-bold mt-4 mb-2">
-                <span className="material-icons-outlined me-2" style={{ fontSize: '1.25rem' }}>filter_list</span>
-                Filter by Category
+            <div className="d-flex align-items-center justify-content-between gap-2 text-secondary fw-bold mt-4 mb-2">
+                <div className="d-flex align-items-center min-w-0">
+                    <span className="material-icons-outlined me-2 flex-shrink-0" style={{ fontSize: '1.25rem' }}>
+                        filter_list
+                    </span>
+                    <span className="text-truncate">Filter by Category</span>
+                </div>
+                {labelOptions.length > 0 && (
+                    <button
+                        type="button"
+                        className="btn btn-link btn-sm text-secondary text-decoration-none flex-shrink-0 p-0"
+                        onClick={handleClearAllFilters}
+                        disabled={noCategoriesSelected}
+                        title="Uncheck all categories"
+                        aria-label="Uncheck all filter categories"
+                    >
+                        Clear all
+                    </button>
+                )}
             </div>
             {isInitialLoading ? (
                 <EventListSkeleton count={1} />

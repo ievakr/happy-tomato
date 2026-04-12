@@ -253,7 +253,7 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
 }
 
 .daily-week-day.selected.today .day-number-mini {
-  background-color: #c82333;
+  background-color: #dc3545;
 }
 
 .events-indicator {
@@ -470,6 +470,30 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   }
 }
 
+/* Daily view bulk edit: circular checkboxes + green (variables.css forces primary on .form-check-input:checked) */
+.bulk-edit-day-checkbox {
+  border-radius: 50%;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  accent-color: var(--bs-success);
+}
+
+.form-check-input.bulk-edit-day-checkbox:checked {
+  background-color: var(--bs-success) !important;
+  border-color: var(--bs-success) !important;
+}
+
+.form-check-input.bulk-edit-day-checkbox[type='checkbox']:indeterminate {
+  background-color: var(--bs-success) !important;
+  border-color: var(--bs-success) !important;
+}
+
+.form-check-input.bulk-edit-day-checkbox:focus {
+  border-color: var(--bs-success) !important;
+  box-shadow: 0 0 0 0.25rem rgba(var(--bs-success-rgb), 0.25) !important;
+}
+
 /* Event count indicators — color comes from Bootstrap bg-* on the element (do not set background here; it overrides utilities) */
 .event-count-indicator {
   color: white;
@@ -485,6 +509,14 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   top: -2px;
   right: -2px;
   z-index: 10;
+}
+
+/* Month grid: two circles (pending / done) — row layout, not corner overlay */
+.event-count-indicators-row .event-count-indicator {
+  position: relative;
+  top: auto;
+  right: auto;
+  z-index: 1;
 }
 
 /* Truncation indicator styling */
@@ -508,6 +540,28 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
 }
 .event-modal .modal-dialog-scrollable .modal-body .d-grid {
   min-height: min-content;
+}
+
+/*
+ * Event modal + react-widgets DatePicker:
+ * - Bootstrap .modal-content clips with overflow: hidden
+ * - .rw-widget-picker uses overflow: hidden (clips the calendar popup rendered inside it)
+ */
+.modal.event-modal .modal-content {
+  overflow: visible !important;
+}
+
+.modal.event-modal .modal-body {
+  overflow: visible !important;
+}
+
+.modal.event-modal {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+.event-modal .rw-widget-picker {
+  overflow: visible !important;
 }
 
 /* Mobile responsive styles */

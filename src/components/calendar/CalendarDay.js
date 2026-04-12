@@ -10,7 +10,7 @@ export default function CalendarDay({ day, rowIndex }) {
     const { setDaySelected, setCurrentView, monthIndex } = useContext(CalendarContext);
     const { setShowEventModal, filteredEvents, setSelectedEvent, plantsById } = useEventContext();
     const { isMobile } = useResponsive();
-    const { isTodoEvent } = useRecurringActions();
+    const { isTodoEvent, isCompletedTodoAction } = useRecurringActions();
     const [dayEvents, setDayEvents] = useState([]);
     
     // Check if this day belongs to the currently displayed month
@@ -29,8 +29,6 @@ export default function CalendarDay({ day, rowIndex }) {
 
     const handleEventClick = (evt, e) => {
         e.stopPropagation();
-        
-        // Open event modal for editing - set selected event so delete button appears
         setSelectedEvent(evt);
         setDaySelected(day);
         setShowEventModal(true);
@@ -49,43 +47,50 @@ export default function CalendarDay({ day, rowIndex }) {
         }
     };
 
-    // Mobile month grid: compact event count badge
+    // Mobile month grid: red = pending to-dos, green = completed to-dos (counts only; other events use desktop chips)
     const renderMobileEventCount = () => {
-        if (dayEvents.length === 0) return null;
-        
-        const hasTodos = dayEvents.some(evt => isTodoEvent(evt));
-        const hasCompleted = dayEvents.some(evt => evt.completed);
-        
-        let bgColor = 'bg-primary';
-        if (hasCompleted) {
-            bgColor = 'bg-success';
-        } else if (hasTodos) {
-            bgColor = 'bg-danger';
-        }
-        
+        const pendingCount = dayEvents.filter(evt => isTodoEvent(evt)).length;
+        const doneCount = dayEvents.filter(evt => isCompletedTodoAction(evt)).length;
+
+        if (pendingCount === 0 && doneCount === 0) return null;
+
+        const circleStyle = {
+            width: '17px',
+            height: '17px',
+            fontSize: '0.6rem',
+            cursor: 'pointer',
+            flexShrink: 0,
+            marginTop: '2px',
+        };
+
         return (
-            <div className="d-flex justify-content-center align-items-start w-100" style={{ 
-                height: '100%',
-                paddingTop: '8px',
-                paddingLeft: '4px',
-                paddingRight: '4px',
-                width: '100%'
-            }}>
-                <div 
-                    className={`event-count-indicator d-flex align-items-center justify-content-center rounded-circle ${bgColor} text-white fw-bold`}
-                    style={{ 
-                        width: '18px', 
-                        height: '18px', 
-                        fontSize: '0.65rem',
-                        cursor: 'pointer',
-                        flexShrink: 0,
-                        marginTop: '2px',
-                        position: 'relative'
-                    }}
-                    title={`${dayEvents.length} event${dayEvents.length !== 1 ? 's' : ''} - tap to view`}
-                >
-                    {dayEvents.length}
-                </div>
+            <div
+                className="event-count-indicators-row d-flex justify-content-center align-items-start gap-1 w-100"
+                style={{
+                    height: '100%',
+                    paddingTop: '6px',
+                    paddingLeft: '2px',
+                    paddingRight: '2px',
+                }}
+            >
+                {pendingCount > 0 && (
+                    <div
+                        className="event-count-indicator d-flex align-items-center justify-content-center rounded-circle bg-danger text-white fw-bold"
+                        style={circleStyle}
+                        title={`${pendingCount} not done — tap to view`}
+                    >
+                        {pendingCount}
+                    </div>
+                )}
+                {doneCount > 0 && (
+                    <div
+                        className="event-count-indicator d-flex align-items-center justify-content-center rounded-circle bg-success text-white fw-bold"
+                        style={circleStyle}
+                        title={`${doneCount} done — tap to view`}
+                    >
+                        {doneCount}
+                    </div>
+                )}
             </div>
         );
     };

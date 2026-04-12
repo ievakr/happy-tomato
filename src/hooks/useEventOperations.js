@@ -1,8 +1,80 @@
 import { useState, useCallback, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '../firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDoc } from 'firebase/firestore';
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  getDoc,
+  deleteField,
+  FieldValue,
+} from 'firebase/firestore';
 import errorLogger from '../utils/errorLogger';
+
+/** Client-safe event object: Firestore rejects `undefined`; omit those keys for cache/UI. */
+function clientPayloadFromEventPayload(payload) {
+  return Object.fromEntries(Object.entries(payload).filter(([, v]) => v !== undefined));
+}
+
+/**
+ * Firestore rejects `undefined` at any depth (e.g. inside `userRecurringConfig`).
+ * Preserves FieldValue sentinels, Date, and Firestore Timestamp-like objects.
+ */
+function omitUndefinedDeep(value) {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  if (typeof value !== 'object') return value;
+  if (value instanceof FieldValue) return value;
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === 'function' && typeof value.seconds === 'number') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => omitUndefinedDeep(item))
+      .filter((item) => item !== undefined);
+  }
+  if (Object.getPrototypeOf(value) === Object.prototype) {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (v === undefined) continue;
+      const nested = omitUndefinedDeep(v);
+      if (nested !== undefined) out[k] = nested;
+    }
+    return out;
+  }
+  return value;
+}
+
+/** New documents: omit undefined and `id` (server-generated). */
+function eventPayloadToFirestoreCreateFields(payload) {
+  const fields = {};
+  for (const [k, v] of Object.entries(payload)) {
+    if (k === 'id') continue;
+    if (v === undefined) continue;
+    fields[k] = omitUndefinedDeep(v);
+  }
+  return fields;
+}
+
+/**
+ * Updates: `undefined` must not be sent to Firestore. For `completedAt`, use deleteField()
+ * so an incomplete todo clears any stored completion timestamp.
+ */
+function eventPayloadToFirestoreUpdateFields(payload) {
+  const fields = {};
+  for (const [k, v] of Object.entries(payload)) {
+    if (k === 'id') continue;
+    if (v === undefined) {
+      if (k === 'completedAt') fields[k] = deleteField();
+    } else {
+      fields[k] = omitUndefinedDeep(v);
+    }
+  }
+  return fields;
+}
 
 function getErrorMessage(error, operation) {
   if (error?.code) {
@@ -80,18 +152,23 @@ export function useEventOperations({ currentUser, queryKey, showError }) {
         switch (type) {
           case 'push': {
             const eventWithUserId = { ...payload, userId: currentUser.uid };
-            const addDocRef = await addDoc(collection(db, 'events'), eventWithUserId);
+            const fields = eventPayloadToFirestoreCreateFields(eventWithUserId);
+            const addDocRef = await addDoc(collection(db, 'events'), fields);
             return {
               type,
-              payload: { ...payload, id: addDocRef.id, userId: currentUser.uid },
+              payload: clientPayloadFromEventPayload({
+                ...eventWithUserId,
+                id: addDocRef.id,
+              }),
             };
           }
           case 'update': {
             if (!payload.id) {
               throw new Error('Cannot update event: missing event ID');
             }
-            await updateDoc(doc(db, 'events', payload.id), payload);
-            return { type, payload };
+            const fields = eventPayloadToFirestoreUpdateFields(payload);
+            await updateDoc(doc(db, 'events', payload.id), fields);
+            return { type, payload: clientPayloadFromEventPayload(payload) };
           }
           case 'delete': {
             const deleteDocRef = doc(db, 'events', payload.id);
@@ -139,7 +216,7 @@ export function useEventOperations({ currentUser, queryKey, showError }) {
         const errorMessage = getErrorMessage(error, type);
         showError?.(`${errorMessage}. If this problem persists, try refreshing the page.`, 8000);
         if (type !== 'delete') {
-          updateEventCache(type, payload);
+          updateEventCache(type, clientPayloadFromEventPayload(payload));
         }
       } finally {
         setIsLoading(false);

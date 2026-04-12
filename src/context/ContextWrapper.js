@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import CalendarContext from './CalendarContext';
 import EventContext from './EventContext';
 import LayoutContext from './LayoutContext';
@@ -54,10 +54,32 @@ export default function ContextWrapper(props) {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [dosage, setDosage] = useState('');
 
-  // Clear selected event when modal closes
+  const [bulkEditMode, setBulkEditMode] = useState(false);
+  const [bulkApplyMode, setBulkApplyMode] = useState(false);
+  const [bulkSelectedEventIds, setBulkSelectedEventIds] = useState([]);
+
+  const toggleBulkEventSelection = useCallback((eventId) => {
+    if (!eventId) return;
+    setBulkSelectedEventIds((prev) =>
+      prev.includes(eventId) ? prev.filter((id) => id !== eventId) : [...prev, eventId]
+    );
+  }, []);
+
+  const clearBulkSelection = useCallback(() => setBulkSelectedEventIds([]), []);
+
+  useEffect(() => {
+    if (!bulkEditMode) {
+      setBulkSelectedEventIds([]);
+    }
+  }, [bulkEditMode]);
+
+  // When event modal closes, reset selection and bulk daily-edit state
   useEffect(() => {
     if (!showEventModal) {
       setSelectedEvent(null);
+      setBulkApplyMode(false);
+      setBulkEditMode(false);
+      setBulkSelectedEventIds([]);
     }
   }, [showEventModal]);
 
@@ -101,6 +123,14 @@ export default function ContextWrapper(props) {
           setIsLoading: () => {},
           isInitialLoading,
           loadingOperation: resolvedLoadingOperation,
+          bulkEditMode,
+          setBulkEditMode,
+          bulkApplyMode,
+          setBulkApplyMode,
+          bulkSelectedEventIds,
+          setBulkSelectedEventIds,
+          toggleBulkEventSelection,
+          clearBulkSelection,
         }}
       >
         <LayoutContext.Provider value={{ showSidebar, setShowSidebar }}>

@@ -223,7 +223,7 @@ export default function Header() {
             
             {/* Desktop controls */}
             {!isMobile && (
-                <div className="d-flex align-items-center ms-auto gap-2">
+                    <div className="d-flex align-items-center ms-auto gap-2">
                     {/* View switching buttons */}
                     <div className="btn-group flex-shrink-0" role="group" aria-label="Calendar view">
                         <button 

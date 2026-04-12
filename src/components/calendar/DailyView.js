@@ -26,7 +26,13 @@ const DailyView = () => {
     dispatchCallEvent,
     isLoading,
     loadingOperation,
-    plantsById
+    plantsById,
+    bulkEditMode,
+    setBulkEditMode,
+    bulkSelectedEventIds,
+    setBulkSelectedEventIds,
+    toggleBulkEventSelection,
+    setBulkApplyMode,
   } = useEventContext();
   
   const { isMobile } = useResponsive();
@@ -166,6 +172,41 @@ const DailyView = () => {
   // Get current day or fallback to today
   const currentDay = daySelected || dayjs();
 
+  const dayEvents = useMemo(
+    () =>
+      filteredEvents.filter(
+        (evt) => dayjs(evt.day).format('DD-MM-YY') === currentDay.format('DD-MM-YY')
+      ),
+    [filteredEvents, currentDay]
+  );
+
+  const selectAllCheckboxRef = useRef(null);
+
+  const dayEventIds = useMemo(() => dayEvents.map((e) => e.id).filter(Boolean), [dayEvents]);
+
+  useEffect(() => {
+    const el = selectAllCheckboxRef.current;
+    if (!el || !bulkEditMode) return;
+    const n = dayEventIds.filter((id) => bulkSelectedEventIds.includes(id)).length;
+    el.indeterminate = n > 0 && n < dayEventIds.length;
+  }, [bulkEditMode, dayEventIds, bulkSelectedEventIds]);
+
+  const toggleSelectAllDay = useCallback(() => {
+    if (dayEventIds.length === 0) return;
+    const allSelected = dayEventIds.every((id) => bulkSelectedEventIds.includes(id));
+    if (allSelected) {
+      setBulkSelectedEventIds((prev) => prev.filter((id) => !dayEventIds.includes(id)));
+    } else {
+      setBulkSelectedEventIds((prev) => [...new Set([...prev, ...dayEventIds])]);
+    }
+  }, [dayEventIds, bulkSelectedEventIds, setBulkSelectedEventIds]);
+
+  const openBulkApplyModal = useCallback(() => {
+    if (bulkSelectedEventIds.length === 0) return;
+    setBulkApplyMode(true);
+    setShowEventModal(true);
+  }, [bulkSelectedEventIds, setBulkApplyMode, setShowEventModal]);
+
   const visibleMonthLabel = useMemo(
     () => dayjs(`${visibleStripMonthKey}-01`).format('MMMM YYYY'),
     [visibleStripMonthKey]
@@ -229,6 +270,10 @@ const DailyView = () => {
 
   const handleEventClick = (evt, e) => {
     e.stopPropagation();
+    if (bulkEditMode) {
+      if (evt.id) toggleBulkEventSelection(evt.id);
+      return;
+    }
     setSelectedEvent(evt);
     setShowEventModal(true);
   };
@@ -409,11 +454,7 @@ const DailyView = () => {
             minHeight: 0
           }}
         >
-              {(() => {
-                const dayEvents = getEventsForDay(currentDay);
-                
-                if (dayEvents.length === 0) {
-                  return (
+              {dayEvents.length === 0 ? (
                     <div className="no-events text-center py-5">
                       <div className="text-muted mb-3">
                         <span className="material-icons-outlined" style={{ fontSize: '3rem' }}>
@@ -422,26 +463,77 @@ const DailyView = () => {
                       </div>
                       <p className="text-muted">No events scheduled for this day</p>
                     </div>
-                  );
-                }
-
-                return (
+                  ) : (
                   <div className="events-list">
-                    <h6 className="mb-3">Events ({dayEvents.length})</h6>
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                      <h6 className="mb-0">To-Do's ({dayEvents.length})</h6>
+                      <div className="d-flex align-items-center flex-wrap gap-2">
+                        {bulkEditMode && (
+                          <>
+                            <div className="form-check d-flex align-items-center mb-0">
+                              <input
+                                ref={selectAllCheckboxRef}
+                                type="checkbox"
+                                className="form-check-input bulk-edit-day-checkbox me-2"
+                                id="daily-bulk-select-all"
+                                checked={
+                                  dayEventIds.length > 0 &&
+                                  dayEventIds.every((id) => bulkSelectedEventIds.includes(id))
+                                }
+                                onChange={toggleSelectAllDay}
+                              />
+                              <label className="form-check-label small mb-0" htmlFor="daily-bulk-select-all">
+                                Select all
+                              </label>
+                            </div>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-success"
+                              disabled={bulkSelectedEventIds.length === 0}
+                              onClick={openBulkApplyModal}
+                            >
+                              Edit selected
+                            </button>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() => setBulkEditMode(!bulkEditMode)}
+                        >
+                          {bulkEditMode ? 'Cancel' : 'Bulk edit'}
+                        </button>
+                      </div>
+                    </div>
                     {dayEvents.map((evt, idx) => {
                         if (isMobile) {
                           return (
                             <div
                               key={evt.id || idx}
-                              className="position-relative"
+                              className={`d-flex align-items-start gap-2 mb-1 ${bulkEditMode && evt.id && bulkSelectedEventIds.includes(evt.id) ? 'rounded border border-success border-2 p-1' : ''}`}
                             >
-                              <CalendarEventChip
-                                event={evt}
-                                plantsById={plantsById || {}}
-                                listMode
-                                preferFullPlantIcons
-                                onClick={(e) => handleEventClick(evt, e)}
-                              />
+                              {bulkEditMode && (
+                                <input
+                                  type="checkbox"
+                                  className="form-check-input bulk-edit-day-checkbox flex-shrink-0 mt-1"
+                                  checked={evt.id ? bulkSelectedEventIds.includes(evt.id) : false}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={() => evt.id && toggleBulkEventSelection(evt.id)}
+                                  aria-label={`Select ${evt.title || evt.toDo || 'event'}`}
+                                />
+                              )}
+                              <div className="flex-grow-1 min-w-0">
+                                <CalendarEventChip
+                                  event={evt}
+                                  plantsById={plantsById || {}}
+                                  listMode
+                                  preferFullPlantIcons
+                                  bulkEditSelected={
+                                    !!evt.id && bulkSelectedEventIds.includes(evt.id)
+                                  }
+                                  onClick={(e) => handleEventClick(evt, e)}
+                                />
+                              </div>
                             </div>
                           );
                         }
@@ -451,9 +543,23 @@ const DailyView = () => {
                         return (
                         <div 
                           key={evt.id || idx}
-                          className={`event-item-daily mb-2 p-2 border rounded position-relative ${isDone ? 'event-item-daily-completed' : ''}`}
-                          onClick={(e) => handleEventClick(evt, e)}
+                          className="d-flex align-items-start gap-2 mb-2"
                         >
+                          {bulkEditMode && (
+                            <input
+                              type="checkbox"
+                              className="form-check-input bulk-edit-day-checkbox flex-shrink-0 mt-2"
+                              checked={evt.id ? bulkSelectedEventIds.includes(evt.id) : false}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={() => evt.id && toggleBulkEventSelection(evt.id)}
+                              aria-label={`Select ${evt.title || evt.toDo || 'event'}`}
+                            />
+                          )}
+                          <div
+                            className={`event-item-daily flex-grow-1 p-2 border rounded position-relative min-w-0 ${isDone ? 'event-item-daily-completed' : ''} ${bulkEditMode && evt.id && bulkSelectedEventIds.includes(evt.id) ? 'border-success border-2' : ''}`}
+                            onClick={(e) => handleEventClick(evt, e)}
+                            role={bulkEditMode ? 'button' : undefined}
+                          >
                           <EventItem 
                             event={evt} 
                             compact={false}
@@ -461,7 +567,7 @@ const DailyView = () => {
                             plantsById={plantsById || {}}
                             showAllIcons={true}
                           />
-                          {/* Quick delete button */}
+                          {!bulkEditMode && (
                           <button
                             className="quick-delete-btn btn btn-sm btn-danger position-absolute"
                             onClick={(e) => handleQuickDelete(evt, e)}
@@ -469,12 +575,13 @@ const DailyView = () => {
                           >
                             ×
                           </button>
+                          )}
+                        </div>
                         </div>
                         );
                       })}
                   </div>
-                );
-              })()}
+                  )}
         </div>
         
         {/* Add event button - always visible at bottom (extra class for iOS safe inset; see index.css) */}

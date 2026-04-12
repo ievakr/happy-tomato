@@ -6,6 +6,7 @@ import '@fontsource/open-sans/600.css';
 import '@fontsource/open-sans/700.css';
 import '@fontsource/material-icons-outlined/400.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import './styles/variables.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './index.css';
 import './styles/legacy.css';

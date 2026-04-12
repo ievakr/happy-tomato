@@ -247,7 +247,6 @@ const WeeklyView = () => {
                             showTime={!isMobile}
                             plantsById={plantsById || {}}
                           />
-                          {/* Quick delete button - only show on desktop */}
                           {!isMobile && (
                             <button
                               className="quick-delete-btn btn btn-sm btn-danger position-absolute"

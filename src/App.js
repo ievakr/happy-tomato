@@ -1,6 +1,5 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
-import './styles/variables.css';
 import './App.css';
 import { useCalendar } from './hooks/useCalendar';
 import useOnlineStatus from './hooks/useOnlineStatus';
@@ -233,7 +232,7 @@ function App() {
                 className={`flex-grow-1 d-flex flex-column${currentView === 'daily' ? ' calendar-section-daily' : ''}`}
                 style={{ 
                   minHeight: 0,
-                  overflow: 'hidden'
+                  overflow: 'hidden',
                 }}
                 aria-label="Calendar view"
               >

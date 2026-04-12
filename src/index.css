@@ -193,7 +193,7 @@ html.capacitor-ios-native .calendar-header {
 }
 
 .week-day.current-day {
-    background-color: #ffebee;
+    background-color: rgba(220, 53, 69, 0.08);
 }
 
 .week-day.other-month {
@@ -293,8 +293,8 @@ html.capacitor-ios-native .calendar-header {
 }
 
 .daily-week-day.selected {
-    background-color: #ffebee;
-    border-color: #f44336;
+    background-color: rgba(220, 53, 69, 0.08);
+    border-color: #dc3545;
 }
 
 .daily-week-day.today {
@@ -303,8 +303,8 @@ html.capacitor-ios-native .calendar-header {
 }
 
 .daily-week-day.selected.today {
-    background-color: #fce4ec;
-    border-color: #c62828;
+    background-color: rgba(220, 53, 69, 0.12);
+    border-color: #dc3545;
 }
 
 .day-header-mini {
@@ -331,7 +331,7 @@ html.capacitor-ios-native .calendar-header {
 }
 
 .daily-week-day.selected .day-number-mini {
-    color: #f44336;
+    color: #dc3545;
 }
 
 .daily-week-day.today .day-number-mini {
@@ -347,7 +347,7 @@ html.capacitor-ios-native .calendar-header {
 
 .daily-week-day.selected.today .day-number-mini {
     color: #fff;
-    background-color: #c82333;
+    background-color: #dc3545;
 }
 
 .selected-day-info {

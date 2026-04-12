@@ -4,7 +4,7 @@ import { UI_CONSTANTS } from '../../constants';
 import { useRecurringActions, useResponsive } from '../../hooks';
 import { plantLabelDisplayText } from './EventItem';
 
-function buildEventClasses(evt, isTodoEvent, listMode) {
+function buildEventClasses(evt, isTodoEvent, listMode, bulkEditSelected) {
   const base = listMode
     ? 'calendar-event text-xs rounded p-1 mb-2 w-100 d-flex align-items-center cursor-pointer'
     : 'calendar-event text-xs rounded p-1 m-1 d-flex align-items-center cursor-pointer';
@@ -13,6 +13,9 @@ function buildEventClasses(evt, isTodoEvent, listMode) {
   }
   if (isTodoEvent(evt)) {
     return `${base} calendar-event--todo border border-danger bg-danger bg-opacity-10 text-danger-emphasis`;
+  }
+  if (bulkEditSelected) {
+    return `${base} calendar-event--default border border-success bg-success bg-opacity-10 text-success-emphasis`;
   }
   return `${base} calendar-event--default border border-primary bg-primary bg-opacity-10 text-primary-emphasis`;
 }
@@ -37,6 +40,8 @@ export default function CalendarEventChip({
   preferFullPlantIcons = false,
   /** Full-width row in daily list instead of inset month-cell margins */
   listMode = false,
+  /** Bulk-edit row selected (daily view): use success tint instead of primary */
+  bulkEditSelected = false,
 }) {
   const { isTodoEvent } = useRecurringActions();
   const { isMobile } = useResponsive();
@@ -54,7 +59,7 @@ export default function CalendarEventChip({
   return (
     <div
       onClick={onClick}
-      className={`${buildEventClasses(evt, isTodoEvent, listMode)} ${className}`.trim()}
+      className={`${buildEventClasses(evt, isTodoEvent, listMode, bulkEditSelected)} ${className}`.trim()}
       style={{
         gap: '2px',
         marginBottom: '2px',

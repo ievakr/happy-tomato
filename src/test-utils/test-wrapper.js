@@ -47,6 +47,14 @@ export const createWrapper = (contextValue = {}) => {
     setIsLoading: jest.fn(),
     isInitialLoading: false,
     loadingOperation: null,
+    bulkEditMode: false,
+    setBulkEditMode: jest.fn(),
+    bulkApplyMode: false,
+    setBulkApplyMode: jest.fn(),
+    bulkSelectedEventIds: [],
+    setBulkSelectedEventIds: jest.fn(),
+    toggleBulkEventSelection: jest.fn(),
+    clearBulkSelection: jest.fn(),
     ...event
   };
   const defaultLayoutContext = {
