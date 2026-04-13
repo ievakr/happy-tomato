@@ -61,10 +61,52 @@ class PushService {
   async sendWeeklySummary() {
     try {
       const { data } = await this.sendWeeklySummaryPush({});
-      return data?.success === true;
+      if (data?.success !== true) {
+        return false;
+      }
+      // Backend returns sent: false when there are no tasks (nothing was pushed).
+      if (Object.prototype.hasOwnProperty.call(data || {}, "sent")) {
+        return data.sent === true;
+      }
+      return true;
     } catch (error) {
       return false;
     }
+  }
+
+  formatTestPushFailure(data) {
+    if (!data || data.success === true) {
+      return '';
+    }
+    if (data.failureReason === 'no_fcm_tokens') {
+      return (
+        'No device token saved for your account yet. Turn on push in Settings → Notifications, ' +
+        'tap Save, wait a few seconds, then try Test push again. ' +
+        'On iOS, notifications must be allowed for this app.'
+      );
+    }
+    if (data.failureReason === 'delivery_failed') {
+      const detail = data.failureDetail || '';
+      // FCM uses this when it cannot auth to APNs (iOS) or Web Push (VAPID)—not Google Cloud IAM.
+      if (/third-party-auth-error/i.test(detail)) {
+        return (
+          'FCM could not authenticate to Apple APNs (or web VAPID), not your GCP IAM. ' +
+          'Firebase Console → Project settings → Cloud Messaging → Apple apps: confirm APNs Auth Key ' +
+          '(.p8), Key ID, and Team ID match Apple Developer; environment must match the build ' +
+          '(dev vs production). Web: add Web Push certificates. ' +
+          'https://firebase.google.com/docs/cloud-messaging/ios/certs'
+        );
+      }
+      if (/missing required authentication credential/i.test(detail)) {
+        return (
+          'Google API rejected the send (credentials). Enable FCM + IAM Credentials APIs in GCP ' +
+          'for this Firebase project, or see APNs/VAPID if the error also mentions third-party.'
+        );
+      }
+      const d = detail ? ` (${detail})` : '';
+      return `Firebase could not deliver to your device${d}. Try opening the app once, then test again.`;
+    }
+    return 'Push could not be sent. Check that functions are deployed and you are online.';
   }
 
   async testPushConfiguration() {
@@ -78,10 +120,21 @@ class PushService {
       },
     ];
 
-    return this.sendTodoReminder({
-      todos: testTodos,
-      reminderType: 'Configuration Test',
-    });
+    try {
+      const { data } = await this.sendTodoReminderPush({
+        todos: testTodos,
+        reminderType: 'Configuration Test',
+      });
+      if (data?.success === true) {
+        return true;
+      }
+      throw new Error(this.formatTestPushFailure(data));
+    } catch (e) {
+      if (e?.code?.startsWith?.('functions/')) {
+        throw new Error(e.message || 'Cloud function error');
+      }
+      throw e;
+    }
   }
 
   isReady() {

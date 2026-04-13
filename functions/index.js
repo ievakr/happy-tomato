@@ -198,12 +198,12 @@ const PUSH_LINK = "https://happytomato-c4fed.web.app";
  * @param {string} title - Notification title
  * @param {string} body - Notification body
  * @param {Object} dataPayload - Stringifiable data for the client
- * @return {Promise<boolean>} Whether at least one push succeeded
+ * @return {Promise<Object>} Result with ok flag and optional reason or detail.
  */
 async function sendWebPushToUser(userId, title, body, dataPayload = {}) {
   const tokens = await getFcmTokensForUser(userId);
   if (tokens.length === 0) {
-    return false;
+    return {ok: false, reason: "no_fcm_tokens"};
   }
 
   const dataStrings = {};
@@ -214,16 +214,36 @@ async function sendWebPushToUser(userId, title, body, dataPayload = {}) {
   const message = {
     tokens,
     notification: {title, body},
+    data: dataStrings,
+    android: {
+      priority: "high",
+      notification: {title, body},
+    },
+    apns: {
+      headers: {
+        "apns-priority": "10",
+      },
+      payload: {
+        aps: {
+          alert: {title, body},
+          sound: "default",
+        },
+      },
+    },
     webpush: {
       fcmOptions: {link: PUSH_LINK},
+      notification: {title, body},
     },
-    data: dataStrings,
   };
 
   const res = await admin.messaging().sendEachForMulticast(message);
   const invalid = [];
+  let firstErrorDetail = null;
   res.responses.forEach((r, i) => {
     if (!r.success && r.error) {
+      if (!firstErrorDetail) {
+        firstErrorDetail = `${r.error.code}: ${r.error.message}`;
+      }
       const c = r.error.code;
       if (c === "messaging/invalid-registration-token" ||
           c === "messaging/registration-token-not-registered") {
@@ -234,7 +254,14 @@ async function sendWebPushToUser(userId, title, body, dataPayload = {}) {
   if (invalid.length) {
     await removeInvalidFcmTokens(userId, invalid);
   }
-  return res.successCount > 0;
+  if (res.successCount > 0) {
+    return {ok: true};
+  }
+  return {
+    ok: false,
+    reason: "delivery_failed",
+    detail: firstErrorDetail || "no_successful_deliveries",
+  };
 }
 
 /**
@@ -290,7 +317,7 @@ function getTodosInAdvance(events, days) {
  * Callable Cloud Function: Send TODO reminder as web push
  * @param {Object} data - { todos, reminderType }
  * @param {Object} context - Firebase call context
- * @return {Promise<{success: boolean}>}
+ * @return {Promise<Object>} success flag; on failure includes failureReason.
  */
 const sendTodoReminderPushHandler = async (data, context) => {
   if (!context.auth) {
@@ -318,19 +345,27 @@ const sendTodoReminderPushHandler = async (data, context) => {
   const plantIdToDisplayName = await getPlantIdToDisplayName(userId);
   const {title, body} = buildTodoReminderPush(
       todos, reminderTypeStr, plantIdToDisplayName);
-  const success = await sendWebPushToUser(userId, title, body, {
+  const result = await sendWebPushToUser(userId, title, body, {
     kind: "todo_reminder",
   });
 
-  return {success};
+  if (result.ok) {
+    return {success: true};
+  }
+  return {
+    success: false,
+    failureReason: result.reason,
+    failureDetail: result.detail,
+  };
 };
 exports.sendTodoReminderPush =
   functions.https.onCall(sendTodoReminderPushHandler);
 
 /**
  * Callable Cloud Function: Send weekly summary as web push
+ * @param {Object} _data - Callable request payload (unused)
  * @param {Object} context - Firebase call context (auth)
- * @return {Promise<{success: boolean}>}
+ * @return {Promise<{success: boolean, sent: (boolean|undefined)}>}
  */
 const sendWeeklySummaryPushHandler = async (_data, context) => {
   if (!context.auth) {
@@ -357,17 +392,17 @@ const sendWeeklySummaryPushHandler = async (_data, context) => {
     Object.values(weekData.byDay).reduce((sum, arr) => sum + arr.length, 0);
 
   if (totalCount === 0) {
-    return {success: true};
+    return {success: true, sent: false};
   }
 
   const title = "Your week ahead";
   const body = `You have ${totalCount} garden task${
-    totalCount !== 1 ? "s" : ""} this week. Open the app to view them.`;
-  const success = await sendWebPushToUser(userId, title, body, {
+      totalCount !== 1 ? "s" : ""} this week. Open the app to view them.`;
+  const result = await sendWebPushToUser(userId, title, body, {
     kind: "weekly_summary",
   });
 
-  return {success};
+  return {success: result.ok, sent: result.ok};
 };
 exports.sendWeeklySummaryPush =
   functions.https.onCall(sendWeeklySummaryPushHandler);
@@ -475,11 +510,11 @@ exports.sendDailyReminders = functions.pubsub
               "Daily Garden Reminder",
               plantIdToDisplayName,
           );
-          const success = await sendWebPushToUser(userId, title, body, {
+          const result = await sendWebPushToUser(userId, title, body, {
             kind: "daily_reminder",
           });
 
-          if (success) {
+          if (result.ok) {
             // Update last sent timestamp
             await admin.firestore()
                 .collection("emailPreferences")
@@ -668,11 +703,11 @@ exports.sendAdvanceReminders = functions.pubsub
               `${advanceDays}-Day Advance Garden Reminder`,
               plantIdToDisplayName,
           );
-          const success = await sendWebPushToUser(userId, title, body, {
+          const result = await sendWebPushToUser(userId, title, body, {
             kind: "advance_reminder",
           });
 
-          if (success) {
+          if (result.ok) {
             // Update last sent timestamp
             await admin.firestore()
                 .collection("emailPreferences")
@@ -793,11 +828,11 @@ exports.sendWeeklySummary = functions.pubsub
           const title = "Your week ahead";
           const body = `You have ${totalCount} garden task${
             totalCount !== 1 ? "s" : ""} this week. Open the app to view them.`;
-          const success = await sendWebPushToUser(userId, title, body, {
+          const result = await sendWebPushToUser(userId, title, body, {
             kind: "weekly_summary",
           });
 
-          if (success) {
+          if (result.ok) {
             await admin.firestore()
                 .collection("emailPreferences")
                 .doc(prefDoc.id)

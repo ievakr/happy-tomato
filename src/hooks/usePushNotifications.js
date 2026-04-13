@@ -355,8 +355,9 @@ export const usePushNotifications = () => {
     const overdueTodos = getOverdueTodos();
     const allTodos = [...overdueTodos, ...dueTodos];
 
+    // Manual sends should not report success when there is nothing to push (callable requires ≥1 todo).
     if (allTodos.length === 0) {
-      return true;
+      return isAutomatic;
     }
 
     try {
@@ -409,7 +410,7 @@ export const usePushNotifications = () => {
     const advanceTodos = getTodosInAdvance(pushPreferences.advanceDays);
 
     if (advanceTodos.length === 0) {
-      return true;
+      return isAutomatic;
     }
 
     try {
@@ -471,6 +472,10 @@ export const usePushNotifications = () => {
     const email = prefsEmail(pushPreferences);
     if (!email) {
       throw new Error('Your account needs an email address to sync notification settings');
+    }
+    if (Capacitor.isNativePlatform()) {
+      const docId = email.replace(/[.#$[\]]/g, '_');
+      await pushService.ensureFcmTokenRegistered(db, docId, currentUser.uid, email);
     }
     return pushService.testPushConfiguration();
   };

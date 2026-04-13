@@ -18,6 +18,7 @@ function AccountSettings({ onClose }) {
   const [emailDraft, setEmailDraft] = useState(pushNotifications.pushPreferences);
   const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
   const [savingProfile, setSavingProfile] = useState(false);
+  const [isTestingPush, setIsTestingPush] = useState(false);
 
   const isGoogleUser = currentUser?.providerData.some(
     provider => provider.providerId === 'google.com'
@@ -56,6 +57,22 @@ function AccountSettings({ onClose }) {
   useEffect(() => {
     setDisplayName(currentUser?.displayName || '');
   }, [currentUser?.displayName]);
+
+  const handleTestPush = async () => {
+    if (!currentUser?.email) {
+      showError('Sign in to test push notifications');
+      return;
+    }
+    setIsTestingPush(true);
+    try {
+      await pushNotifications.testPushConfiguration();
+      showSuccess('Test push sent. Check your system notifications.');
+    } catch (err) {
+      showError(err.message || 'Failed to send test push');
+    } finally {
+      setIsTestingPush(false);
+    }
+  };
 
   const handleSaveProfile = async () => {
     if (!currentUser) return;
@@ -377,6 +394,28 @@ function AccountSettings({ onClose }) {
                           </div>
                         </div>
                       )}
+                      <div className="border-top pt-3 mt-3">
+                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                          <div>
+                            <div className="fw-semibold">Test push</div>
+                            <small className="text-muted d-block">
+                              Sends a sample TODO reminder via FCM to this device (checks token + delivery).
+                            </small>
+                          </div>
+                          <button
+                            className="btn btn-outline-primary"
+                            type="button"
+                            onClick={handleTestPush}
+                            disabled={
+                              !pushNotifications.isPushServiceReady() ||
+                              !currentUser?.email ||
+                              isTestingPush
+                            }
+                          >
+                            {isTestingPush ? 'Sending…' : 'Send test push'}
+                          </button>
+                        </div>
+                      </div>
                       <div className="d-flex justify-content-end mt-3">
                         <button
                           className="btn btn-success"
