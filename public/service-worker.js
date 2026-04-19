@@ -24,6 +24,33 @@ try {
   console.error('[FCM service worker]', e);
 }
 
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const data = event.notification.data || {};
+  const openDay = data.openDay ? String(data.openDay) : '';
+  const url = new URL(self.location.origin + '/');
+  if (openDay) {
+    url.searchParams.set('day', openDay);
+  }
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          if (openDay) {
+            client.postMessage({ type: 'calendar-open-day', day: openDay });
+          }
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url.href);
+      }
+      return undefined;
+    }),
+  );
+});
+
 const PRECACHE_NAME = 'happy-tomato-precache-v2';
 const RUNTIME_CACHE = 'happy-tomato-runtime-v1';
 

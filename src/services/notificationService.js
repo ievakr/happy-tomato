@@ -1,6 +1,10 @@
 /**
  * Notification Service for TODO Reminders
- * Handles scheduled checks and automatic push delivery
+ *
+ * Scheduled pushes are delivered by Cloud Functions (hourly cron). This service
+ * only keeps lightweight diagnostics for the settings/debug UI and supports
+ * manual "Send now" from settings — it does not auto-send, to avoid duplicate
+ * notifications when the app is open.
  */
 
 class NotificationService {
@@ -69,32 +73,9 @@ class NotificationService {
     try {
       this.lastCheck = new Date();
       
-      // Get current status for debugging
       const shouldSendDaily = this.reminderHook.shouldSendDailyReminder();
       const shouldSendAdvance = this.reminderHook.shouldSendAdvanceReminder();
       const todoSummary = this.reminderHook.getTodoSummary();
-
-      // Only send ONE type of reminder per check cycle to avoid race conditions
-      // Priority: Daily reminder first, then advance reminder in next cycle
-      if (shouldSendDaily) {
-        const success = await this.reminderHook.sendDailyReminder(true); // isAutomatic = true
-        
-        if (success) {
-          this.logNotification('daily_reminder', 'success', `${todoSummary.dueToday + todoSummary.overdue} TODOs`);
-        } else {
-          this.logNotification('daily_reminder', 'failed');
-        }
-      } else if (shouldSendAdvance) {
-        // Only check advance if daily wasn't sent
-        const advanceDays = this.reminderHook.pushPreferences.advanceDays || 3;
-        const success = await this.reminderHook.sendAdvanceReminder(true); // isAutomatic = true
-        
-        if (success) {
-          this.logNotification('advance_reminder', 'success', `${advanceDays} days ahead - ${todoSummary.advance} TODOs`);
-        } else {
-          this.logNotification('advance_reminder', 'failed', `${advanceDays} days ahead`);
-        }
-      }
 
       // Log when no reminders are needed (for debugging quiet periods)
       if (!shouldSendDaily && !shouldSendAdvance) {

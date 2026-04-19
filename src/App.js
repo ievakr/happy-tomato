@@ -1,5 +1,6 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
+import { Capacitor } from '@capacitor/core';
 import './App.css';
 import { useCalendar } from './hooks/useCalendar';
 import useOnlineStatus from './hooks/useOnlineStatus';
@@ -85,11 +86,22 @@ function App() {
           payload?.notification?.title
         ) {
           try {
+            const openDay = payload?.data?.openDay ? String(payload.data.openDay) : '';
             // eslint-disable-next-line no-new
-            new Notification(payload.notification.title, {
+            const n = new Notification(payload.notification.title, {
               body: payload.notification.body || '',
               icon: '/logo192.png',
+              data: openDay ? { openDay } : undefined,
             });
+            n.onclick = () => {
+              window.focus();
+              if (openDay) {
+                window.dispatchEvent(
+                  new CustomEvent('happy-tomato-open-day', { detail: { day: openDay } }),
+                );
+              }
+              n.close();
+            };
           } catch (e) {
             // Ignore duplicate or blocked notifications
           }
@@ -98,6 +110,36 @@ function App() {
     })();
     return () => {
       if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  // iOS/Android: open the calendar day when the user taps a push notification
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return undefined;
+    }
+    let handle;
+    const pending = (async () => {
+      try {
+        const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
+        handle = await FirebaseMessaging.addListener('notificationActionPerformed', (event) => {
+          const raw = event.notification?.data;
+          const openDay =
+            raw && typeof raw === 'object' && raw !== null && 'openDay' in raw
+              ? String(raw.openDay)
+              : '';
+          if (openDay && /^\d{4}-\d{2}-\d{2}$/.test(openDay)) {
+            window.dispatchEvent(new CustomEvent('happy-tomato-open-day', { detail: { day: openDay } }));
+          }
+        });
+      } catch (e) {
+        // Plugin unavailable
+      }
+    })();
+    return () => {
+      pending
+        .then(() => handle?.remove?.())
+        .catch(() => {});
     };
   }, []);
 

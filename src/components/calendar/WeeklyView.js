@@ -16,7 +16,7 @@ const WeeklyView = () => {
     weekIndex, 
     setMonthIndex,
     setWeekIndex,
-    setDaySelected
+    setDaySelected,
   } = useContext(CalendarContext);
 
   const handlePrevWeek = () => {

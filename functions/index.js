@@ -4,16 +4,106 @@ const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const timezone = require("dayjs/plugin/timezone");
 const isSameOrBefore = require("dayjs/plugin/isSameOrBefore");
+const isoWeek = require("dayjs/plugin/isoWeek");
 
 // Configure dayjs with timezone support
 dayjs.extend(utc);
 dayjs.extend(timezone);
 dayjs.extend(isSameOrBefore);
+dayjs.extend(isoWeek);
 
 // Set default timezone to Europe/Vilnius
 dayjs.tz.setDefault("Europe/Vilnius");
 
 admin.initializeApp();
+
+/** Match cron step: functions run every REMINDER_CRON_MINUTES minutes */
+const REMINDER_CRON_MINUTES = 5;
+
+/**
+ * True if now is in [scheduled, scheduled + REMINDER_CRON_MINUTES) today (tz).
+ * @param {dayjs.Dayjs} now - TZ-aware (Europe/Vilnius)
+ * @param {string} timeStr - "HH:mm"
+ * @return {boolean}
+ */
+function isInReminderSendWindow(now, timeStr) {
+  if (!timeStr || typeof timeStr !== "string") {
+    return false;
+  }
+  const parts = timeStr.trim().split(":");
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1] || "0", 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) {
+    return false;
+  }
+  const scheduled = now.clone()
+      .startOf("day")
+      .hour(h)
+      .minute(m)
+      .second(0)
+      .millisecond(0);
+  const end = scheduled.add(REMINDER_CRON_MINUTES, "minute");
+  return !now.isBefore(scheduled) && now.isBefore(end);
+}
+
+/**
+ * Normalize event.day from Firestore (Timestamp, Date, millis, ISO) to
+ * start-of-day in the given timezone.
+ * @param {*} value - Raw day field from an event document
+ * @param {string} tz - IANA timezone
+ * @return {dayjs.Dayjs|null} Start of calendar day in tz, or null if invalid
+ */
+function eventDayToStartInTz(value, tz) {
+  if (value == null) {
+    return null;
+  }
+  let d;
+  if (typeof value.toDate === "function") {
+    d = value.toDate();
+  } else if (
+    typeof value === "object" &&
+    typeof value.seconds === "number"
+  ) {
+    d = new Date(value.seconds * 1000 +
+      Math.floor((value.nanoseconds || 0) / 1e6));
+  } else if (value instanceof Date) {
+    d = value;
+  } else if (typeof value === "number") {
+    d = new Date(value);
+  } else {
+    d = new Date(value);
+  }
+  if (!d || Number.isNaN(d.getTime())) {
+    return null;
+  }
+  return dayjs.tz(d, tz).startOf("day");
+}
+
+/**
+ * Fetch user's plants: display names + categories (calendar filter parity).
+ * @param {string} userId - User ID
+ * @return {Promise<{plantIdToDisplayName: Object, plantIdToCategory: Object}>}
+ */
+async function getPlantMapsForUser(userId) {
+  if (!userId) {
+    return {plantIdToDisplayName: {}, plantIdToCategory: {}};
+  }
+  const plantsSnap = await admin.firestore()
+      .collection("plants")
+      .where("userId", "==", userId)
+      .get();
+  const plantIdToDisplayName = {};
+  const plantIdToCategory = {};
+  plantsSnap.docs.forEach((d) => {
+    const p = d.data();
+    plantIdToCategory[d.id] = p.category || null;
+    const name = p.variety ?
+      `${p.category} - ${p.variety}` :
+      (p.category || p.name || d.id);
+    plantIdToDisplayName[d.id] = name;
+  });
+  return {plantIdToDisplayName, plantIdToCategory};
+}
 
 /**
  * Fetch user's plants and build plantId -> displayName map
@@ -21,20 +111,37 @@ admin.initializeApp();
  * @return {Promise<Object>} Map of plantId to display name
  */
 async function getPlantIdToDisplayName(userId) {
-  if (!userId) return {};
-  const plantsSnap = await admin.firestore()
-      .collection("plants")
-      .where("userId", "==", userId)
-      .get();
-  const map = {};
-  plantsSnap.docs.forEach((d) => {
-    const p = d.data();
-    const name = p.variety ?
-      `${p.category} - ${p.variety}` :
-      (p.category || p.name || d.id);
-    map[d.id] = name;
+  const {plantIdToDisplayName} = await getPlantMapsForUser(userId);
+  return plantIdToDisplayName;
+}
+
+/**
+ * Same rules as client filteredEvents: unlabeled events always show; labeled
+ * events only if their plant category is checked in the sidebar.
+ * @param {Array} events - User events
+ * @param {Object} plantIdToCategory - plantId -> category string
+ * @param {Array|null|undefined} includedCategories - from emailPreferences;
+ *     null/undefined = no filter (include all)
+ * @return {Array} Visible events for reminders
+ */
+function filterEventsForReminderCalendar(
+    events,
+    plantIdToCategory,
+    includedCategories,
+) {
+  if (includedCategories == null || !Array.isArray(includedCategories)) {
+    return events;
+  }
+  const allow = new Set(includedCategories);
+  return events.filter((evt) => {
+    if (!evt.labels || evt.labels.length === 0) {
+      return true;
+    }
+    return evt.labels.some((plantId) => {
+      const cat = plantIdToCategory[plantId];
+      return cat != null && allow.has(cat);
+    });
   });
-  return map;
 }
 
 /**
@@ -55,7 +162,8 @@ function getDueAndOverdueTodos(events) {
 
     if (!isTodoEvent || evt.completed) return false;
 
-    const eventDate = dayjs.tz(evt.day, "Europe/Vilnius").startOf("day");
+    const eventDate = eventDayToStartInTz(evt.day, "Europe/Vilnius");
+    if (!eventDate) return false;
 
     // Include if due today or overdue
     return eventDate.isSameOrBefore(today, "day");
@@ -97,7 +205,8 @@ function getTodosForWeekAhead(events) {
 
     if (!isTodoEvent || evt.completed) return;
 
-    const eventDate = dayjs.tz(evt.day, "Europe/Vilnius").startOf("day");
+    const eventDate = eventDayToStartInTz(evt.day, "Europe/Vilnius");
+    if (!eventDate) return;
 
     if (eventDate.isBefore(today, "day")) {
       overdue.push(evt);
@@ -110,6 +219,40 @@ function getTodosForWeekAhead(events) {
   });
 
   return {overdue, byDay, weekStart, weekEnd};
+}
+
+/**
+ * Heuristic: value looks like an opaque id (e.g. Firestore document id).
+ * @param {string} s - Candidate string
+ * @return {boolean} True if string matches opaque-id pattern
+ */
+function labelLooksLikeOpaqueId(s) {
+  if (typeof s !== "string") {
+    return false;
+  }
+  const t = s.trim();
+  if (t.length < 12 || /\s/.test(t)) {
+    return false;
+  }
+  return /^[A-Za-z0-9_-]+$/.test(t);
+}
+
+/**
+ * Resolve a plant label id to a human-readable name for push copy.
+ * @param {string} rawId - Label id from the event
+ * @param {Object} plantIdToDisplayName - Map of plant ID to display name
+ * @return {string} Label to show in the notification body
+ */
+function formatPlantLabel(rawId, plantIdToDisplayName) {
+  const id = String(rawId);
+  const mapped = plantIdToDisplayName[id];
+  if (mapped && mapped !== id) {
+    return mapped;
+  }
+  if (!mapped && labelLooksLikeOpaqueId(id)) {
+    return "Plant";
+  }
+  return mapped || id;
 }
 
 /**
@@ -131,7 +274,8 @@ function formatTodoLine(todo, plantIdToDisplayName = {}) {
   }
 
   const plantLabels = todo.labels && todo.labels.length > 0 ?
-    todo.labels.map((id) => plantIdToDisplayName[id] || id).join(", ") :
+    todo.labels.map((lid) => formatPlantLabel(lid, plantIdToDisplayName))
+        .join(", ") :
     "";
 
   let line = actionName || "Unnamed TODO";
@@ -193,6 +337,35 @@ async function removeInvalidFcmTokens(userId, invalidTokens) {
 const PUSH_LINK = "https://happytomato-c4fed.web.app";
 
 /**
+ * Calendar day (YYYY-MM-DD) in Europe/Vilnius for deep links.
+ * @param {number} offsetDays - Days after today (0 = today)
+ * @return {string}
+ */
+function openDayIsoVilnius(offsetDays = 0) {
+  return dayjs.tz(new Date(), "Europe/Vilnius")
+      .startOf("day")
+      .add(offsetDays, "day")
+      .format("YYYY-MM-DD");
+}
+
+/**
+ * Target calendar day for callable todo pushes from reminderType.
+ * @param {string} reminderTypeStr
+ * @return {string} YYYY-MM-DD
+ */
+function openDayForCallableReminder(reminderTypeStr) {
+  const rt = typeof reminderTypeStr === "string" ? reminderTypeStr.trim() : "";
+  if (rt === "Daily Garden Reminder") {
+    return openDayIsoVilnius(0);
+  }
+  const advanceMatch = /^(\d+)-Day Advance Garden Reminder$/.exec(rt);
+  if (advanceMatch) {
+    return openDayIsoVilnius(parseInt(advanceMatch[1], 10));
+  }
+  return openDayIsoVilnius(0);
+}
+
+/**
  * Send web push to all registered devices for userId
  * @param {string} userId - Firebase Auth UID
  * @param {string} title - Notification title
@@ -211,6 +384,21 @@ async function sendWebPushToUser(userId, title, body, dataPayload = {}) {
     dataStrings[String(k)] = v == null ? "" : String(v);
   }
 
+  const openDayStr = dataStrings.openDay || "";
+  const webLink = openDayStr ?
+    `${PUSH_LINK}/?day=${encodeURIComponent(openDayStr)}` :
+    `${PUSH_LINK}/`;
+
+  const apnsPayload = {
+    aps: {
+      alert: {title, body},
+      sound: "default",
+    },
+  };
+  if (openDayStr) {
+    apnsPayload.openDay = openDayStr;
+  }
+
   const message = {
     tokens,
     notification: {title, body},
@@ -223,15 +411,10 @@ async function sendWebPushToUser(userId, title, body, dataPayload = {}) {
       headers: {
         "apns-priority": "10",
       },
-      payload: {
-        aps: {
-          alert: {title, body},
-          sound: "default",
-        },
-      },
+      payload: apnsPayload,
     },
     webpush: {
-      fcmOptions: {link: PUSH_LINK},
+      fcmOptions: {link: webLink},
       notification: {title, body},
     },
   };
@@ -265,15 +448,43 @@ async function sendWebPushToUser(userId, title, body, dataPayload = {}) {
 }
 
 /**
- * Build short title/body for a TODO reminder push
+ * Build title/body for a TODO reminder push
  * @param {Array} todos - TODO events
- * @param {string} reminderType - Title line
+ * @param {string} reminderType - Kind (e.g. Daily Garden Reminder)
  * @param {Object} plantIdToDisplayName - Plant id to label
  * @return {{title: string, body: string}}
  */
 function buildTodoReminderPush(todos, reminderType, plantIdToDisplayName = {}) {
-  const title = reminderType || "Happy Tomato";
   const n = todos.length;
+  const taskWord = n === 1 ? "task" : "tasks";
+  const rt = typeof reminderType === "string" ? reminderType.trim() : "";
+
+  if (rt === "Daily Garden Reminder") {
+    return {
+      title: "Your today's tasks",
+      body: `You have ${n} ${taskWord} today. Open the app to view them.`,
+    };
+  }
+
+  const advanceMatch = /^(\d+)-Day Advance Garden Reminder$/.exec(rt);
+  if (advanceMatch) {
+    const advanceDays = parseInt(advanceMatch[1], 10);
+    if (advanceDays === 1) {
+      return {
+        title: "Your tomorrow's tasks",
+        body: `You have ${n} ${taskWord} tomorrow. Open the app to view them.`,
+      };
+    }
+    return {
+      title: `Your tasks in ${advanceDays} days`,
+      body:
+        `You have ${n} ${taskWord} in ${advanceDays} days. ` +
+        `Open the app to view them.`,
+    };
+  }
+
+  // Test push and other custom types: compact list in body
+  const title = rt || "Happy Tomato";
   const parts = todos.slice(0, 3).map((t) =>
     formatTodoLine(t, plantIdToDisplayName));
   let body = parts.join(" · ");
@@ -308,7 +519,8 @@ function getTodosInAdvance(events, days) {
 
     if (!isTodoEvent || evt.completed) return false;
 
-    const eventDate = dayjs.tz(evt.day, "Europe/Vilnius").startOf("day");
+    const eventDate = eventDayToStartInTz(evt.day, "Europe/Vilnius");
+    if (!eventDate) return false;
     return eventDate.isSame(targetDate, "day");
   });
 }
@@ -347,6 +559,7 @@ const sendTodoReminderPushHandler = async (data, context) => {
       todos, reminderTypeStr, plantIdToDisplayName);
   const result = await sendWebPushToUser(userId, title, body, {
     kind: "todo_reminder",
+    openDay: openDayForCallableReminder(reminderTypeStr),
   });
 
   if (result.ok) {
@@ -387,7 +600,28 @@ const sendWeeklySummaryPushHandler = async (_data, context) => {
     ...doc.data(),
   }));
 
-  const weekData = getTodosForWeekAhead(userEvents);
+  const prefsSnap = await admin.firestore()
+      .collection("emailPreferences")
+      .where("userId", "==", userId)
+      .limit(10)
+      .get();
+  let includedCategories = null;
+  for (const d of prefsSnap.docs) {
+    const v = d.data().reminderIncludedCategories;
+    if (Array.isArray(v)) {
+      includedCategories = v;
+      break;
+    }
+  }
+
+  const {plantIdToCategory} = await getPlantMapsForUser(userId);
+  const visibleEvents = filterEventsForReminderCalendar(
+      userEvents,
+      plantIdToCategory,
+      includedCategories,
+  );
+
+  const weekData = getTodosForWeekAhead(visibleEvents);
   const totalCount = weekData.overdue.length +
     Object.values(weekData.byDay).reduce((sum, arr) => sum + arr.length, 0);
 
@@ -400,6 +634,7 @@ const sendWeeklySummaryPushHandler = async (_data, context) => {
       totalCount !== 1 ? "s" : ""} this week. Open the app to view them.`;
   const result = await sendWebPushToUser(userId, title, body, {
     kind: "weekly_summary",
+    openDay: openDayIsoVilnius(0),
   });
 
   return {success: result.ok, sent: result.ok};
@@ -409,20 +644,18 @@ exports.sendWeeklySummaryPush =
 
 /**
  * Cloud Function: Send Daily Reminders
- * Runs every hour and checks if it's time to send reminders
+ * Runs every REMINDER_CRON_MINUTES; sends in a short window after user time
  */
 exports.sendDailyReminders = functions.pubsub
-    .schedule("0 * * * *") // Every hour at minute 0
+    .schedule(`*/${REMINDER_CRON_MINUTES} * * * *`)
     .timeZone("Europe/Vilnius") // Change to your timezone
     .onRun(async (context) => {
       console.log("🔍 Checking for daily reminders to send...");
 
       const now = dayjs.tz(new Date(), "Europe/Vilnius");
-      const currentHour = now.hour();
 
       console.log(
-          `⏰ Current time in Vilnius: ` +
-          `${now.format("YYYY-MM-DD HH:mm:ss")} (Hour: ${currentHour})`,
+          `⏰ Current time in Vilnius: ${now.format("YYYY-MM-DD HH:mm:ss")}`,
       );
 
       try {
@@ -443,15 +676,13 @@ exports.sendDailyReminders = functions.pubsub
           const prefs = prefDoc.data();
           const userId = prefs.userId;
 
-          // Parse reminder time
-          const [reminderHour] =
-            prefs.reminderTime.split(":").map(Number);
+          const dailyTime =
+            (typeof prefs.dailyReminderTime === "string" &&
+              prefs.dailyReminderTime.trim()) ?
+              prefs.dailyReminderTime.trim() :
+              (prefs.reminderTime || "09:00");
 
-          // Check if it's time to send (within the current hour)
-          if (currentHour !== reminderHour) {
-            console.log(`Not time yet for ${prefs.userEmail} ` +
-              `(wants ${prefs.reminderTime}, ` +
-              `now is ${currentHour}:00)`);
+          if (!isInReminderSendWindow(now, dailyTime)) {
             continue;
           }
 
@@ -488,12 +719,23 @@ exports.sendDailyReminders = functions.pubsub
             ...doc.data(),
           }));
 
+          const {plantIdToDisplayName, plantIdToCategory} =
+            await getPlantMapsForUser(userId);
+          const included = Array.isArray(prefs.reminderIncludedCategories) ?
+            prefs.reminderIncludedCategories : null;
+          const visibleEvents = filterEventsForReminderCalendar(
+              userEvents,
+              plantIdToCategory,
+              included,
+          );
+
           console.log(
-              `Found ${userEvents.length} events for ${prefs.userEmail}`,
+              `Found ${userEvents.length} events for ${prefs.userEmail} ` +
+              `(${visibleEvents.length} visible for reminders)`,
           );
 
           // Get due/overdue TODOs
-          const dueTodos = getDueAndOverdueTodos(userEvents);
+          const dueTodos = getDueAndOverdueTodos(visibleEvents);
 
           if (dueTodos.length === 0) {
             console.log(`No due TODOs for ${prefs.userEmail}`);
@@ -502,9 +744,6 @@ exports.sendDailyReminders = functions.pubsub
 
           console.log(`🔔 Sending daily push to ${prefs.userEmail} ` +
             `(${dueTodos.length} TODOs)`);
-
-          const plantIdToDisplayName =
-            await getPlantIdToDisplayName(userId);
           const {title, body} = buildTodoReminderPush(
               dueTodos,
               "Daily Garden Reminder",
@@ -512,6 +751,7 @@ exports.sendDailyReminders = functions.pubsub
           );
           const result = await sendWebPushToUser(userId, title, body, {
             kind: "daily_reminder",
+            openDay: openDayIsoVilnius(0),
           });
 
           if (result.ok) {
@@ -539,17 +779,15 @@ exports.sendDailyReminders = functions.pubsub
  * Runs every hour and checks if it's time to send advance reminders
  */
 exports.sendAdvanceReminders = functions.pubsub
-    .schedule("0 * * * *") // Every hour at :00
+    .schedule(`*/${REMINDER_CRON_MINUTES} * * * *`)
     .timeZone("Europe/Vilnius") // Change to your timezone
     .onRun(async (context) => {
       console.log("🔍 Checking for advance reminders to send...");
 
       const now = dayjs.tz(new Date(), "Europe/Vilnius");
-      const currentHour = now.hour();
 
       console.log(
-          `⏰ Current time in Vilnius: ` +
-          `${now.format("YYYY-MM-DD HH:mm:ss")} (Hour: ${currentHour})`,
+          `⏰ Current time in Vilnius: ${now.format("YYYY-MM-DD HH:mm:ss")}`,
       );
 
       try {
@@ -573,25 +811,23 @@ exports.sendAdvanceReminders = functions.pubsub
           console.log(
               `\n👤 Checking user: ${prefs.userEmail}`,
           );
+          const advanceTime =
+            (typeof prefs.advanceReminderTime === "string" &&
+              prefs.advanceReminderTime.trim()) ?
+              prefs.advanceReminderTime.trim() :
+              (prefs.reminderTime || "09:00");
+
           console.log(
               `   Settings: advanceDays=${prefs.advanceDays || 3}, ` +
-              `reminderTime=${prefs.reminderTime}`,
+              `advanceReminderTime=${advanceTime}`,
           );
 
-          // Parse reminder time
-          const [reminderHour] =
-            prefs.reminderTime.split(":").map(Number);
-
-          // Check if it's time to send (within the current hour)
-          if (currentHour !== reminderHour) {
-            console.log(
-                `   ⏰ Not time yet (wants ${reminderHour}:00, ` +
-                `now is ${currentHour}:00)`,
-            );
+          if (!isInReminderSendWindow(now, advanceTime)) {
+            console.log(`   ⏰ Not in advance reminder send window`);
             continue;
           }
 
-          console.log(`   ✅ It's the right hour!`);
+          console.log(`   ✅ In advance reminder send window`);
 
           // Check if we already sent today
           const lastSent = prefs.lastAutoAdvanceReminderSent ?
@@ -635,8 +871,19 @@ exports.sendAdvanceReminders = functions.pubsub
             ...doc.data(),
           }));
 
+          const {plantIdToDisplayName, plantIdToCategory} =
+            await getPlantMapsForUser(userId);
+          const included = Array.isArray(prefs.reminderIncludedCategories) ?
+            prefs.reminderIncludedCategories : null;
+          const visibleEvents = filterEventsForReminderCalendar(
+              userEvents,
+              plantIdToCategory,
+              included,
+          );
+
           console.log(
-              `Found ${userEvents.length} events for ${prefs.userEmail}`,
+              `Found ${userEvents.length} events for ${prefs.userEmail} ` +
+              `(${visibleEvents.length} visible for reminders)`,
           );
 
           // Get advance TODOs
@@ -650,7 +897,7 @@ exports.sendAdvanceReminders = functions.pubsub
               `(${advanceDays} days from now)`,
           );
 
-          const advanceTodos = getTodosInAdvance(userEvents, advanceDays);
+          const advanceTodos = getTodosInAdvance(visibleEvents, advanceDays);
 
           if (advanceTodos.length === 0) {
             console.log(
@@ -658,7 +905,7 @@ exports.sendAdvanceReminders = functions.pubsub
             );
 
             // Show all TODO dates for debugging
-            const allTodos = userEvents.filter((evt) => {
+            const allTodos = visibleEvents.filter((evt) => {
               const isTodoEvent = evt.isRecurringTodo ||
                 (typeof evt.title === "string" &&
                  evt.title.startsWith("TO DO:")) ||
@@ -671,15 +918,14 @@ exports.sendAdvanceReminders = functions.pubsub
               console.log(`   📋 All TODO dates:`);
               const todoDates = new Set();
               allTodos.forEach((todo) => {
-                const date = dayjs.tz(todo.day, "Europe/Vilnius")
-                    .format("YYYY-MM-DD");
-                todoDates.add(date);
+                const d0 = eventDayToStartInTz(todo.day, "Europe/Vilnius");
+                if (d0) todoDates.add(d0.format("YYYY-MM-DD"));
               });
               [...todoDates].sort().forEach((date) => {
-                const count = allTodos.filter((t) =>
-                  dayjs.tz(t.day, "Europe/Vilnius")
-                      .format("YYYY-MM-DD") === date,
-                ).length;
+                const count = allTodos.filter((t) => {
+                  const d0 = eventDayToStartInTz(t.day, "Europe/Vilnius");
+                  return d0 && d0.format("YYYY-MM-DD") === date;
+                }).length;
                 console.log(`      ${date}: ${count} TODO(s)`);
               });
             } else {
@@ -696,8 +942,6 @@ exports.sendAdvanceReminders = functions.pubsub
               `${prefs.userEmail}`,
           );
 
-          const plantIdToDisplayName =
-            await getPlantIdToDisplayName(userId);
           const {title, body} = buildTodoReminderPush(
               advanceTodos,
               `${advanceDays}-Day Advance Garden Reminder`,
@@ -705,6 +949,7 @@ exports.sendAdvanceReminders = functions.pubsub
           );
           const result = await sendWebPushToUser(userId, title, body, {
             kind: "advance_reminder",
+            openDay: openDayIsoVilnius(advanceDays),
           });
 
           if (result.ok) {
@@ -729,25 +974,15 @@ exports.sendAdvanceReminders = functions.pubsub
 
 /**
  * Cloud Function: Send Weekly Summary
- * Runs every hour on Sunday and Monday; sends "here's your week ahead" email
+ * Runs on the user's chosen weekday and time; sends week-ahead push
  */
 exports.sendWeeklySummary = functions.pubsub
-    .schedule("0 * * * *") // Every hour at :00
+    .schedule(`*/${REMINDER_CRON_MINUTES} * * * *`)
     .timeZone("Europe/Vilnius")
     .onRun(async (context) => {
       console.log("🔍 Checking for weekly summary to send...");
 
       const now = dayjs.tz(new Date(), "Europe/Vilnius");
-      const dayOfWeek = now.day(); // 0=Sun, 1=Mon, ...
-      const currentHour = now.hour();
-
-      // Only run on Sunday or Monday
-      if (dayOfWeek !== 0 && dayOfWeek !== 1) {
-        console.log(
-            `Not Sunday/Monday (day=${dayOfWeek}), skipping weekly summary`,
-        );
-        return null;
-      }
 
       try {
         const prefsSnapshot = await admin.firestore()
@@ -765,32 +1000,31 @@ exports.sendWeeklySummary = functions.pubsub
           const prefs = prefDoc.data();
           const userId = prefs.userId;
 
-          const weeklyTime = prefs.weeklySummaryTime || "08:00";
-          const [summaryHour] = weeklyTime.split(":").map(Number);
+          let summaryDow = parseInt(prefs.weeklySummaryDay, 10);
+          if (Number.isNaN(summaryDow) || summaryDow < 0 || summaryDow > 6) {
+            summaryDow = 1;
+          }
 
-          if (currentHour !== summaryHour) {
+          if (now.day() !== summaryDow) {
             continue;
           }
 
-          // Only send once per week
+          const weeklyTime = prefs.weeklySummaryTime || "08:00";
+          if (!isInReminderSendWindow(now, weeklyTime)) {
+            continue;
+          }
+
           const lastSent = prefs.lastWeeklySummarySent ?
             dayjs.tz(
                 prefs.lastWeeklySummarySent.toDate(),
                 "Europe/Vilnius",
             ) : null;
-          if (lastSent) {
-            const thisWeekStart = now.day() === 0 ?
-              now.add(1, "day").startOf("day") :
-              now.startOf("week").add(1, "day");
-            const lastSentWeekStart = lastSent.day() === 0 ?
-              lastSent.add(1, "day").startOf("day") :
-              lastSent.startOf("week").add(1, "day");
-            if (thisWeekStart.isSame(lastSentWeekStart, "day")) {
-              console.log(
-                  `Already sent weekly summary to ${prefs.userEmail} this week`,
-              );
-              continue;
-            }
+          if (lastSent && lastSent.isSame(now, "isoWeek")) {
+            console.log(
+                `Already sent weekly summary to ${prefs.userEmail} ` +
+                `this ISO week`,
+            );
+            continue;
           }
 
           if (!userId) {
@@ -810,7 +1044,16 @@ exports.sendWeeklySummary = functions.pubsub
             ...doc.data(),
           }));
 
-          const weekData = getTodosForWeekAhead(userEvents);
+          const {plantIdToCategory} = await getPlantMapsForUser(userId);
+          const included = Array.isArray(prefs.reminderIncludedCategories) ?
+            prefs.reminderIncludedCategories : null;
+          const visibleEvents = filterEventsForReminderCalendar(
+              userEvents,
+              plantIdToCategory,
+              included,
+          );
+
+          const weekData = getTodosForWeekAhead(visibleEvents);
           const totalCount = weekData.overdue.length +
             Object.values(weekData.byDay).reduce(
                 (sum, arr) => sum + arr.length, 0);
@@ -830,6 +1073,7 @@ exports.sendWeeklySummary = functions.pubsub
             totalCount !== 1 ? "s" : ""} this week. Open the app to view them.`;
           const result = await sendWebPushToUser(userId, title, body, {
             kind: "weekly_summary",
+            openDay: openDayIsoVilnius(0),
           });
 
           if (result.ok) {

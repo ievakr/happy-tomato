@@ -123,7 +123,7 @@ class PushService {
     try {
       const { data } = await this.sendTodoReminderPush({
         todos: testTodos,
-        reminderType: 'Configuration Test',
+        reminderType: 'Push test',
       });
       if (data?.success === true) {
         return true;

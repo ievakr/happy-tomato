@@ -6,6 +6,17 @@ import { Capacitor } from '@capacitor/core';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import pushService from '../../services/pushService';
 
+/** Labels ordered Monday–Sunday; values match dayjs `.day()` (0 = Sunday … 6 = Saturday). */
+const NOTIFICATION_WEEKDAYS = [
+  { value: 1, label: 'Monday' },
+  { value: 2, label: 'Tuesday' },
+  { value: 3, label: 'Wednesday' },
+  { value: 4, label: 'Thursday' },
+  { value: 5, label: 'Friday' },
+  { value: 6, label: 'Saturday' },
+  { value: 0, label: 'Sunday' },
+];
+
 function AccountSettings({ onClose }) {
   const { currentUser, deleteAccount, updateUserProfile } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -18,7 +29,6 @@ function AccountSettings({ onClose }) {
   const [emailDraft, setEmailDraft] = useState(pushNotifications.pushPreferences);
   const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
   const [savingProfile, setSavingProfile] = useState(false);
-  const [isTestingPush, setIsTestingPush] = useState(false);
 
   const isGoogleUser = currentUser?.providerData.some(
     provider => provider.providerId === 'google.com'
@@ -37,9 +47,13 @@ function AccountSettings({ onClose }) {
     }
     const payload = {
       ...emailDraft,
+      reminderTime:
+        emailDraft.dailyReminderTime ||
+        emailDraft.reminderTime ||
+        '09:00',
       userId: currentUser?.uid || emailDraft.userId,
       ...(currentUser?.email && { userEmail: currentUser.email }),
-      userName: currentUser?.displayName || emailDraft.userName
+      userName: currentUser?.displayName || emailDraft.userName,
     };
     pushNotifications.updatePushPreferences(payload);
     showSuccess('Notification settings saved.');
@@ -57,22 +71,6 @@ function AccountSettings({ onClose }) {
   useEffect(() => {
     setDisplayName(currentUser?.displayName || '');
   }, [currentUser?.displayName]);
-
-  const handleTestPush = async () => {
-    if (!currentUser?.email) {
-      showError('Sign in to test push notifications');
-      return;
-    }
-    setIsTestingPush(true);
-    try {
-      await pushNotifications.testPushConfiguration();
-      showSuccess('Test push sent. Check your system notifications.');
-    } catch (err) {
-      showError(err.message || 'Failed to send test push');
-    } finally {
-      setIsTestingPush(false);
-    }
-  };
 
   const handleSaveProfile = async () => {
     if (!currentUser) return;
@@ -298,7 +296,7 @@ function AccountSettings({ onClose }) {
                           }))}
                         />
                         <label className="form-check-label" htmlFor="email-notifications">
-                          Enable browser push notifications
+                          Enable push notifications
                         </label>
                       </div>
 
@@ -346,76 +344,120 @@ function AccountSettings({ onClose }) {
                               }))}
                             />
                             <label className="form-check-label" htmlFor="weekly-summary">
-                              Weekly summary (here&apos;s your week ahead)
+                              Weekly summary
                             </label>
-                          </div>
-                          <div>
-                            <label className="form-label" htmlFor="advance-days">
-                              Advance Notice (Days)
-                            </label>
-                            <input
-                              id="advance-days"
-                              type="number"
-                              className="form-control"
-                              value={emailDraft.advanceDays}
-                              onChange={(e) => setEmailDraft(prev => ({
-                                ...prev,
-                                advanceDays: parseInt(e.target.value, 10) || 3
-                              }))}
-                              min="1"
-                              max="30"
-                              disabled={!emailDraft.advanceReminders}
-                            />
                           </div>
 
-                          <div>
-                            <label className="form-label" htmlFor="reminder-time">
-                              Reminder Time (Hour)
-                            </label>
-                            <select
-                              id="reminder-time"
-                              className="form-select"
-                              value={emailDraft.reminderTime || '09:00'}
-                              onChange={(e) => setEmailDraft(prev => ({
-                                ...prev,
-                                reminderTime: e.target.value
-                              }))}
-                              disabled={!emailDraft.dailyReminder && !emailDraft.advanceReminders}
-                            >
-                              {Array.from({ length: 24 }, (_, hour) => {
-                                const timeValue = `${String(hour).padStart(2, '0')}:00`;
-                                return (
-                                  <option key={timeValue} value={timeValue}>
-                                    {timeValue}
+                          {emailDraft.dailyReminder && (
+                            <div className="border rounded p-3 bg-light bg-opacity-50">
+                              <div className="fw-semibold mb-2">Today reminder</div>
+                              <label className="form-label small mb-1" htmlFor="daily-reminder-time">
+                                Time
+                              </label>
+                              <input
+                                id="daily-reminder-time"
+                                type="time"
+                                className="form-control"
+                                value={
+                                  emailDraft.dailyReminderTime ||
+                                  emailDraft.reminderTime ||
+                                  '09:00'
+                                }
+                                onChange={(e) =>
+                                  setEmailDraft((prev) => ({
+                                    ...prev,
+                                    dailyReminderTime: e.target.value,
+                                    reminderTime: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                          )}
+
+                          {emailDraft.advanceReminders && (
+                            <div className="border rounded p-3 bg-light bg-opacity-50">
+                              <div className="fw-semibold mb-2">Advance reminder</div>
+                              <label className="form-label small mb-1" htmlFor="advance-days">
+                                Days before due
+                              </label>
+                              <input
+                                id="advance-days"
+                                type="number"
+                                className="form-control mb-2"
+                                value={emailDraft.advanceDays}
+                                onChange={(e) =>
+                                  setEmailDraft((prev) => ({
+                                    ...prev,
+                                    advanceDays: parseInt(e.target.value, 10) || 3,
+                                  }))
+                                }
+                                min="1"
+                                max="30"
+                              />
+                              <label className="form-label small mb-1" htmlFor="advance-reminder-time">
+                                Time
+                              </label>
+                              <input
+                                id="advance-reminder-time"
+                                type="time"
+                                className="form-control"
+                                value={
+                                  emailDraft.advanceReminderTime ||
+                                  emailDraft.reminderTime ||
+                                  '09:00'
+                                }
+                                onChange={(e) =>
+                                  setEmailDraft((prev) => ({
+                                    ...prev,
+                                    advanceReminderTime: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                          )}
+
+                          {emailDraft.weeklySummary && (
+                            <div className="border rounded p-3 bg-light bg-opacity-50">
+                              <div className="fw-semibold mb-2">Weekly summary</div>
+                              <label className="form-label small mb-1" htmlFor="weekly-summary-day">
+                                Day of week
+                              </label>
+                              <select
+                                id="weekly-summary-day"
+                                className="form-select mb-2"
+                                value={emailDraft.weeklySummaryDay ?? 1}
+                                onChange={(e) =>
+                                  setEmailDraft((prev) => ({
+                                    ...prev,
+                                    weeklySummaryDay: parseInt(e.target.value, 10),
+                                  }))
+                                }
+                              >
+                                {NOTIFICATION_WEEKDAYS.map((d) => (
+                                  <option key={d.value} value={d.value}>
+                                    {d.label}
                                   </option>
-                                );
-                              })}
-                            </select>
-                          </div>
+                                ))}
+                              </select>
+                              <label className="form-label small mb-1" htmlFor="weekly-summary-time">
+                                Time
+                              </label>
+                              <input
+                                id="weekly-summary-time"
+                                type="time"
+                                className="form-control"
+                                value={emailDraft.weeklySummaryTime || '08:00'}
+                                onChange={(e) =>
+                                  setEmailDraft((prev) => ({
+                                    ...prev,
+                                    weeklySummaryTime: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
-                      <div className="border-top pt-3 mt-3">
-                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                          <div>
-                            <div className="fw-semibold">Test push</div>
-                            <small className="text-muted d-block">
-                              Sends a sample TODO reminder via FCM to this device (checks token + delivery).
-                            </small>
-                          </div>
-                          <button
-                            className="btn btn-outline-primary"
-                            type="button"
-                            onClick={handleTestPush}
-                            disabled={
-                              !pushNotifications.isPushServiceReady() ||
-                              !currentUser?.email ||
-                              isTestingPush
-                            }
-                          >
-                            {isTestingPush ? 'Sending…' : 'Send test push'}
-                          </button>
-                        </div>
-                      </div>
                       <div className="d-flex justify-content-end mt-3">
                         <button
                           className="btn btn-success"

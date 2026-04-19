@@ -10,35 +10,100 @@ import { doc, setDoc, getDoc, arrayUnion } from 'firebase/firestore';
 const STORAGE_KEY = 'push-notification-preferences';
 const LEGACY_STORAGE_KEY = 'email-preferences';
 
+/** Match Cloud Function cron step (minutes) for client-side shouldSend* windows */
+const REMINDER_SEND_WINDOW_MINUTES = 5;
+
+const DEFAULT_PUSH_PREFS = {
+  enabled: true,
+  userEmail: '',
+  userName: '',
+  userId: '',
+  dailyReminder: true,
+  reminderTime: '09:00',
+  dailyReminderTime: '09:00',
+  advanceReminderTime: '09:00',
+  overdueReminders: true,
+  dueTodayReminders: true,
+  advanceReminders: true,
+  advanceDays: 3,
+  weeklySummary: false,
+  weeklySummaryDay: 1,
+  weeklySummaryTime: '08:00',
+  lastReminderSent: null,
+  lastAdvanceReminderSent: null,
+  lastAutoReminderSent: null,
+  lastAutoAdvanceReminderSent: null,
+  lastWeeklySummarySent: null,
+};
+
+/**
+ * Merge legacy `reminderTime` into per-type times and coerce day-of-week.
+ * @param {Record<string, unknown>} raw
+ * @return {typeof DEFAULT_PUSH_PREFS & Record<string, unknown>}
+ */
+export function normalizePushPreferences(raw) {
+  const merged = { ...DEFAULT_PUSH_PREFS, ...raw };
+  const reminderTime =
+    typeof merged.reminderTime === 'string' && merged.reminderTime.trim()
+      ? merged.reminderTime.trim()
+      : '09:00';
+  const dailyReminderTime =
+    typeof merged.dailyReminderTime === 'string' && merged.dailyReminderTime.trim()
+      ? merged.dailyReminderTime.trim()
+      : reminderTime;
+  const advanceReminderTime =
+    typeof merged.advanceReminderTime === 'string' && merged.advanceReminderTime.trim()
+      ? merged.advanceReminderTime.trim()
+      : reminderTime;
+  let weeklySummaryDay = parseInt(merged.weeklySummaryDay, 10);
+  if (Number.isNaN(weeklySummaryDay) || weeklySummaryDay < 0 || weeklySummaryDay > 6) {
+    weeklySummaryDay = 1;
+  }
+  const weeklySummaryTime =
+    typeof merged.weeklySummaryTime === 'string' && merged.weeklySummaryTime.trim()
+      ? merged.weeklySummaryTime.trim()
+      : '08:00';
+
+  return {
+    ...merged,
+    reminderTime,
+    dailyReminderTime,
+    advanceReminderTime,
+    weeklySummaryDay,
+    weeklySummaryTime,
+  };
+}
+
 function loadInitialPreferences() {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
-    return JSON.parse(saved);
+    return normalizePushPreferences(JSON.parse(saved));
   }
   const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
   if (legacy) {
     localStorage.setItem(STORAGE_KEY, legacy);
-    return JSON.parse(legacy);
+    return normalizePushPreferences(JSON.parse(legacy));
   }
-  return {
-    enabled: true,
-    userEmail: '',
-    userName: '',
-    userId: '',
-    dailyReminder: true,
-    reminderTime: '09:00',
-    overdueReminders: true,
-    dueTodayReminders: true,
-    advanceReminders: true,
-    advanceDays: 3,
-    weeklySummary: false,
-    weeklySummaryTime: '08:00',
-    lastReminderSent: null,
-    lastAdvanceReminderSent: null,
-    lastAutoReminderSent: null,
-    lastAutoAdvanceReminderSent: null,
-    lastWeeklySummarySent: null,
-  };
+  return normalizePushPreferences({ ...DEFAULT_PUSH_PREFS });
+}
+
+function effectiveDailyTime(prefs) {
+  return prefs.dailyReminderTime || prefs.reminderTime || '09:00';
+}
+
+function effectiveAdvanceTime(prefs) {
+  return prefs.advanceReminderTime || prefs.reminderTime || '09:00';
+}
+
+function isWithinReminderWindow(now, timeStr, windowMinutes = REMINDER_SEND_WINDOW_MINUTES) {
+  if (!timeStr || typeof timeStr !== 'string') return false;
+  const parts = timeStr.trim().split(':');
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1] || '0', 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return false;
+  const start = now.clone().startOf('day').hour(h).minute(m).second(0).millisecond(0);
+  const end = start.add(windowMinutes, 'minute');
+  return !now.isBefore(start) && now.isBefore(end);
 }
 
 /**
@@ -46,10 +111,10 @@ function loadInitialPreferences() {
  */
 export const usePushNotifications = () => {
   const { currentUser } = useAuth();
-  const { filteredEvents, savedEvents } = useEventContext();
+  const { filteredEvents } = useEventContext();
 
-  const allEvents =
-    Array.isArray(savedEvents) && savedEvents.length > 0 ? savedEvents : filteredEvents;
+  // Match calendar visibility (sidebar plant filters), not raw Firestore list
+  const allEvents = Array.isArray(filteredEvents) ? filteredEvents : [];
   const [pushPreferences, setPushPreferences] = useState(loadInitialPreferences);
 
   const nativeSyncEmailRef = useRef('');
@@ -112,28 +177,30 @@ export const usePushNotifications = () => {
         const firestoreUpdated = firestorePrefs.updatedAt || 0;
 
         if (firestoreUpdated > localUpdated) {
-          setPushPreferences((prev) => ({
-            ...prev,
-            ...firestorePrefs,
-            lastReminderSent: Math.max(
-              prev.lastReminderSent || 0,
-              firestorePrefs.lastReminderSent || 0,
-            ),
-            lastAdvanceReminderSent: Math.max(
-              prev.lastAdvanceReminderSent || 0,
-              firestorePrefs.lastAdvanceReminderSent || 0,
-            ),
-            lastAutoReminderSent:
-              firestorePrefs.lastAutoReminderSent || prev.lastAutoReminderSent,
-            lastAutoAdvanceReminderSent:
-              firestorePrefs.lastAutoAdvanceReminderSent ||
-              prev.lastAutoAdvanceReminderSent,
-          }));
+          setPushPreferences((prev) =>
+            normalizePushPreferences({
+              ...prev,
+              ...firestorePrefs,
+              lastReminderSent: Math.max(
+                prev.lastReminderSent || 0,
+                firestorePrefs.lastReminderSent || 0,
+              ),
+              lastAdvanceReminderSent: Math.max(
+                prev.lastAdvanceReminderSent || 0,
+                firestorePrefs.lastAdvanceReminderSent || 0,
+              ),
+              lastAutoReminderSent:
+                firestorePrefs.lastAutoReminderSent || prev.lastAutoReminderSent,
+              lastAutoAdvanceReminderSent:
+                firestorePrefs.lastAutoAdvanceReminderSent ||
+                prev.lastAutoAdvanceReminderSent,
+            }),
+          );
         } else if (localUpdated > firestoreUpdated) {
-          syncPreferencesToFirestore(localPrefs);
+          syncPreferencesToFirestore(normalizePushPreferences(localPrefs));
         }
       } else {
-        syncPreferencesToFirestore(localPrefs);
+        syncPreferencesToFirestore(normalizePushPreferences(localPrefs));
       }
     } catch (error) {
       // Non-fatal
@@ -213,19 +280,48 @@ export const usePushNotifications = () => {
 
   const updatePushPreferences = (newPreferences) => {
     setPushPreferences((prev) => {
-      const updated = {
-        ...prev,
+      const prevNorm = normalizePushPreferences(prev);
+      const merged = {
+        ...prevNorm,
         ...newPreferences,
         updatedAt: new Date().toISOString(),
       };
 
-      if (newPreferences.reminderTime && newPreferences.reminderTime !== prev.reminderTime) {
-        updated.lastAutoReminderSent = null;
-        updated.lastAutoAdvanceReminderSent = null;
+      if (
+        'reminderTime' in newPreferences &&
+        !('dailyReminderTime' in newPreferences)
+      ) {
+        merged.dailyReminderTime = newPreferences.reminderTime;
+      }
+      if (
+        'reminderTime' in newPreferences &&
+        !('advanceReminderTime' in newPreferences)
+      ) {
+        merged.advanceReminderTime = newPreferences.reminderTime;
+      }
+      if ('dailyReminderTime' in newPreferences) {
+        merged.reminderTime = merged.dailyReminderTime;
       }
 
-      if (newPreferences.advanceDays && newPreferences.advanceDays !== prev.advanceDays) {
+      const updated = normalizePushPreferences(merged);
+
+      if (
+        updated.dailyReminderTime !== prevNorm.dailyReminderTime ||
+        updated.reminderTime !== prevNorm.reminderTime
+      ) {
+        updated.lastAutoReminderSent = null;
+      }
+      if (
+        updated.advanceReminderTime !== prevNorm.advanceReminderTime ||
+        updated.advanceDays !== prevNorm.advanceDays
+      ) {
         updated.lastAutoAdvanceReminderSent = null;
+      }
+      if (
+        updated.weeklySummaryDay !== prevNorm.weeklySummaryDay ||
+        updated.weeklySummaryTime !== prevNorm.weeklySummaryTime
+      ) {
+        updated.lastWeeklySummarySent = null;
       }
 
       const email = prefsEmail(updated);
@@ -240,34 +336,34 @@ export const usePushNotifications = () => {
   const resetPushPreferences = () => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(LEGACY_STORAGE_KEY);
-    setPushPreferences({
-      enabled: false,
-      userEmail: '',
-      userName: '',
-      userId: '',
-      dailyReminder: true,
-      reminderTime: '09:00',
-      overdueReminders: true,
-      dueTodayReminders: true,
-      advanceReminders: true,
-      advanceDays: 3,
-      weeklySummary: false,
-      weeklySummaryTime: '08:00',
-      lastReminderSent: null,
-      lastAdvanceReminderSent: null,
-      lastAutoReminderSent: null,
-      lastAutoAdvanceReminderSent: null,
-      lastWeeklySummarySent: null,
-    });
+    setPushPreferences(
+      normalizePushPreferences({
+        ...DEFAULT_PUSH_PREFS,
+        enabled: false,
+        userEmail: '',
+        userName: '',
+        userId: '',
+        lastReminderSent: null,
+        lastAdvanceReminderSent: null,
+        lastAutoReminderSent: null,
+        lastAutoAdvanceReminderSent: null,
+        lastWeeklySummarySent: null,
+      }),
+    );
   };
 
   const forceUpdateReminderTime = (newTime) => {
-    setPushPreferences((prev) => ({
-      ...prev,
-      reminderTime: newTime,
-      lastAutoReminderSent: null,
-      lastAutoAdvanceReminderSent: null,
-    }));
+    setPushPreferences((prev) => {
+      const updated = normalizePushPreferences({
+        ...prev,
+        reminderTime: newTime,
+        dailyReminderTime: newTime,
+        lastAutoReminderSent: null,
+      });
+      const email = prefsEmail(updated);
+      if (email) syncPreferencesToFirestore(updated);
+      return updated;
+    });
   };
 
   const getDueTodos = () => {
@@ -332,23 +428,26 @@ export const usePushNotifications = () => {
       return false;
     }
 
-    try {
-      const docId = firestoreDocIdForPrefs();
-      if (docId) {
-        const docSnap = await getDoc(doc(db, 'emailPreferences', docId));
-        if (docSnap.exists()) {
-          const fs = docSnap.data();
-          const lastSent = fs.lastAutoReminderSent;
-          if (lastSent) {
-            const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
-            if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
-              return true;
+    // Skip duplicate automated sends only; manual sends from Settings should always run.
+    if (isAutomatic) {
+      try {
+        const docId = firestoreDocIdForPrefs();
+        if (docId) {
+          const docSnap = await getDoc(doc(db, 'emailPreferences', docId));
+          if (docSnap.exists()) {
+            const fs = docSnap.data();
+            const lastSent = fs.lastAutoReminderSent;
+            if (lastSent) {
+              const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
+              if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
+                return true;
+              }
             }
           }
         }
+      } catch (e) {
+        // continue
       }
-    } catch (e) {
-      // continue
     }
 
     const dueTodos = getDueTodos();
@@ -388,23 +487,25 @@ export const usePushNotifications = () => {
       return false;
     }
 
-    try {
-      const docId = firestoreDocIdForPrefs();
-      if (docId) {
-        const docSnap = await getDoc(doc(db, 'emailPreferences', docId));
-        if (docSnap.exists()) {
-          const fs = docSnap.data();
-          const lastSent = fs.lastAutoAdvanceReminderSent;
-          if (lastSent) {
-            const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
-            if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
-              return true;
+    if (isAutomatic) {
+      try {
+        const docId = firestoreDocIdForPrefs();
+        if (docId) {
+          const docSnap = await getDoc(doc(db, 'emailPreferences', docId));
+          if (docSnap.exists()) {
+            const fs = docSnap.data();
+            const lastSent = fs.lastAutoAdvanceReminderSent;
+            if (lastSent) {
+              const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
+              if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
+                return true;
+              }
             }
           }
         }
+      } catch (e) {
+        // continue
       }
-    } catch (e) {
-      // continue
     }
 
     const advanceTodos = getTodosInAdvance(pushPreferences.advanceDays);
@@ -486,14 +587,11 @@ export const usePushNotifications = () => {
     }
 
     const now = dayjs();
-    const [reminderHour, reminderMinute] = pushPreferences.reminderTime.split(':').map(Number);
     const lastSent = pushPreferences.lastAutoReminderSent
       ? dayjs(pushPreferences.lastAutoReminderSent)
       : null;
 
-    const reminderTimeToday = now.hour(reminderHour).minute(reminderMinute).second(0);
-    const fiveMinutesAfter = reminderTimeToday.add(5, 'minutes');
-    const isTimeToSend = now.isAfter(reminderTimeToday) && now.isBefore(fiveMinutesAfter);
+    const isTimeToSend = isWithinReminderWindow(now, effectiveDailyTime(pushPreferences));
     const haventSentAutoToday = !lastSent || !lastSent.isSame(now, 'day');
 
     const dueTodos = getDueTodos();
@@ -509,14 +607,11 @@ export const usePushNotifications = () => {
     }
 
     const now = dayjs();
-    const [reminderHour, reminderMinute] = pushPreferences.reminderTime.split(':').map(Number);
     const lastSent = pushPreferences.lastAutoAdvanceReminderSent
       ? dayjs(pushPreferences.lastAutoAdvanceReminderSent)
       : null;
 
-    const reminderTimeToday = now.hour(reminderHour).minute(reminderMinute).second(0);
-    const fiveMinutesAfter = reminderTimeToday.add(5, 'minutes');
-    const isTimeToSend = now.isAfter(reminderTimeToday) && now.isBefore(fiveMinutesAfter);
+    const isTimeToSend = isWithinReminderWindow(now, effectiveAdvanceTime(pushPreferences));
     const haventSentAutoToday = !lastSent || !lastSent.isSame(now, 'day');
 
     const advanceTodos = getTodosInAdvance(pushPreferences.advanceDays);

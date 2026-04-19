@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react';
-import { usePushNotifications } from './usePushNotifications';
+import { usePushNotifications, normalizePushPreferences } from './usePushNotifications';
 import pushService from '../services/pushService';
 import dayjs from 'dayjs';
 import { createWrapper } from '../test-utils/test-wrapper';
@@ -45,7 +45,7 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock,
 });
 
-const defaultPrefs = {
+const defaultPrefs = normalizePushPreferences({
   enabled: true,
   userEmail: '',
   userName: '',
@@ -63,7 +63,7 @@ const defaultPrefs = {
   lastAutoReminderSent: null,
   lastAutoAdvanceReminderSent: null,
   lastWeeklySummarySent: null,
-};
+});
 
 describe('usePushNotifications', () => {
   beforeEach(() => {
@@ -105,7 +105,7 @@ describe('usePushNotifications', () => {
 
       const { result } = renderHook(() => usePushNotifications(), { wrapper: createWrapper() });
 
-      expect(result.current.pushPreferences).toEqual(savedPrefs);
+      expect(result.current.pushPreferences).toEqual(normalizePushPreferences(savedPrefs));
     });
 
     test('should save preferences to localStorage when updated', () => {

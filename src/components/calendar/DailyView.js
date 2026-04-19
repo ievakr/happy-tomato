@@ -40,10 +40,6 @@ const DailyView = () => {
   const dayElementMapRef = useRef(new Map());
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  /** Strip cell `YYYY-MM-DD` for red highlight — matches calendar selection when daily view opens (e.g. from month view). */
-  const [stripTapHighlightKey, setStripTapHighlightKey] = useState(() =>
-    (daySelected || dayjs()).format('YYYY-MM-DD')
-  );
   const daysToShow = 60;
 
   // Anchor the strip independently of the selected day so scrolling does not re-build the row and jump.
@@ -55,7 +51,6 @@ const DailyView = () => {
     const currentDayValue = daySelected || dayjs();
     const dayOfMonth = currentDayValue.date();
     const newDay = dayjs(new Date(currentDayValue.year(), newMonth, dayOfMonth));
-    setStripTapHighlightKey(null);
     setMonthIndex(newMonth);
     setDaySelected(newDay);
     setStripStart(newDay.subtract(Math.floor(daysToShow / 2), 'day'));
@@ -243,22 +238,12 @@ const DailyView = () => {
     }
   }, [currentDay, stripStart, isMobile, scrollToDay]);
 
-  // Clear tap highlight if the calendar day changes without a matching strip tap (e.g. month view).
-  useEffect(() => {
-    if (!stripTapHighlightKey) return;
-    if (currentDay.format('YYYY-MM-DD') !== stripTapHighlightKey) {
-      setStripTapHighlightKey(null);
-    }
-  }, [currentDay, stripTapHighlightKey]);
-
   const handleDayClick = (day) => {
     setDaySelected(day);
     setShowEventModal(true);
   };
 
   const handleDaySelection = useCallback((day) => {
-    const key = day.format('YYYY-MM-DD');
-    setStripTapHighlightKey(key);
     setDaySelected(day);
     if (!isMobile) {
       return;
@@ -310,7 +295,6 @@ const DailyView = () => {
 
   const jumpToToday = useCallback(() => {
     const today = dayjs();
-    setStripTapHighlightKey(today.format('YYYY-MM-DD'));
     setDaySelected(today);
     setMonthIndex(today.month());
     setStripStart(today.subtract(Math.floor(daysToShow / 2), 'day'));
@@ -392,7 +376,7 @@ const DailyView = () => {
                   key={day.format('YYYY-MM-DD')}
                   data-daily-strip-date={day.format('YYYY-MM-DD')}
                   className={`daily-week-day text-center ${getCurrentDayClass(day)}${
-                    stripTapHighlightKey === day.format('YYYY-MM-DD') ? ' selected' : ''
+                    selectedDayCalendarKey === day.format('YYYY-MM-DD') ? ' selected' : ''
                   }`}
                   onClick={() => handleDaySelection(day)}
                   ref={(node) => {

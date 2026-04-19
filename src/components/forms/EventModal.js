@@ -653,8 +653,8 @@ export default function EventModal() {
                                     </div>
 
                                     {todoText.trim() && (
-                                        <div className="border rounded p-3 bg-light">
-                                            <div className="form-check">
+                                        <>
+                                            <div className={`form-check ${isBulkApply ? 'pe-none opacity-50 user-select-none' : ''}`}>
                                                 <input
                                                     className="form-check-input"
                                                     type="checkbox"
@@ -671,7 +671,7 @@ export default function EventModal() {
                                             </div>
 
                                             {isRecurring && (
-                                                <div className="mt-3">
+                                                <div className="border rounded p-3 bg-light">
                                                     <div className="mb-3">
                                                         <label htmlFor="recurringInterval" className="form-label small text-muted">
                                                             Repeat every (days)
@@ -776,7 +776,7 @@ export default function EventModal() {
                                                     )}
                                                 </div>
                                             )}
-                                        </div>
+                                        </>
                                     )}
                                     
                                     <div>
