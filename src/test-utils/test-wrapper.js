@@ -55,6 +55,8 @@ export const createWrapper = (contextValue = {}) => {
     setBulkSelectedEventIds: jest.fn(),
     toggleBulkEventSelection: jest.fn(),
     clearBulkSelection: jest.fn(),
+    showWeeklySummaryModal: false,
+    setShowWeeklySummaryModal: jest.fn(),
     ...event
   };
   const defaultLayoutContext = {

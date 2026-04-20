@@ -385,9 +385,18 @@ async function sendWebPushToUser(userId, title, body, dataPayload = {}) {
   }
 
   const openDayStr = dataStrings.openDay || "";
-  const webLink = openDayStr ?
-    `${PUSH_LINK}/?day=${encodeURIComponent(openDayStr)}` :
-    `${PUSH_LINK}/`;
+  const isWeeklySummary = dataStrings.kind === "weekly_summary";
+  let webLink = `${PUSH_LINK}/`;
+  if (openDayStr || isWeeklySummary) {
+    const u = new URL(`${PUSH_LINK}/`);
+    if (openDayStr) {
+      u.searchParams.set("day", openDayStr);
+    }
+    if (isWeeklySummary) {
+      u.searchParams.set("weeklySummary", "1");
+    }
+    webLink = u.toString();
+  }
 
   const apnsPayload = {
     aps: {

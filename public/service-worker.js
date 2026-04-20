@@ -28,9 +28,13 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const data = event.notification.data || {};
   const openDay = data.openDay ? String(data.openDay) : '';
+  const kind = data.kind ? String(data.kind) : '';
   const url = new URL(self.location.origin + '/');
   if (openDay) {
     url.searchParams.set('day', openDay);
+  }
+  if (kind === 'weekly_summary') {
+    url.searchParams.set('weeklySummary', '1');
   }
 
   event.waitUntil(
@@ -38,7 +42,11 @@ self.addEventListener('notificationclick', (event) => {
       for (const client of clientList) {
         if (client.url.startsWith(self.location.origin) && 'focus' in client) {
           if (openDay) {
-            client.postMessage({ type: 'calendar-open-day', day: openDay });
+            client.postMessage({
+              type: 'calendar-open-day',
+              day: openDay,
+              kind,
+            });
           }
           return client.focus();
         }

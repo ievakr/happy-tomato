@@ -35,6 +35,8 @@ const EventContext = React.createContext({
     setBulkSelectedEventIds: () => {},
     toggleBulkEventSelection: () => {},
     clearBulkSelection: () => {},
+    showWeeklySummaryModal: false,
+    setShowWeeklySummaryModal: () => {},
 });
 
 export function useEventContext() {

@@ -49,8 +49,11 @@ export default function ContextWrapper(props) {
   const calendarState = useCalendarState();
   const { setDaySelected, setMonthIndex, setCurrentView } = calendarState;
 
+  const [showWeeklySummaryModal, setShowWeeklySummaryModal] = useState(false);
+
   const openCalendarDay = useCallback(
-    (dayStr) => {
+    (dayStr, options = {}) => {
+      const { openWeeklySummary = false } = options;
       if (!dayStr || typeof dayStr !== 'string') return;
       const trimmed = dayStr.trim();
       if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return;
@@ -59,6 +62,9 @@ export default function ContextWrapper(props) {
       setDaySelected(next);
       setMonthIndex(next.month());
       setCurrentView(isMobile ? 'daily' : 'month');
+      if (openWeeklySummary) {
+        setShowWeeklySummaryModal(true);
+      }
     },
     [isMobile, setDaySelected, setMonthIndex, setCurrentView],
   );
@@ -67,15 +73,19 @@ export default function ContextWrapper(props) {
   useEffect(() => {
     const fromSearch = () => {
       const params = new URLSearchParams(window.location.search);
-      return params.get('day');
+      return {
+        day: params.get('day'),
+        weeklySummary: params.get('weeklySummary') === '1',
+      };
     };
 
     const consume = () => {
-      const day = fromSearch();
+      const { day, weeklySummary } = fromSearch();
       if (!day) return;
-      openCalendarDay(day);
+      openCalendarDay(day, { openWeeklySummary: weeklySummary });
       const params = new URLSearchParams(window.location.search);
       params.delete('day');
+      params.delete('weeklySummary');
       const qs = params.toString();
       const clean = `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
       window.history.replaceState({}, '', clean);
@@ -89,7 +99,10 @@ export default function ContextWrapper(props) {
   useEffect(() => {
     const onSwMessage = (event) => {
       if (event.data?.type === 'calendar-open-day' && event.data?.day) {
-        openCalendarDay(String(event.data.day));
+        const kind = event.data?.kind ? String(event.data.kind) : '';
+        openCalendarDay(String(event.data.day), {
+          openWeeklySummary: kind === 'weekly_summary',
+        });
       }
     };
     navigator.serviceWorker?.addEventListener('message', onSwMessage);
@@ -99,7 +112,12 @@ export default function ContextWrapper(props) {
   useEffect(() => {
     const onNativeOpen = (e) => {
       const day = e.detail?.day;
-      if (day) openCalendarDay(String(day));
+      const kind = e.detail?.kind ? String(e.detail.kind) : '';
+      if (day) {
+        openCalendarDay(String(day), {
+          openWeeklySummary: kind === 'weekly_summary',
+        });
+      }
     };
     window.addEventListener('happy-tomato-open-day', onNativeOpen);
     return () => window.removeEventListener('happy-tomato-open-day', onNativeOpen);
@@ -218,6 +236,8 @@ export default function ContextWrapper(props) {
           setBulkSelectedEventIds,
           toggleBulkEventSelection,
           clearBulkSelection,
+          showWeeklySummaryModal,
+          setShowWeeklySummaryModal,
         }}
       >
         <LayoutContext.Provider value={{ showSidebar, setShowSidebar }}>

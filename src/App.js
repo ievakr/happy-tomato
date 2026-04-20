@@ -27,6 +27,7 @@ const EventModal = lazy(() => import('./components/forms/EventModal'));
 const CreatePlantModal = lazy(() => import('./components/forms/CreatePlantModal'));
 const ManagePlantsModal = lazy(() => import('./components/forms/ManagePlantsModal'));
 const ManageTodoModal = lazy(() => import('./components/forms/ManageTodoModal'));
+const WeeklySummaryTodoModal = lazy(() => import('./components/calendar/WeeklySummaryTodoModal'));
 
 /**
  * Main application component with responsive layout
@@ -39,6 +40,9 @@ function App() {
     showManagePlantsModal,
     setShowManagePlantsModal,
     showManageTodoModal,
+    showWeeklySummaryModal,
+    setShowWeeklySummaryModal,
+    filteredEvents,
     isInitialLoading,
     loadingOperation,
   } = useEventContext();
@@ -87,17 +91,20 @@ function App() {
         ) {
           try {
             const openDay = payload?.data?.openDay ? String(payload.data.openDay) : '';
+            const kind = payload?.data?.kind ? String(payload.data.kind) : '';
+            const notificationData =
+              openDay || kind ? { ...(openDay ? { openDay } : {}), ...(kind ? { kind } : {}) } : undefined;
             // eslint-disable-next-line no-new
             const n = new Notification(payload.notification.title, {
               body: payload.notification.body || '',
               icon: '/logo192.png',
-              data: openDay ? { openDay } : undefined,
+              data: notificationData,
             });
             n.onclick = () => {
               window.focus();
               if (openDay) {
                 window.dispatchEvent(
-                  new CustomEvent('happy-tomato-open-day', { detail: { day: openDay } }),
+                  new CustomEvent('happy-tomato-open-day', { detail: { day: openDay, kind } }),
                 );
               }
               n.close();
@@ -128,8 +135,12 @@ function App() {
             raw && typeof raw === 'object' && raw !== null && 'openDay' in raw
               ? String(raw.openDay)
               : '';
+          const kind =
+            raw && typeof raw === 'object' && raw !== null && 'kind' in raw ? String(raw.kind) : '';
           if (openDay && /^\d{4}-\d{2}-\d{2}$/.test(openDay)) {
-            window.dispatchEvent(new CustomEvent('happy-tomato-open-day', { detail: { day: openDay } }));
+            window.dispatchEvent(
+              new CustomEvent('happy-tomato-open-day', { detail: { day: openDay, kind } }),
+            );
           }
         });
       } catch (e) {
@@ -208,6 +219,18 @@ function App() {
             <Suspense fallback={<LoadingOverlay text="Loading..." backdrop={true} />}>
               <ComponentErrorBoundary componentName="ManageTodoModal" onError={handleError}>
                 <ManageTodoModal />
+              </ComponentErrorBoundary>
+            </Suspense>,
+            document.body
+          )}
+
+          {showWeeklySummaryModal && createPortal(
+            <Suspense fallback={<LoadingOverlay text="Loading..." backdrop={true} />}>
+              <ComponentErrorBoundary componentName="WeeklySummaryTodoModal" onError={handleError}>
+                <WeeklySummaryTodoModal
+                  events={filteredEvents}
+                  onClose={() => setShowWeeklySummaryModal(false)}
+                />
               </ComponentErrorBoundary>
             </Suspense>,
             document.body

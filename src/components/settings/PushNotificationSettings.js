@@ -13,7 +13,7 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
     pushPreferences,
     updatePushPreferences,
     isPushServiceReady,
-    getTodoSummary
+    getTodoSummary,
   } = pushNotifications;
 
   const [showAdvanced, setShowAdvanced] = useState(false);

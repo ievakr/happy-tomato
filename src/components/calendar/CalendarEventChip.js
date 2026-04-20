@@ -20,7 +20,8 @@ function buildEventClasses(evt, isTodoEvent, listMode, bulkEditSelected) {
   return `${base} calendar-event--default border border-primary bg-primary bg-opacity-10 text-primary-emphasis`;
 }
 
-function getEventIconName(evt, isTodoEvent) {
+/** Event-type icon (material) — same logic as month/daily chips */
+export function getEventIconName(evt, isTodoEvent) {
   if (evt.completed) return 'check_circle';
   if (isTodoEvent(evt)) return 'radio_button_unchecked';
   return 'event';
