@@ -108,6 +108,16 @@ service cloud.firestore {
     }
     
     // ========================================
+    // GARDEN PLANS (per user, per year)
+    // ========================================
+    
+    match /gardenPlans/{userId}/years/{year} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ========================================
     // SAVED TODOS COLLECTION (user preferences)
     // ========================================
     

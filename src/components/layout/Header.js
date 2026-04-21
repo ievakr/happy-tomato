@@ -38,6 +38,9 @@ export default function Header() {
     
     // Auto-switch views based on screen size
     useEffect(() => {
+        if (currentView === 'garden') {
+            return;
+        }
         if (!isMobile && currentView === 'daily') {
             // Switch to week view when going from mobile to desktop
             switchToWeekView();
@@ -115,7 +118,9 @@ export default function Header() {
                                 </span>
                             </button>
                             <img src={logo} alt="calendar" className="me-2" style={{ width: '28px', height: '28px' }} />
-                            <span className="mobile-title-main app-title">Happy Tomato</span>
+                            <span className="mobile-title-main app-title">
+                                Happy Tomato
+                            </span>
                         </div>
                         
                         {/* Right side: View buttons and settings */}
@@ -164,7 +169,11 @@ export default function Header() {
 
                     {/* Center navigation - week or month */}
                     <div className="calendar-month-nav calendar-month-nav-centered d-flex align-items-center">
-                        {currentView === 'week' ? (
+                        {currentView === 'garden' ? (
+                            <span className="calendar-month-label mx-2 text-secondary">
+                                Plan beds by year
+                            </span>
+                        ) : currentView === 'week' ? (
                             <>
                                 <button
                                     className="btn btn-sm btn-light"

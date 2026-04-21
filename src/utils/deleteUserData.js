@@ -51,9 +51,38 @@ export async function deleteUserEvents(userId) {
  * @param {string} userId - The user ID whose data should be deleted
  * @returns {Promise<Object>} - Summary of deleted data
  */
+/**
+ * Delete all yearly garden plan docs for a user.
+ * @param {string} userId
+ * @returns {Promise<number>} number of year docs removed
+ */
+export async function deleteUserGardenPlans(userId) {
+  const yearsSnap = await getDocs(collection(db, 'gardenPlans', userId, 'years'));
+  if (yearsSnap.empty) {
+    return 0;
+  }
+  const batchSize = 500;
+  const docs = yearsSnap.docs;
+  for (let i = 0; i < docs.length; i += batchSize) {
+    const batch = writeBatch(db);
+    docs.slice(i, i + batchSize).forEach((d) => {
+      batch.delete(doc(db, 'gardenPlans', userId, 'years', d.id));
+    });
+    await batch.commit();
+  }
+  return docs.length;
+}
+
 export async function deleteAllUserData(userId) {
   try {
     const eventsDeleted = await deleteUserEvents(userId);
+
+    let gardenPlansDeleted = 0;
+    try {
+      gardenPlansDeleted = await deleteUserGardenPlans(userId);
+    } catch {
+      // Subcollection may be empty or rules may block in some contexts
+    }
 
     try {
       const savedTodosRef = doc(db, 'savedTodos', userId);
@@ -64,7 +93,8 @@ export async function deleteAllUserData(userId) {
     
     return {
       eventsDeleted,
-      totalDeleted: eventsDeleted
+      gardenPlansDeleted,
+      totalDeleted: eventsDeleted + gardenPlansDeleted
     };
   } catch (error) {
     throw error;

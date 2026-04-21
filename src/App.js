@@ -28,6 +28,7 @@ const CreatePlantModal = lazy(() => import('./components/forms/CreatePlantModal'
 const ManagePlantsModal = lazy(() => import('./components/forms/ManagePlantsModal'));
 const ManageTodoModal = lazy(() => import('./components/forms/ManageTodoModal'));
 const WeeklySummaryTodoModal = lazy(() => import('./components/calendar/WeeklySummaryTodoModal'));
+const GardenPlannerView = lazy(() => import('./components/garden/GardenPlannerView'));
 
 /**
  * Main application component with responsive layout
@@ -297,50 +298,63 @@ function App() {
                 className={`flex-grow-1 d-flex flex-column${currentView === 'daily' ? ' calendar-section-daily' : ''}`}
                 style={{ 
                   minHeight: 0,
-                  overflow: 'hidden',
+                  overflow: currentView === 'garden' ? 'auto' : 'hidden',
                 }}
-                aria-label="Calendar view"
+                aria-label={currentView === 'garden' ? 'Garden Planner' : 'Calendar view'}
               >
-                {/* Show day headers only for monthly view */}
-                {currentView === 'month' && (
+                {currentView === 'garden' ? (
                   <Suspense fallback={inlineFallback}>
                     <ComponentErrorBoundary
-                      componentName="CalendarHeader"
+                      componentName="GardenPlannerView"
                       onError={handleError}
                     >
-                      <CalendarHeader />
-                    </ComponentErrorBoundary>
-                  </Suspense>
-                )}
-                
-                {/* Switch between month, week, and daily views */}
-                {currentView === 'month' ? (
-                  <Suspense fallback={inlineFallback}>
-                    <ComponentErrorBoundary
-                      componentName="CalendarGrid"
-                      onError={handleError}
-                    >
-                      <CalendarGrid month={currentMonth} />
-                    </ComponentErrorBoundary>
-                  </Suspense>
-                ) : currentView === 'week' ? (
-                  <Suspense fallback={inlineFallback}>
-                    <ComponentErrorBoundary
-                      componentName="WeeklyView"
-                      onError={handleError}
-                    >
-                      <WeeklyView />
+                      <GardenPlannerView />
                     </ComponentErrorBoundary>
                   </Suspense>
                 ) : (
-                  <Suspense fallback={inlineFallback}>
-                    <ComponentErrorBoundary
-                      componentName="DailyView"
-                      onError={handleError}
-                    >
-                      <DailyView />
-                    </ComponentErrorBoundary>
-                  </Suspense>
+                  <>
+                    {/* Show day headers only for monthly view */}
+                    {currentView === 'month' && (
+                      <Suspense fallback={inlineFallback}>
+                        <ComponentErrorBoundary
+                          componentName="CalendarHeader"
+                          onError={handleError}
+                        >
+                          <CalendarHeader />
+                        </ComponentErrorBoundary>
+                      </Suspense>
+                    )}
+                    
+                    {/* Switch between month, week, and daily views */}
+                    {currentView === 'month' ? (
+                      <Suspense fallback={inlineFallback}>
+                        <ComponentErrorBoundary
+                          componentName="CalendarGrid"
+                          onError={handleError}
+                        >
+                          <CalendarGrid month={currentMonth} />
+                        </ComponentErrorBoundary>
+                      </Suspense>
+                    ) : currentView === 'week' ? (
+                      <Suspense fallback={inlineFallback}>
+                        <ComponentErrorBoundary
+                          componentName="WeeklyView"
+                          onError={handleError}
+                        >
+                          <WeeklyView />
+                        </ComponentErrorBoundary>
+                      </Suspense>
+                    ) : (
+                      <Suspense fallback={inlineFallback}>
+                        <ComponentErrorBoundary
+                          componentName="DailyView"
+                          onError={handleError}
+                        >
+                          <DailyView />
+                        </ComponentErrorBoundary>
+                      </Suspense>
+                    )}
+                  </>
                 )}
 
               </section>

@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect } from 'react';
 import CreateEventButton from '../forms/CreateEventButton';
 import Labels from '../calendar/Labels';
+import CalendarContext from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
 import { useEventContext } from '../../context/EventContext';
 import EventMigration from '../settings/EventMigration';
@@ -8,6 +9,7 @@ import { countEventsWithoutUser } from '../../utils/migrateEvents';
 
 export default function Sidebar() {
     const { showSidebar, setShowSidebar } = useContext(LayoutContext);
+    const { setCurrentView, currentView } = useContext(CalendarContext);
     const { setShowManagePlantsModal, setShowManageTodoModal } = useEventContext();
     const [showMigration, setShowMigration] = useState(false);
     const [hasUnassignedEvents, setHasUnassignedEvents] = useState(false);
@@ -126,6 +128,22 @@ export default function Sidebar() {
                             </button>
                         </div>
                     )}
+                </div>
+
+                <div className="mb-4">
+                    <button
+                        type="button"
+                        className={`btn w-100 ${currentView === 'garden' ? 'btn-danger' : 'btn-outline-secondary'}`}
+                        onClick={() => {
+                            setCurrentView('garden');
+                            setShowSidebar(false);
+                        }}
+                    >
+                        <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
+                            yard
+                        </span>
+                        Garden Planner
+                    </button>
                 </div>
 
                 <div className="mb-4">
