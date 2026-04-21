@@ -282,7 +282,7 @@ export default function GardenPlannerView() {
     return () => {
       cancelled = true;
     };
-  }, [userId, plan?.updatedAt, plan?.beds?.length, isLoading, yearStr, applyCopyFromPreviousYear, showSuccess]);
+  }, [userId, plan, isLoading, yearStr, applyCopyFromPreviousYear, showSuccess]);
 
   const copyFromPreviousYear = async () => {
     if (!userId) return;

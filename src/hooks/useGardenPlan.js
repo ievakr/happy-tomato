@@ -57,9 +57,12 @@ export function useGardenPlan(userId, year) {
     },
   });
 
-  const savePlan = useCallback(async (planToSave) => {
-    await saveMutation.mutateAsync(planToSave);
-  }, [saveMutation.mutateAsync]);
+  const savePlan = useCallback(
+    async (planToSave) => {
+      await saveMutation.mutateAsync(planToSave);
+    },
+    [saveMutation],
+  );
 
   return {
     plan: query.data,
