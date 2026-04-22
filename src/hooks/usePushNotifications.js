@@ -145,6 +145,16 @@ export const usePushNotifications = () => {
           userEmail: emailForDoc,
           updatedAt: new Date().toISOString(),
         };
+        try {
+          if (typeof Intl !== 'undefined' && Intl.DateTimeFormat) {
+            const z = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            if (z && typeof z === 'string') {
+              payload.reminderTimeZone = z;
+            }
+          }
+        } catch (e) {
+          // non-fatal
+        }
 
         await setDoc(doc(db, 'emailPreferences', docId), payload);
       } catch (error) {

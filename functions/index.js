@@ -20,9 +20,29 @@ admin.initializeApp();
 /** Match cron step: functions run every REMINDER_CRON_MINUTES minutes */
 const REMINDER_CRON_MINUTES = 5;
 
+const DEFAULT_REMINDER_TZ = "Europe/Vilnius";
+
+/**
+ * IANA zone from user prefs (client syncs via Intl) or project default
+ * @param {Object} prefs - emailPreferences document
+ * @return {string}
+ */
+function getReminderIanaTimeZone(prefs) {
+  const raw = prefs && typeof prefs.reminderTimeZone === "string" &&
+    prefs.reminderTimeZone.trim();
+  if (!raw || raw.length < 2 || raw.length > 100) {
+    return DEFAULT_REMINDER_TZ;
+  }
+  if (!/^[A-Za-z0-9_+\-/]+$/.test(raw)) {
+    return DEFAULT_REMINDER_TZ;
+  }
+  const probe = dayjs.tz("2020-06-15 12:00:00", raw);
+  return probe.isValid() ? raw : DEFAULT_REMINDER_TZ;
+}
+
 /**
  * True if now is in [scheduled, scheduled + REMINDER_CRON_MINUTES) today (tz).
- * @param {dayjs.Dayjs} now - TZ-aware (Europe/Vilnius)
+ * @param {dayjs.Dayjs} now - TZ-aware in the caller's zone
  * @param {string} timeStr - "HH:mm"
  * @return {boolean}
  */
@@ -147,10 +167,11 @@ function filterEventsForReminderCalendar(
 /**
  * Get TODOs that are due today or overdue
  * @param {Array} events - Array of event objects
+ * @param {string} [ianaTimeZone=DEFAULT_REMINDER_TZ] - IANA time zone
  * @return {Array} Filtered array of due/overdue TODOs
  */
-function getDueAndOverdueTodos(events) {
-  const today = dayjs.tz(new Date(), "Europe/Vilnius").startOf("day");
+function getDueAndOverdueTodos(events, ianaTimeZone = DEFAULT_REMINDER_TZ) {
+  const today = dayjs.tz(new Date(), ianaTimeZone).startOf("day");
 
   return events.filter((evt) => {
     // Check if it's a TODO
@@ -162,7 +183,7 @@ function getDueAndOverdueTodos(events) {
 
     if (!isTodoEvent || evt.completed) return false;
 
-    const eventDate = eventDayToStartInTz(evt.day, "Europe/Vilnius");
+    const eventDate = eventDayToStartInTz(evt.day, ianaTimeZone);
     if (!eventDate) return false;
 
     // Include if due today or overdue
@@ -174,10 +195,11 @@ function getDueAndOverdueTodos(events) {
  * Get TODOs for the week ahead (Monday through Sunday)
  * Used for weekly summary email sent on Sunday/Monday
  * @param {Array} events - Array of event objects
+ * @param {string} [ianaTimeZone=DEFAULT_REMINDER_TZ] - IANA time zone
  * @return {Object} { overdue: [], byDay: { 'YYYY-MM-DD': [] } }
  */
-function getTodosForWeekAhead(events) {
-  const now = dayjs.tz(new Date(), "Europe/Vilnius");
+function getTodosForWeekAhead(events, ianaTimeZone = DEFAULT_REMINDER_TZ) {
+  const now = dayjs.tz(new Date(), ianaTimeZone);
   const today = now.startOf("day");
 
   // Week ahead: if Sunday, next Mon-Sun; if Monday, this Mon-Sun
@@ -205,7 +227,7 @@ function getTodosForWeekAhead(events) {
 
     if (!isTodoEvent || evt.completed) return;
 
-    const eventDate = eventDayToStartInTz(evt.day, "Europe/Vilnius");
+    const eventDate = eventDayToStartInTz(evt.day, ianaTimeZone);
     if (!eventDate) return;
 
     if (eventDate.isBefore(today, "day")) {
@@ -337,12 +359,13 @@ async function removeInvalidFcmTokens(userId, invalidTokens) {
 const PUSH_LINK = "https://happytomato-c4fed.web.app";
 
 /**
- * Calendar day (YYYY-MM-DD) in Europe/Vilnius for deep links.
+ * Calendar day (YYYY-MM-DD) in the user's IANA zone for deep links
  * @param {number} offsetDays - Days after today (0 = today)
+ * @param {string} ianaTimeZone - IANA zone
  * @return {string}
  */
-function openDayIsoVilnius(offsetDays = 0) {
-  return dayjs.tz(new Date(), "Europe/Vilnius")
+function openDayInTz(offsetDays = 0, ianaTimeZone = DEFAULT_REMINDER_TZ) {
+  return dayjs.tz(new Date(), ianaTimeZone)
       .startOf("day")
       .add(offsetDays, "day")
       .format("YYYY-MM-DD");
@@ -351,18 +374,21 @@ function openDayIsoVilnius(offsetDays = 0) {
 /**
  * Target calendar day for callable todo pushes from reminderType.
  * @param {string} reminderTypeStr
+ * @param {string} ianaTimeZone
  * @return {string} YYYY-MM-DD
  */
-function openDayForCallableReminder(reminderTypeStr) {
+function openDayForCallableReminder(
+    reminderTypeStr, ianaTimeZone = DEFAULT_REMINDER_TZ,
+) {
   const rt = typeof reminderTypeStr === "string" ? reminderTypeStr.trim() : "";
   if (rt === "Daily Garden Reminder") {
-    return openDayIsoVilnius(0);
+    return openDayInTz(0, ianaTimeZone);
   }
   const advanceMatch = /^(\d+)-Day Advance Garden Reminder$/.exec(rt);
   if (advanceMatch) {
-    return openDayIsoVilnius(parseInt(advanceMatch[1], 10));
+    return openDayInTz(parseInt(advanceMatch[1], 10), ianaTimeZone);
   }
-  return openDayIsoVilnius(0);
+  return openDayInTz(0, ianaTimeZone);
 }
 
 /**
@@ -458,20 +484,47 @@ async function sendWebPushToUser(userId, title, body, dataPayload = {}) {
 
 /**
  * Build title/body for a TODO reminder push
- * @param {Array} todos - TODO events
+ * @param {Array} todos - TODO events (for daily: due today and/or overdue)
  * @param {string} reminderType - Kind (e.g. Daily Garden Reminder)
  * @param {Object} plantIdToDisplayName - Plant id to label
- * @return {{title: string, body: string}}
+ * @param {Object} [options] - Extra options
+ * @param {string} [options.timeZone] - IANA zone (daily copy split)
+ * @return {{title: string, body: string}} Title and body
  */
-function buildTodoReminderPush(todos, reminderType, plantIdToDisplayName = {}) {
+function buildTodoReminderPush(
+    todos, reminderType, plantIdToDisplayName = {}, options = {},
+) {
   const n = todos.length;
   const taskWord = n === 1 ? "task" : "tasks";
   const rt = typeof reminderType === "string" ? reminderType.trim() : "";
+  const tz = options.timeZone || DEFAULT_REMINDER_TZ;
 
   if (rt === "Daily Garden Reminder") {
+    const today = dayjs.tz(new Date(), tz).startOf("day");
+    let dueToday = 0;
+    let overdue = 0;
+    for (const t of todos) {
+      const d = eventDayToStartInTz(t.day, tz);
+      if (!d) continue;
+      if (d.isBefore(today, "day")) overdue++;
+      else dueToday++;
+    }
+    if (overdue > 0 && dueToday > 0) {
+      const b =
+        "You have " + dueToday + " due today and " + overdue + " " +
+        "overdue. Open the app to view them.";
+      return {title: "Your garden tasks", body: b};
+    }
+    if (overdue > 0) {
+      const b =
+        "You have " + overdue + " overdue " + taskWord + ". " +
+        "Open the app to view them.";
+      return {title: "Overdue garden tasks", body: b};
+    }
     return {
       title: "Your today's tasks",
-      body: `You have ${n} ${taskWord} today. Open the app to view them.`,
+      body: "You have " + n + " " + taskWord + " today. " +
+        "Open the app to view them.",
     };
   }
 
@@ -507,10 +560,11 @@ function buildTodoReminderPush(todos, reminderType, plantIdToDisplayName = {}) {
  * Get TODOs due in X days (for advance reminders)
  * @param {Array} events - Array of event objects
  * @param {number} days - Number of days in advance
+ * @param {string} [ianaTimeZone=DEFAULT_REMINDER_TZ] - IANA time zone
  * @return {Array} Filtered array of TODOs due in X days
  */
-function getTodosInAdvance(events, days) {
-  const targetDate = dayjs.tz(new Date(), "Europe/Vilnius")
+function getTodosInAdvance(events, days, ianaTimeZone = DEFAULT_REMINDER_TZ) {
+  const targetDate = dayjs.tz(new Date(), ianaTimeZone)
       .add(days, "days")
       .startOf("day");
 
@@ -528,7 +582,7 @@ function getTodosInAdvance(events, days) {
 
     if (!isTodoEvent || evt.completed) return false;
 
-    const eventDate = eventDayToStartInTz(evt.day, "Europe/Vilnius");
+    const eventDate = eventDayToStartInTz(evt.day, ianaTimeZone);
     if (!eventDate) return false;
     return eventDate.isSame(targetDate, "day");
   });
@@ -564,11 +618,21 @@ const sendTodoReminderPushHandler = async (data, context) => {
       "TODO Reminder";
 
   const plantIdToDisplayName = await getPlantIdToDisplayName(userId);
+  const prefSnap = await admin.firestore()
+      .collection("emailPreferences")
+      .where("userId", "==", userId)
+      .limit(1)
+      .get();
+  const tz = prefSnap.empty ?
+    DEFAULT_REMINDER_TZ :
+    getReminderIanaTimeZone(prefSnap.docs[0].data());
+
   const {title, body} = buildTodoReminderPush(
-      todos, reminderTypeStr, plantIdToDisplayName);
+      todos, reminderTypeStr, plantIdToDisplayName, {timeZone: tz},
+  );
   const result = await sendWebPushToUser(userId, title, body, {
     kind: "todo_reminder",
-    openDay: openDayForCallableReminder(reminderTypeStr),
+    openDay: openDayForCallableReminder(reminderTypeStr, tz),
   });
 
   if (result.ok) {
@@ -630,7 +694,10 @@ const sendWeeklySummaryPushHandler = async (_data, context) => {
       includedCategories,
   );
 
-  const weekData = getTodosForWeekAhead(visibleEvents);
+  const weekTz = prefsSnap.empty ?
+    DEFAULT_REMINDER_TZ :
+    getReminderIanaTimeZone(prefsSnap.docs[0].data());
+  const weekData = getTodosForWeekAhead(visibleEvents, weekTz);
   const totalCount = weekData.overdue.length +
     Object.values(weekData.byDay).reduce((sum, arr) => sum + arr.length, 0);
 
@@ -643,7 +710,7 @@ const sendWeeklySummaryPushHandler = async (_data, context) => {
       totalCount !== 1 ? "s" : ""} this week. Open the app to view them.`;
   const result = await sendWebPushToUser(userId, title, body, {
     kind: "weekly_summary",
-    openDay: openDayIsoVilnius(0),
+    openDay: openDayInTz(0, weekTz),
   });
 
   return {success: result.ok, sent: result.ok};
@@ -684,6 +751,8 @@ exports.sendDailyReminders = functions.pubsub
         for (const prefDoc of prefsSnapshot.docs) {
           const prefs = prefDoc.data();
           const userId = prefs.userId;
+          const tz = getReminderIanaTimeZone(prefs);
+          const userNow = dayjs.tz(new Date(), tz);
 
           const dailyTime =
             (typeof prefs.dailyReminderTime === "string" &&
@@ -691,7 +760,7 @@ exports.sendDailyReminders = functions.pubsub
               prefs.dailyReminderTime.trim() :
               (prefs.reminderTime || "09:00");
 
-          if (!isInReminderSendWindow(now, dailyTime)) {
+          if (!isInReminderSendWindow(userNow, dailyTime)) {
             continue;
           }
 
@@ -699,9 +768,9 @@ exports.sendDailyReminders = functions.pubsub
           const lastSent = prefs.lastAutoReminderSent ?
             dayjs.tz(
                 prefs.lastAutoReminderSent.toDate(),
-                "Europe/Vilnius",
+                tz,
             ) : null;
-          if (lastSent && lastSent.isSame(now, "day")) {
+          if (lastSent && lastSent.isSame(userNow, "day")) {
             console.log(
                 `Already sent daily reminder to ${prefs.userEmail} today ` +
                 `(last sent: ${lastSent.format("YYYY-MM-DD HH:mm")})`,
@@ -743,8 +812,8 @@ exports.sendDailyReminders = functions.pubsub
               `(${visibleEvents.length} visible for reminders)`,
           );
 
-          // Get due/overdue TODOs
-          const dueTodos = getDueAndOverdueTodos(visibleEvents);
+          // Due/overdue TODOs: same calendar day as the app
+          const dueTodos = getDueAndOverdueTodos(visibleEvents, tz);
 
           if (dueTodos.length === 0) {
             console.log(`No due TODOs for ${prefs.userEmail}`);
@@ -757,10 +826,11 @@ exports.sendDailyReminders = functions.pubsub
               dueTodos,
               "Daily Garden Reminder",
               plantIdToDisplayName,
+              {timeZone: tz},
           );
           const result = await sendWebPushToUser(userId, title, body, {
             kind: "daily_reminder",
-            openDay: openDayIsoVilnius(0),
+            openDay: openDayInTz(0, tz),
           });
 
           if (result.ok) {
@@ -816,6 +886,8 @@ exports.sendAdvanceReminders = functions.pubsub
         for (const prefDoc of prefsSnapshot.docs) {
           const prefs = prefDoc.data();
           const userId = prefs.userId;
+          const tz = getReminderIanaTimeZone(prefs);
+          const userNow = dayjs.tz(new Date(), tz);
 
           console.log(
               `\n👤 Checking user: ${prefs.userEmail}`,
@@ -831,7 +903,7 @@ exports.sendAdvanceReminders = functions.pubsub
               `advanceReminderTime=${advanceTime}`,
           );
 
-          if (!isInReminderSendWindow(now, advanceTime)) {
+          if (!isInReminderSendWindow(userNow, advanceTime)) {
             console.log(`   ⏰ Not in advance reminder send window`);
             continue;
           }
@@ -842,9 +914,9 @@ exports.sendAdvanceReminders = functions.pubsub
           const lastSent = prefs.lastAutoAdvanceReminderSent ?
             dayjs.tz(
                 prefs.lastAutoAdvanceReminderSent.toDate(),
-                "Europe/Vilnius",
+                tz,
             ) : null;
-          if (lastSent && lastSent.isSame(now, "day")) {
+          if (lastSent && lastSent.isSame(userNow, "day")) {
             console.log(
                 `   ⚠️  Already sent advance reminder today ` +
                 `(last sent: ${lastSent.format("YYYY-MM-DD HH:mm")})`,
@@ -897,7 +969,7 @@ exports.sendAdvanceReminders = functions.pubsub
 
           // Get advance TODOs
           const advanceDays = prefs.advanceDays || 3;
-          const targetDate = dayjs.tz(new Date(), "Europe/Vilnius")
+          const targetDate = dayjs.tz(new Date(), tz)
               .add(advanceDays, "days")
               .startOf("day");
 
@@ -906,7 +978,9 @@ exports.sendAdvanceReminders = functions.pubsub
               `(${advanceDays} days from now)`,
           );
 
-          const advanceTodos = getTodosInAdvance(visibleEvents, advanceDays);
+          const advanceTodos = getTodosInAdvance(
+              visibleEvents, advanceDays, tz,
+          );
 
           if (advanceTodos.length === 0) {
             console.log(
@@ -927,12 +1001,12 @@ exports.sendAdvanceReminders = functions.pubsub
               console.log(`   📋 All TODO dates:`);
               const todoDates = new Set();
               allTodos.forEach((todo) => {
-                const d0 = eventDayToStartInTz(todo.day, "Europe/Vilnius");
+                const d0 = eventDayToStartInTz(todo.day, tz);
                 if (d0) todoDates.add(d0.format("YYYY-MM-DD"));
               });
               [...todoDates].sort().forEach((date) => {
                 const count = allTodos.filter((t) => {
-                  const d0 = eventDayToStartInTz(t.day, "Europe/Vilnius");
+                  const d0 = eventDayToStartInTz(t.day, tz);
                   return d0 && d0.format("YYYY-MM-DD") === date;
                 }).length;
                 console.log(`      ${date}: ${count} TODO(s)`);
@@ -958,7 +1032,7 @@ exports.sendAdvanceReminders = functions.pubsub
           );
           const result = await sendWebPushToUser(userId, title, body, {
             kind: "advance_reminder",
-            openDay: openDayIsoVilnius(advanceDays),
+            openDay: openDayInTz(advanceDays, tz),
           });
 
           if (result.ok) {
@@ -991,8 +1065,6 @@ exports.sendWeeklySummary = functions.pubsub
     .onRun(async (context) => {
       console.log("🔍 Checking for weekly summary to send...");
 
-      const now = dayjs.tz(new Date(), "Europe/Vilnius");
-
       try {
         const prefsSnapshot = await admin.firestore()
             .collection("emailPreferences")
@@ -1008,27 +1080,29 @@ exports.sendWeeklySummary = functions.pubsub
         for (const prefDoc of prefsSnapshot.docs) {
           const prefs = prefDoc.data();
           const userId = prefs.userId;
+          const tz = getReminderIanaTimeZone(prefs);
+          const userNow = dayjs.tz(new Date(), tz);
 
           let summaryDow = parseInt(prefs.weeklySummaryDay, 10);
           if (Number.isNaN(summaryDow) || summaryDow < 0 || summaryDow > 6) {
             summaryDow = 1;
           }
 
-          if (now.day() !== summaryDow) {
+          if (userNow.day() !== summaryDow) {
             continue;
           }
 
           const weeklyTime = prefs.weeklySummaryTime || "08:00";
-          if (!isInReminderSendWindow(now, weeklyTime)) {
+          if (!isInReminderSendWindow(userNow, weeklyTime)) {
             continue;
           }
 
           const lastSent = prefs.lastWeeklySummarySent ?
             dayjs.tz(
                 prefs.lastWeeklySummarySent.toDate(),
-                "Europe/Vilnius",
+                tz,
             ) : null;
-          if (lastSent && lastSent.isSame(now, "isoWeek")) {
+          if (lastSent && lastSent.isSame(userNow, "isoWeek")) {
             console.log(
                 `Already sent weekly summary to ${prefs.userEmail} ` +
                 `this ISO week`,
@@ -1062,7 +1136,7 @@ exports.sendWeeklySummary = functions.pubsub
               included,
           );
 
-          const weekData = getTodosForWeekAhead(visibleEvents);
+          const weekData = getTodosForWeekAhead(visibleEvents, tz);
           const totalCount = weekData.overdue.length +
             Object.values(weekData.byDay).reduce(
                 (sum, arr) => sum + arr.length, 0);
@@ -1082,7 +1156,7 @@ exports.sendWeeklySummary = functions.pubsub
             totalCount !== 1 ? "s" : ""} this week. Open the app to view them.`;
           const result = await sendWebPushToUser(userId, title, body, {
             kind: "weekly_summary",
-            openDay: openDayIsoVilnius(0),
+            openDay: openDayInTz(0, tz),
           });
 
           if (result.ok) {

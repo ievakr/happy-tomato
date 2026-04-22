@@ -187,6 +187,7 @@ export default function ContextWrapper(props) {
             userId: currentUser.uid,
             userEmail: currentUser.email,
             reminderIncludedCategories,
+            reminderTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             updatedAt: new Date().toISOString(),
           },
           { merge: true },
