@@ -6,6 +6,7 @@ import { useCalendar } from './hooks/useCalendar';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
 import { useCalendarContext } from './context/CalendarContext';
+import { useResponsive } from './hooks/useResponsive';
 import { useEventContext } from './context/EventContext';
 import { useLayoutContext } from './context/LayoutContext';
 import { getLoadingMessage } from './utils';
@@ -49,6 +50,8 @@ function App() {
   } = useEventContext();
   const { showSidebar } = useLayoutContext();
   const { currentView } = useCalendarContext();
+  const { isMobile } = useResponsive();
+  const gardenMobileImmersive = currentView === 'garden' && isMobile;
   const pushNotifications = usePushNotifications();
   const isOnline = useOnlineStatus();
   const { updateReady, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
@@ -249,15 +252,17 @@ function App() {
                 onDismiss={dismissUpdate}
               />
             )}
-            {/* Application header */}
-            <Suspense fallback={inlineFallback}>
-              <ComponentErrorBoundary
-                componentName="Header"
-                onError={handleError}
-              >
-                <Header />
-              </ComponentErrorBoundary>
-            </Suspense>
+            {/* Application header — hidden on mobile garden for full-bleed map */}
+            {!gardenMobileImmersive && (
+              <Suspense fallback={inlineFallback}>
+                <ComponentErrorBoundary
+                  componentName="Header"
+                  onError={handleError}
+                >
+                  <Header />
+                </ComponentErrorBoundary>
+              </Suspense>
+            )}
             
             {/* Main content area */}
             <main 
@@ -298,7 +303,7 @@ function App() {
                 className={`flex-grow-1 d-flex flex-column${currentView === 'daily' ? ' calendar-section-daily' : ''}`}
                 style={{ 
                   minHeight: 0,
-                  overflow: currentView === 'garden' ? 'auto' : 'hidden',
+                  overflow: gardenMobileImmersive ? 'hidden' : currentView === 'garden' ? 'auto' : 'hidden',
                 }}
                 aria-label={currentView === 'garden' ? 'Garden Planner' : 'Calendar view'}
               >

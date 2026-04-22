@@ -44,7 +44,7 @@ export function useGardenPlan(userId, year) {
     enabled: !!userId && yearStr.length > 0,
   });
 
-  const saveMutation = useMutation({
+  const { mutateAsync, isPending: isSaving } = useMutation({
     mutationFn: async (plan) => {
       const ref = doc(db, 'gardenPlans', userId, 'years', yearStr);
       await setDoc(ref, sanitizePlanForFirestore(plan));
@@ -57,12 +57,9 @@ export function useGardenPlan(userId, year) {
     },
   });
 
-  const savePlan = useCallback(
-    async (planToSave) => {
-      await saveMutation.mutateAsync(planToSave);
-    },
-    [saveMutation],
-  );
+  const savePlan = useCallback(async (planToSave) => {
+    await mutateAsync(planToSave);
+  }, [mutateAsync]);
 
   return {
     plan: query.data,
@@ -70,7 +67,7 @@ export function useGardenPlan(userId, year) {
     isError: query.isError,
     error: query.error,
     savePlan,
-    isSaving: saveMutation.isPending,
+    isSaving,
     refetch: query.refetch,
   };
 }

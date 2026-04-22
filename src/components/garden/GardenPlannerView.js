@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
+import { useLayoutContext } from '../../context/LayoutContext';
 import { useToast } from '../../context/ToastContext';
+import { useResponsive } from '../../hooks/useResponsive';
 import { usePlants } from '../../hooks/usePlants';
 import { useGardenPlan } from '../../hooks/useGardenPlan';
 import {
@@ -13,15 +15,60 @@ import {
 } from '../../utils/gardenPlan';
 import Icon from '../common/Icon';
 
-function clientToWorldMeters(svgEl, clientX, clientY, plotH) {
+/**
+ * Client → viewBox user units (same as <rect> x/y; y down).
+ * Use `ctmSourceEl.getScreenCTM()` (e.g. plot background <rect>), not the root <svg>:
+ * WebKit/WKWebView often omits ancestor CSS transforms from SVGSVGElement.getScreenCTM(),
+ * which breaks mapping under rotated parents (finger vs plot axes misaligned).
+ */
+function clientToViewBoxUser(svgEl, ctmSourceEl, clientX, clientY) {
   if (!svgEl?.createSVGPoint) return null;
+  const source = ctmSourceEl?.getScreenCTM ? ctmSourceEl : svgEl;
+  const ctm = source.getScreenCTM?.();
+  if (!ctm) return null;
+  let inv;
+  try {
+    inv = ctm.inverse();
+  } catch {
+    return null;
+  }
   const pt = svgEl.createSVGPoint();
   pt.x = clientX;
   pt.y = clientY;
-  const ctm = svgEl.getScreenCTM();
-  if (!ctm) return null;
-  const p = pt.matrixTransform(ctm.inverse());
-  return { x: p.x, y: plotH - p.y };
+  return pt.matrixTransform(inv);
+}
+
+/**
+ * Screen (client) → viewBox (u,v), y down, from three calibration points' real painted positions.
+ * getBoundingClientRect() follows the true CSS transform; fixes "wrong axis" / opposite drag when
+ * ancestor `rotate(90deg)` and `getScreenCTM()` disagree (common on iOS/WKWebView).
+ * @returns {(clientX: number, clientY: number) => { x: number; y: number } | null} | null
+ */
+function buildClientToViewBoxFromBcr(refs, plotWidthM, plotHeightM) {
+  const c00 = refs.r00?.getBoundingClientRect();
+  const cW0 = refs.rW0?.getBoundingClientRect();
+  const c0H = refs.r0H?.getBoundingClientRect();
+  if (!c00 || !cW0 || !c0H) return null;
+  const pw = Number(plotWidthM);
+  const ph = Number(plotHeightM);
+  if (!Number.isFinite(pw) || !Number.isFinite(ph) || pw <= 0 || ph <= 0) return null;
+  const s00 = { x: c00.left + c00.width / 2, y: c00.top + c00.height / 2 };
+  const sW0 = { x: cW0.left + cW0.width / 2, y: cW0.top + cW0.height / 2 };
+  const s0H = { x: c0H.left + c0H.width / 2, y: c0H.top + c0H.height / 2 };
+  const a = (sW0.x - s00.x) / pw;
+  const b = (s0H.x - s00.x) / ph;
+  const c = (sW0.y - s00.y) / pw;
+  const dM = (s0H.y - s00.y) / ph;
+  const det = a * dM - b * c;
+  if (Math.abs(det) < 1e-10) return null;
+  return (clientX, clientY) => {
+    const dx = clientX - s00.x;
+    const dy = clientY - s00.y;
+    const u = (dM * dx - b * dy) / det;
+    const v = (-c * dx + a * dy) / det;
+    if (!Number.isFinite(u) || !Number.isFinite(v)) return null;
+    return { x: u, y: v };
+  };
 }
 
 const YEAR_RANGE = 15;
@@ -42,12 +89,16 @@ export default function GardenPlannerView() {
   const { currentUser } = useAuth();
   const userId = currentUser?.uid;
   const { showError, showSuccess } = useToast();
+  const { setShowSidebar } = useLayoutContext();
+  const { isMobile } = useResponsive();
   const { plants, plantIdToDisplayName } = usePlants(userId);
 
   const currentCalendarYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState(currentCalendarYear);
   const yearStr = String(selectedYear);
   const [selectedBedId, setSelectedBedId] = useState(null);
+  /** Visual highlight while dragging — avoids setSelectedBedId on pointerdown (re-render would reset the SVG / transform). */
+  const [activeDragBedId, setActiveDragBedId] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [plantPickerOpen, setPlantPickerOpen] = useState(false);
 
@@ -58,6 +109,7 @@ export default function GardenPlannerView() {
   useEffect(() => {
     skipSaveRef.current = true;
     setSelectedBedId(null);
+    setActiveDragBedId(null);
     setIsEditMode(false);
     setPlantPickerOpen(false);
   }, [yearStr]);
@@ -77,6 +129,32 @@ export default function GardenPlannerView() {
 
   const dragRef = useRef(null);
   const svgRef = useRef(null);
+  /** Plot fill <rect> — stable CTM for client→viewBox (see clientToViewBoxUser). */
+  const plotBgRef = useRef(null);
+  /** Invisible calibrators at (0,0), (W,0), (0,H) for BCR-based screen → viewBox. */
+  const plotCal00Ref = useRef(null);
+  const plotCalW0Ref = useRef(null);
+  const plotCal0HRef = useRef(null);
+  /** @type {React.MutableRefObject<Map<string, SVGGElement>>} */
+  const bedGroupRefs = useRef(new Map());
+  const mobileLandscapeStageRef = useRef(null);
+  const [mobileLandscapeStagePx, setMobileLandscapeStagePx] = useState({ w: 0, h: 0 });
+
+  useLayoutEffect(() => {
+    if (!isMobile) return undefined;
+    const el = mobileLandscapeStageRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const apply = () => {
+      // Use client dimensions (content + padding) so the rotated child matches the inset box. Using
+      // getBoundingClientRect() here while the stage has padding made the child larger than the
+      // available area and clipped the top/edges after rotation.
+      setMobileLandscapeStagePx({ w: el.clientWidth, h: el.clientHeight });
+    };
+    apply();
+    const ro = new ResizeObserver(() => apply());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isMobile]);
 
   useEffect(() => {
     if (!isEditMode) return;
@@ -99,6 +177,40 @@ export default function GardenPlannerView() {
       return typeof updater === 'function' ? updater(base) : updater;
     });
   }, [selectedYear]);
+
+  /** Commit bed position after imperative SVG transform drag. */
+  const stopDragState = useCallback(
+    (e) => {
+      const d = dragRef.current;
+      if (!d) return;
+      d.winCleanup?.();
+      if (d.rafId != null) {
+        cancelAnimationFrame(d.rafId);
+        d.rafId = null;
+      }
+      const gEl = bedGroupRefs.current.get(d.bedId);
+      gEl?.removeAttribute('transform');
+      if (
+        d.lastNx != null &&
+        d.lastNy != null &&
+        (d.lastNx !== d.worldX0 || d.lastNy !== d.worldY0)
+      ) {
+        updatePlan((p) => ({
+          ...p,
+          beds: p.beds.map((b) => (b.id === d.bedId ? { ...b, x: d.lastNx, y: d.lastNy } : b)),
+        }));
+      }
+      setActiveDragBedId(null);
+      setSelectedBedId(d.bedId);
+      const pointerIdToRelease = e?.pointerId ?? d.pointerId;
+      dragRef.current = null;
+      const svg = svgRef.current;
+      if (svg && pointerIdToRelease != null && svg.hasPointerCapture?.(pointerIdToRelease)) {
+        svg.releasePointerCapture(pointerIdToRelease);
+      }
+    },
+    [updatePlan],
+  );
 
   const yearOptions = useMemo(() => {
     const list = [];
@@ -151,45 +263,100 @@ export default function GardenPlannerView() {
 
   const onBedPointerDown = (e, bed) => {
     if (e.button !== 0) return;
+    if (e.pointerType === 'touch' || e.pointerType === 'pen') {
+      e.preventDefault();
+    }
     const svg = svgRef.current;
     if (svg?.setPointerCapture) {
       svg.setPointerCapture(e.pointerId);
     }
     const plotH = localPlan.plotHeightM;
-    const w = clientToWorldMeters(svg, e.clientX, e.clientY, plotH);
-    if (!w) return;
+    const plotWm = localPlan.plotWidthM;
+    const bcrToPlot = buildClientToViewBoxFromBcr(
+      { r00: plotCal00Ref.current, rW0: plotCalW0Ref.current, r0H: plotCal0HRef.current },
+      plotWm,
+      plotH,
+    );
+    const ctmEl = plotBgRef.current || svg;
+    const clientToPlotForDrag =
+      bcrToPlot ||
+      ((clientX, clientY) => clientToViewBoxUser(svg, ctmEl, clientX, clientY));
+    const p0 = clientToPlotForDrag(e.clientX, e.clientY);
+    if (!p0) return;
+    const rx0 = bed.x;
+    const ry0 = plotH - bed.y - bed.heightM;
+    const offX = p0.x - rx0;
+    const offY = p0.y - ry0;
+    setActiveDragBedId(bed.id);
+    const pointerId = e.pointerId;
+    const applyGroupTransform = () => {
+      const dr = dragRef.current;
+      if (!dr) return;
+      const el = bedGroupRefs.current.get(dr.bedId);
+      if (el && dr.lastR1x != null && dr.lastR1y != null) {
+        const tx = dr.lastR1x - dr.rx0;
+        const ty = dr.lastR1y - dr.ry0;
+        el.setAttribute('transform', `translate(${tx},${ty})`);
+      }
+    };
+    const onWinPointerMove = (ev) => {
+      const d = dragRef.current;
+      if (!d || ev.pointerId !== pointerId) return;
+      if (ev.pointerType === 'touch' || ev.pointerType === 'pen') {
+        ev.preventDefault();
+      }
+      const p1 = d.clientToPlot(ev.clientX, ev.clientY);
+      if (!p1) return;
+      let r1x = p1.x - d.offX;
+      let r1y = p1.y - d.offY;
+      r1x = Math.min(Math.max(0, r1x), Math.max(0, d.plotWidthM - d.bedWidthM));
+      r1y = Math.min(Math.max(0, r1y), Math.max(0, d.plotHeightM - d.bedHeightM));
+      d.lastR1x = r1x;
+      d.lastR1y = r1y;
+      d.lastNx = r1x;
+      d.lastNy = d.plotHeightM - r1y - d.bedHeightM;
+      if (d.rafId == null) {
+        d.rafId = requestAnimationFrame(() => {
+          const dr = dragRef.current;
+          if (!dr) return;
+          dr.rafId = null;
+          applyGroupTransform();
+        });
+      }
+    };
+    const onWinPointerEnd = (ev) => {
+      if (ev.pointerId !== pointerId) return;
+      stopDragState(ev);
+    };
+    window.addEventListener('pointermove', onWinPointerMove, { capture: true, passive: false });
+    window.addEventListener('pointerup', onWinPointerEnd, { capture: true });
+    window.addEventListener('pointercancel', onWinPointerEnd, { capture: true });
+    const winCleanup = () => {
+      window.removeEventListener('pointermove', onWinPointerMove, { capture: true });
+      window.removeEventListener('pointerup', onWinPointerEnd, { capture: true });
+      window.removeEventListener('pointercancel', onWinPointerEnd, { capture: true });
+    };
     dragRef.current = {
       bedId: bed.id,
-      grabX: w.x - bed.x,
-      grabY: w.y - bed.y,
+      rx0,
+      ry0,
+      offX,
+      offY,
+      plotWidthM: plotWm,
+      plotHeightM: plotH,
+      bedWidthM: bed.widthM,
+      bedHeightM: bed.heightM,
+      worldX0: bed.x,
+      worldY0: bed.y,
+      lastR1x: rx0,
+      lastR1y: ry0,
+      lastNx: bed.x,
+      lastNy: bed.y,
+      pointerId,
+      rafId: null,
+      winCleanup,
+      clientToPlot: clientToPlotForDrag,
     };
-    setSelectedBedId(bed.id);
-  };
-
-  const onSvgPointerMove = (e) => {
-    const d = dragRef.current;
-    if (!d || !localPlan) return;
-    const svg = svgRef.current;
-    const w = clientToWorldMeters(svg, e.clientX, e.clientY, localPlan.plotHeightM);
-    if (!w) return;
-    let nx = w.x - d.grabX;
-    let ny = w.y - d.grabY;
-    const bed = localPlan.beds.find((b) => b.id === d.bedId);
-    if (!bed) return;
-    nx = Math.min(Math.max(0, nx), Math.max(0, localPlan.plotWidthM - bed.widthM));
-    ny = Math.min(Math.max(0, ny), Math.max(0, localPlan.plotHeightM - bed.heightM));
-    updatePlan((p) => ({
-      ...p,
-      beds: p.beds.map((b) => (b.id === d.bedId ? { ...b, x: nx, y: ny } : b)),
-    }));
-  };
-
-  const endDrag = (e) => {
-    const svg = svgRef.current;
-    if (svg?.hasPointerCapture?.(e.pointerId)) {
-      svg.releasePointerCapture(e.pointerId);
-    }
-    dragRef.current = null;
   };
 
   const updateBedField = (bedId, patch) => {
@@ -329,120 +496,141 @@ export default function GardenPlannerView() {
   const plotW = localPlan?.plotWidthM ?? 10;
   const plotH = localPlan?.plotHeightM ?? 6;
 
-  return (
-    <div className="garden-planner d-flex flex-column flex-md-row flex-grow-1 min-h-0">
-      <div className="flex-grow-1 d-flex flex-column min-h-0 p-2 p-md-3 border-bottom border-md-bottom-0 border-md-end">
-        <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
-          <label className="mb-0 small text-muted" htmlFor="garden-year">
-            Year
-          </label>
-          <select
-            id="garden-year"
-            className="form-select form-select-sm"
-            style={{ maxWidth: '110px' }}
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
+  const mapIslandStyle = isEditMode
+    ? {
+        touchAction: 'none',
+        overscrollBehavior: 'contain',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+      }
+    : {};
+
+  const gardenMapSvg = (
+    <svg
+      ref={svgRef}
+      role="img"
+      aria-label="Garden plot"
+      className="w-100 h-100"
+      style={{ touchAction: isEditMode ? 'none' : undefined, display: 'block' }}
+      viewBox={`0 0 ${plotW} ${plotH}`}
+      preserveAspectRatio="xMidYMid meet"
+      onLostPointerCapture={isEditMode ? (ev) => { if (dragRef.current) stopDragState(ev); } : undefined}
+    >
+      <rect
+        ref={plotBgRef}
+        x={0}
+        y={0}
+        width={plotW}
+        height={plotH}
+        fill="#f4f7f2"
+        stroke="#adb5bd"
+        strokeWidth={0.08}
+      />
+      <circle
+        ref={plotCal00Ref}
+        cx={0}
+        cy={0}
+        r={0.1}
+        fill="transparent"
+        pointerEvents="none"
+        aria-hidden="true"
+      />
+      <circle
+        ref={plotCalW0Ref}
+        cx={plotW}
+        cy={0}
+        r={0.1}
+        fill="transparent"
+        pointerEvents="none"
+        aria-hidden="true"
+      />
+      <circle
+        ref={plotCal0HRef}
+        cx={0}
+        cy={plotH}
+        r={0.1}
+        fill="transparent"
+        pointerEvents="none"
+        aria-hidden="true"
+      />
+      {(localPlan?.beds || []).map((bed) => {
+        const ySvg = plotH - bed.y - bed.heightM;
+        const isSel = bed.id === selectedBedId || bed.id === activeDragBedId;
+        const labelSvg = getBedLabelSvg(bed);
+        return (
+          <g
+            key={bed.id}
+            ref={(el) => {
+              if (el) bedGroupRefs.current.set(bed.id, el);
+              else bedGroupRefs.current.delete(bed.id);
+            }}
           >
-            {yearOptions.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-          {isEditMode ? (
-            <>
-              <button type="button" className="btn btn-sm btn-outline-secondary" onClick={copyFromPreviousYear}>
-                Copy from previous year
-              </button>
-              <button type="button" className="btn btn-sm btn-danger" onClick={addBed}>
-                <Icon name="add" className="me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }} />
-                Add bed
-              </button>
-              <button type="button" className="btn btn-sm btn-outline-primary" onClick={saveNow} disabled={isSaving}>
-                {isSaving ? 'Saving…' : 'Save'}
-              </button>
-            </>
-          ) : (
-            <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => setIsEditMode(true)}>
-              Edit
-            </button>
-          )}
-        </div>
+            <rect
+              x={bed.x}
+              y={ySvg}
+              width={bed.widthM}
+              height={bed.heightM}
+              fill={isSel ? 'rgba(220, 53, 69, 0.18)' : 'rgba(25, 135, 84, 0.15)'}
+              stroke={isSel ? '#dc3545' : '#198754'}
+              strokeWidth={isSel ? 0.12 : 0.06}
+              style={{
+                cursor: isEditMode ? 'grab' : 'pointer',
+                touchAction: isEditMode ? 'none' : 'manipulation',
+              }}
+              onPointerDown={isEditMode ? (e) => onBedPointerDown(e, bed) : undefined}
+              onClick={
+                isEditMode
+                  ? undefined
+                  : (e) => {
+                      e.stopPropagation();
+                      setSelectedBedId(bed.id);
+                    }
+              }
+            />
+            {labelSvg ? (
+              <text
+                x={bed.x + bed.widthM / 2}
+                y={ySvg + bed.heightM / 2}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={labelSvg.fontSize}
+                fontWeight="600"
+                fill="#1a3d2e"
+                pointerEvents="none"
+                style={{ userSelect: 'none' }}
+              >
+                {labelSvg.display}
+              </text>
+            ) : null}
+          </g>
+        );
+      })}
+    </svg>
+  );
 
-        <div className="ratio ratio-4x3 border rounded bg-light flex-grow-1" style={{ minHeight: '220px', maxHeight: '70vh' }}>
-          <div className="d-flex align-items-center justify-content-center p-1 h-100">
-            <svg
-              ref={svgRef}
-              role="img"
-              aria-label="Garden plot"
-              className="w-100 h-100"
-              viewBox={`0 0 ${plotW} ${plotH}`}
-              preserveAspectRatio="xMidYMid meet"
-              onPointerMove={isEditMode ? onSvgPointerMove : undefined}
-              onPointerUp={isEditMode ? endDrag : undefined}
-              onPointerLeave={isEditMode ? endDrag : undefined}
-            >
-              <rect x={0} y={0} width={plotW} height={plotH} fill="#f4f7f2" stroke="#adb5bd" strokeWidth={0.08} />
-              {(localPlan?.beds || []).map((bed) => {
-                const ySvg = plotH - bed.y - bed.heightM;
-                const isSel = bed.id === selectedBedId;
-                const labelSvg = getBedLabelSvg(bed);
-                return (
-                  <g key={bed.id}>
-                    <rect
-                      x={bed.x}
-                      y={ySvg}
-                      width={bed.widthM}
-                      height={bed.heightM}
-                      fill={isSel ? 'rgba(220, 53, 69, 0.18)' : 'rgba(25, 135, 84, 0.15)'}
-                      stroke={isSel ? '#dc3545' : '#198754'}
-                      strokeWidth={isSel ? 0.12 : 0.06}
-                      style={{
-                        cursor: isEditMode ? 'grab' : 'pointer',
-                        touchAction: isEditMode ? 'none' : 'manipulation',
-                      }}
-                      onPointerDown={isEditMode ? (e) => onBedPointerDown(e, bed) : undefined}
-                      onClick={
-                        isEditMode
-                          ? undefined
-                          : (e) => {
-                              e.stopPropagation();
-                              setSelectedBedId(bed.id);
-                            }
-                      }
-                    />
-                    {labelSvg ? (
-                      <text
-                        x={bed.x + bed.widthM / 2}
-                        y={ySvg + bed.heightM / 2}
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fontSize={labelSvg.fontSize}
-                        fontWeight="600"
-                        fill="#1a3d2e"
-                        pointerEvents="none"
-                        style={{ userSelect: 'none' }}
-                      >
-                        {labelSvg.display}
-                      </text>
-                    ) : null}
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
-        </div>
-        <p className="small text-muted mt-2 mb-0">
-          {isEditMode
-            ? 'Drag beds to move. Units: meters; origin is bottom-left of the plot.'
-            : 'Tap a bed to see which plants are in it. Use Edit to change the layout.'}
-        </p>
-      </div>
-
-      <div
-        className="garden-planner-sidebar p-3 d-flex flex-column gap-3"
-        style={{ width: '100%', maxWidth: '380px', overflowY: 'auto' }}
+  const editToolbar = (
+    <>
+      <button type="button" className="btn btn-sm btn-outline-secondary" onClick={copyFromPreviousYear}>
+        Copy from previous year
+      </button>
+      <button type="button" className="btn btn-sm btn-danger" onClick={addBed}>
+        <Icon name="add" className="me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }} />
+        Add bed
+      </button>
+      <button
+        type="button"
+        className="btn btn-sm btn-outline-primary"
+        style={{ minWidth: '6.25rem' }}
+        onClick={saveNow}
+        disabled={isSaving}
       >
+        {isSaving ? 'Saving…' : 'Save'}
+      </button>
+    </>
+  );
+
+  const sidebarBody = (
+    <>
         <section className="border rounded-3 bg-light p-3">
           <h3 className="h6 mb-3 pb-2 border-bottom small text-uppercase text-secondary fw-semibold">
             Plot
@@ -651,7 +839,235 @@ export default function GardenPlannerView() {
             {isEditMode ? 'Tap or click a bed to select it and edit details.' : 'Tap a bed on the map to see its plants.'}
           </p>
         )}
+    </>
+  );
+
+  const touchScrollProps = {
+    WebkitOverflowScrolling: 'touch',
+    overscrollBehavior: 'contain',
+  };
+
+  const mobileMapMinHeightPx =
+    isMobile && mobileLandscapeStagePx.h > 0
+      ? Math.min(
+          Math.ceil((mobileLandscapeStagePx.h * plotH) / Math.max(plotW, 0.01)) + 16,
+          2000,
+        )
+      : undefined;
+
+  const isMobileRotated =
+    isMobile && mobileLandscapeStagePx.w > 0 && mobileLandscapeStagePx.h > 0;
+
+  const mobileColumnInner = (
+    <div
+      className="d-flex flex-column w-100 bg-white"
+      style={{
+        // Rotated 90°: top padding in this box does not line up with the physical top — use stage insets + nudge on the rotator instead.
+        paddingTop: isMobileRotated ? 0 : 'env(safe-area-inset-top, 0px)',
+        minHeight: '100%',
+      }}
+    >
+      <div className="d-flex align-items-center gap-2 px-2 py-2 border-bottom flex-shrink-0">
+        <button
+          type="button"
+          className="btn btn-sm btn-outline-secondary flex-shrink-0"
+          onClick={() => setShowSidebar(true)}
+          aria-label="Open menu"
+        >
+          <span className="material-icons-outlined" style={{ fontSize: '1.15rem', verticalAlign: 'middle' }}>
+            menu
+          </span>
+        </button>
+        <label className="mb-0 small text-muted flex-shrink-0" htmlFor="garden-year-mobile">
+          Year
+        </label>
+        <select
+          id="garden-year-mobile"
+          className="form-select form-select-sm flex-grow-1"
+          style={{ minWidth: 0 }}
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(Number(e.target.value))}
+        >
+          {yearOptions.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+        {!isEditMode ? (
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-danger flex-shrink-0"
+            onClick={() => setIsEditMode(true)}
+          >
+            Edit
+          </button>
+        ) : null}
       </div>
+
+      <div className="position-relative flex-grow-1 min-h-0 d-flex flex-column">
+        {isEditMode ? (
+          <div
+            className="position-absolute top-0 start-0 end-0 bottom-0 bg-dark"
+            style={{ opacity: 0.12, pointerEvents: 'none', zIndex: 5 }}
+            aria-hidden
+          />
+        ) : null}
+        <div
+          className="flex-grow-1 min-h-0 d-flex bg-light border border-top-0"
+          style={{
+            ...mapIslandStyle,
+            ...(mobileMapMinHeightPx ? { minHeight: mobileMapMinHeightPx, flexShrink: 0 } : {}),
+          }}
+        >
+          <div className="d-flex align-items-center justify-content-center p-1 flex-grow-1 min-h-0 w-100">
+            {gardenMapSvg}
+          </div>
+        </div>
+
+        {isEditMode ? (
+          <div
+            className="position-absolute top-0 end-0 h-100 bg-white border-start shadow d-flex flex-column"
+            style={{
+              width: 'min(45%, 360px)',
+              zIndex: 10,
+              maxWidth: '100%',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
+          >
+            <div className="d-flex align-items-center justify-between gap-2 border-bottom px-3 py-2 flex-shrink-0">
+              <span className="fw-semibold small">Edit garden</span>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => setIsEditMode(false)}
+                aria-label="Close editor"
+              >
+                <span className="material-icons-outlined" style={{ fontSize: '1.1rem', verticalAlign: 'middle' }}>
+                  close
+                </span>
+              </button>
+            </div>
+            <div className="d-flex flex-wrap gap-2 p-3 border-bottom flex-shrink-0">{editToolbar}</div>
+            <div
+              className="flex-grow-1 overflow-auto p-3 d-flex flex-column gap-3"
+              style={{
+                minHeight: 0,
+                touchAction: 'pan-y',
+                ...touchScrollProps,
+              }}
+            >
+              {sidebarBody}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+
+  return (
+    <div
+      className={`garden-planner d-flex flex-grow-1 min-h-0 w-100 ${
+        isMobile ? 'flex-column h-100' : 'flex-column flex-md-row'
+      }`}
+    >
+      {/* Desktop / tablet: toolbar + map + sidebar (breakpoint matches useResponsive / immersive header) */}
+      {!isMobile ? (
+        <>
+      <div className="flex-grow-1 d-flex flex-column min-h-0 p-2 p-md-3 border-bottom border-md-bottom-0 border-md-end">
+        <div className="d-flex flex-wrap align-items-center gap-2 mb-2">
+          <label className="mb-0 small text-muted" htmlFor="garden-year-desktop">
+            Year
+          </label>
+          <select
+            id="garden-year-desktop"
+            className="form-select form-select-sm"
+            style={{ maxWidth: '110px' }}
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+          >
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+          {isEditMode ? editToolbar : (
+            <button type="button" className="btn btn-sm btn-outline-danger" onClick={() => setIsEditMode(true)}>
+              Edit
+            </button>
+          )}
+        </div>
+
+        <div
+          className="ratio ratio-4x3 border rounded bg-light flex-grow-1"
+          style={{
+            minHeight: '220px',
+            maxHeight: '70vh',
+            ...mapIslandStyle,
+          }}
+        >
+          <div className="d-flex align-items-center justify-content-center p-1 h-100">{gardenMapSvg}</div>
+        </div>
+        <p className="small text-muted mt-2 mb-0">
+          {isEditMode
+            ? 'Drag beds to move. Units: meters; origin is bottom-left of the plot.'
+            : 'Tap a bed to see which plants are in it. Use Edit to change the layout.'}
+        </p>
+      </div>
+
+      <div
+        className="garden-planner-sidebar d-flex p-3 flex-column gap-3"
+        style={{ width: '100%', maxWidth: '380px', overflowY: 'auto' }}
+      >
+        {sidebarBody}
+      </div>
+        </>
+      ) : null}
+
+      {/* Mobile: entire planner (chrome + map + drawer) rotated 90° as one horizontal “tabletop” */}
+      {isMobile ? (
+        <div
+          ref={mobileLandscapeStageRef}
+          className="flex-grow-1 min-h-0 w-100 position-relative"
+          style={{
+            minHeight: 0,
+            boxSizing: 'border-box',
+            // Child uses transform: rotate(90°). In this parent (not rotated), the phone’s status / notch band
+            // (env(safe-area-inset-top)) should apply on horizontal insets, not paddingTop, or the nudge “vertical in
+            // the app” reads as a sideways slide in the tabletop layout. Split the top inset between L/R so the
+            // canvas clears the earpiece strip without shoving the whole view along the long axis the wrong way.
+            paddingTop: 0,
+            paddingLeft: 'max(0.5rem, env(safe-area-inset-left, 0px), calc(0.5 * env(safe-area-inset-top, 0px) + 0.25rem))',
+            paddingRight: 'max(0.5rem, env(safe-area-inset-right, 0px), calc(0.5 * env(safe-area-inset-top, 0px) + 0.25rem))',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            // Let the rotated “tabletop” paint without clipping; main still has overflow hidden.
+            overflow: 'visible',
+          }}
+        >
+          {mobileLandscapeStagePx.w > 0 && mobileLandscapeStagePx.h > 0 ? (
+            <div
+              style={{
+                position: 'absolute',
+                // Center the rotator: horizontal/vertical insets (above) handle safe areas for a 90° child.
+                left: '50%',
+                top: '50%',
+                width: mobileLandscapeStagePx.h,
+                height: mobileLandscapeStagePx.w,
+                transform: 'translate(-50%, -50%) rotate(90deg)',
+                transformOrigin: 'center center',
+                overflowX: 'hidden',
+                overflowY: 'auto',
+                ...touchScrollProps,
+              }}
+            >
+              {mobileColumnInner}
+            </div>
+          ) : (
+            mobileColumnInner
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

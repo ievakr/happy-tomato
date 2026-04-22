@@ -9,6 +9,8 @@ const config: CapacitorConfig = {
   // 'never' lets the document fill the webview; use CSS env(safe-area-inset-*) (viewport-fit=cover).
   ios: {
     contentInset: 'never',
+    // Native target / Xcode scheme name (project file stays App.xcodeproj for Capacitor CLI).
+    scheme: 'Happy Tomato',
   },
   plugins: {
     FirebaseMessaging: {
