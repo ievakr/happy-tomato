@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useCallback } from 'react';
 import logo from '../../assets/logo.png';
 import CalendarContext from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
-import { getCurrentWeekIndex } from '../../utils';
+import { getCurrentWeekIndex, calendarDateFromMonthIndex } from '../../utils';
 import { useResponsive } from '../../hooks/useResponsive';
 import UserMenu from '../auth/UserMenu';
 
@@ -41,6 +41,10 @@ export default function Header() {
         if (currentView === 'garden') {
             return;
         }
+        if (!isMobile && currentView === 'year') {
+            setCurrentView('month');
+            return;
+        }
         if (!isMobile && currentView === 'daily') {
             // Switch to week view when going from mobile to desktop
             switchToWeekView();
@@ -48,7 +52,7 @@ export default function Header() {
             // Switch to daily view when going from desktop to mobile (unless in month view)
             switchToDailyView();
         }
-    }, [isMobile, currentView, switchToDailyView, switchToWeekView]);
+    }, [isMobile, currentView, setCurrentView, switchToDailyView, switchToWeekView]);
     
     function applyMonthChange(newMonth) {
         setMonthIndex(newMonth);
@@ -60,8 +64,9 @@ export default function Header() {
         if (currentView === 'daily') {
             const currentDay = daySelected || dayjs();
             const dayOfMonth = currentDay.date();
-            // Try to set the same day of month, dayjs will handle invalid dates
-            const newDay = dayjs(new Date(dayjs().year(), newMonth, dayOfMonth));
+            const refYear = dayjs().year();
+            const dim = dayjs(new Date(refYear, newMonth, 1)).daysInMonth();
+            const newDay = dayjs(new Date(refYear, newMonth, Math.min(dayOfMonth, dim)));
             setDaySelected(newDay);
         }
     }
@@ -82,6 +87,28 @@ export default function Header() {
     function switchToMonthView() {
         setCurrentView('month');
     }
+
+    /** Mobile: one control for day → month → year (iPhone Calendar–style), replacing the icon toggle. */
+    const mobileCalendarHierarchyYear = calendarDateFromMonthIndex(monthIndex).year();
+    const mobileNavMonthName = (daySelected || dayjs()).format('MMMM');
+    const handleMobileCalendarNav = () => {
+        if (currentView === 'garden') return;
+        if (currentView === 'daily') {
+            setCurrentView('month');
+        } else if (currentView === 'month') {
+            setCurrentView('year');
+        }
+    };
+    const mobileCalendarNavLabel =
+        currentView === 'month'
+            ? `< ${mobileCalendarHierarchyYear}`
+            : `< ${mobileNavMonthName}`;
+    const mobileCalendarNavTitle =
+        currentView === 'daily'
+            ? `Month view — ${mobileNavMonthName}`
+            : currentView === 'month'
+              ? `Year ${mobileCalendarHierarchyYear}`
+              : 'Calendar';
 
     const handlePrevWeek = () => {
         if (weekIndex > 0) {
@@ -123,33 +150,20 @@ export default function Header() {
                             </span>
                         </div>
                         
-                        {/* Right side: View buttons and settings */}
+                        {/* Right side: Month/year drill-down + settings (day view is default on mobile) */}
                         <div className="d-flex align-items-center gap-1">
-                            <div className="btn-group flex-shrink-0" role="group" aria-label="Calendar view">
-                                <button 
-                                    className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
-                                    onClick={switchToMonthView}
-                                    title="Month view"
-                                    aria-label="Month view"
-                                    style={{ width: '30px', height: '30px' }}
+                            {currentView !== 'garden' && currentView !== 'year' && (
+                                <button
+                                    type="button"
+                                    className="calendar-header-mobile-calendar-nav btn btn-sm flex-shrink-0 text-nowrap"
+                                    onClick={handleMobileCalendarNav}
+                                    title={mobileCalendarNavTitle}
+                                    aria-label={mobileCalendarNavTitle}
                                 >
-                                    <span className="material-icons-outlined" style={{ fontSize: '0.85rem', lineHeight: '1' }}>
-                                        calendar_view_month
-                                    </span>
+                                    {mobileCalendarNavLabel}
                                 </button>
-                                <button 
-                                    className={`btn btn-sm ${currentView === 'daily' ? 'btn-danger' : 'btn-outline-danger'}`}
-                                    onClick={switchToDailyView}
-                                    title="Daily view"
-                                    aria-label="Daily view"
-                                    style={{ width: '30px', height: '30px' }}
-                                >
-                                    <span className="material-icons-outlined" style={{ fontSize: '0.85rem', lineHeight: '1' }}>
-                                        today
-                                    </span>
-                                </button>
-                            </div>
-                            
+                            )}
+
                             {/* User menu */}
                             <div className="flex-shrink-0">
                                 <UserMenu />

@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import React, { memo, useContext } from 'react';
 import CalendarContext from '../../context/CalendarContext';
 import { useResponsive } from '../../hooks';
-import { getDayHeaders } from '../../utils';
+import { getDayHeaders, calendarDateFromMonthIndex } from '../../utils';
 
 /**
  * Calendar header component that displays day names starting from Monday
@@ -11,6 +11,8 @@ const CalendarHeader = memo(() => {
   const dayHeaders = getDayHeaders('short');
   const { monthIndex, setMonthIndex } = useContext(CalendarContext);
   const { isMobile } = useResponsive();
+
+  const monthAnchor = calendarDateFromMonthIndex(monthIndex);
 
   const handlePrevMonth = () => setMonthIndex(monthIndex - 1);
   const handleNextMonth = () => setMonthIndex(monthIndex + 1);
@@ -31,7 +33,7 @@ const CalendarHeader = memo(() => {
             </span>
           </button>
           <span className="calendar-month-label">
-            {dayjs(new Date(dayjs().year(), monthIndex)).format('MMMM YYYY')}
+            {monthAnchor.format('MMMM YYYY')}
           </span>
           <button
             className="btn btn-sm btn-light"

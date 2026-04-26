@@ -33,6 +33,17 @@ html.capacitor-ios-native #root {
   flex-direction: column;
 }
 
+/*
+ * iOS Safari / WKWebView: focusing an input with computed font-size under 16px auto-zooms the page.
+ * Bootstrap .form-control-sm uses 0.875rem (~14px). Use at least 1rem in modals on narrow viewports.
+ */
+@media (max-width: 991.98px) {
+  .modal .form-control-sm,
+  .modal .form-select.form-select-sm {
+    font-size: 1rem;
+  }
+}
+
 /* Whole app: sit above home indicator (viewport-fit=cover) */
 .app-shell {
   padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -283,6 +294,10 @@ html.capacitor-ios-native .calendar-header {
     min-height: 72px;
     /* Avoid iOS/WKWebView sticking :hover after horizontal scroll (looked like random gray cells) */
     -webkit-tap-highlight-color: transparent;
+    /* Prevent long-press text selection / Copy–Look Up menu on the date strip (iOS Safari) */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
 }
 
 /* Real pointing devices only — touch UIs keep “hover” on the wrong day after panning */
@@ -354,6 +369,42 @@ html.capacitor-ios-native .calendar-header {
     background-color: #f8f9fa;
 }
 
+/* Day view: complete / restore to-do control (left of each row) */
+.daily-todo-complete-circle {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 50%;
+    border: 1.5px solid #adb5bd;
+    background: transparent;
+    padding: 0;
+    flex-shrink: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.daily-todo-complete-circle__check {
+    font-size: 12px;
+    line-height: 1;
+    color: #fff;
+    pointer-events: none;
+}
+
+.daily-todo-complete-circle--done {
+    border-color: #198754;
+    background-color: #198754;
+}
+
+.daily-todo-complete-circle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .daily-events {
     overflow-y: auto;
     overflow-x: hidden;
@@ -403,6 +454,25 @@ html.capacitor-ios-native .calendar-header {
     display: inline-flex !important;
     align-items: center !important;
     justify-content: flex-start !important;
+}
+
+/* Mobile scope control: stay outline + grey text (avoid BS solid fill on hover/active after navigating views) */
+.calendar-header .calendar-header-mobile-calendar-nav {
+    color: var(--bs-secondary-color, #6c757d);
+    background-color: #fff;
+    border: 1px solid var(--bs-secondary, #6c757d);
+}
+.calendar-header .calendar-header-mobile-calendar-nav:hover {
+    color: #495057;
+    background-color: #fff;
+    border-color: #495057;
+}
+.calendar-header .calendar-header-mobile-calendar-nav:active,
+.calendar-header .calendar-header-mobile-calendar-nav:focus-visible {
+    color: #495057;
+    background-color: #fff;
+    border-color: #495057;
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.25);
 }
 
 /* Specific fix for header buttons */
@@ -479,6 +549,9 @@ html.capacitor-ios-native .calendar-header {
         scroll-behavior: auto;
         touch-action: pan-x;
         overscroll-behavior-x: contain;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
     }
 
     .daily-week-day {

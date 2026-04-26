@@ -46,7 +46,6 @@ jest.mock('../services/notificationService', () => ({
 }));
 
 // Mock recurring actions hook
-const mockCompleteTodo = jest.fn();
 const mockCreateActionWithRecurringTodos = jest.fn();
 const mockUpdateEventWithRecurringRecalculation = jest.fn();
 const mockDeleteRecurringTodosForEvent = jest.fn();
@@ -57,7 +56,6 @@ const mockIsTodoEvent = jest.fn((event) => {
 jest.mock('../hooks', () => ({
   useRecurringActions: () => ({
     createActionWithRecurringTodos: mockCreateActionWithRecurringTodos,
-    completeTodo: mockCompleteTodo,
     isTodoEvent: mockIsTodoEvent,
     updateEventWithRecurringRecalculation: mockUpdateEventWithRecurringRecalculation,
     deleteRecurringTodosForEvent: mockDeleteRecurringTodosForEvent,
@@ -203,8 +201,8 @@ describe('E2E: Critical User Flows', () => {
     });
   });
 
-  describe('Flow: Complete TODO', () => {
-    test('should complete a TODO event', async () => {
+  describe('Flow: Edit TODO (complete from day list, not modal)', () => {
+    test('event modal does not offer Complete for a TO DO', () => {
       const todoEvent = {
         id: 'todo-1',
         title: 'TO DO: Water',
@@ -215,75 +213,12 @@ describe('E2E: Critical User Flows', () => {
         isRecurringTodo: true,
       };
 
-      const { contextValue } = renderEventModal({
-        selectedEvent: todoEvent,
-      });
-
-      // Complete button should be visible
-      const completeButton = screen.getByRole('button', { name: /complete to do/i });
-      expect(completeButton).toBeInTheDocument();
-
-      // Click complete
-      userEvent.click(completeButton);
-
-      // Confirmation modal should appear
-      await waitFor(() => {
-        expect(screen.getByText(/mark this to do as completed/i)).toBeInTheDocument();
-      });
-
-      // Confirm completion
-      const confirmButton = screen.getByRole('button', { name: /^complete$/i });
-      userEvent.click(confirmButton);
-
-      // completeTodo should be called
-      await waitFor(() => {
-        expect(mockCompleteTodo).toHaveBeenCalledWith(todoEvent);
-      });
-
-      // Modal should close
-      await waitFor(() => {
-        expect(contextValue.setShowEventModal).toHaveBeenCalledWith(false);
-      });
-    });
-
-    test('should cancel TODO completion', async () => {
-      const todoEvent = {
-        id: 'todo-2',
-        title: 'TO DO: Fertilize',
-        description: 'Weekly fertilizer',
-        day: dayjs().valueOf(),
-        toDo: 'TO DO: Fertilize',
-        labels: ['Roses'],
-        isRecurringTodo: true,
-      };
-
       renderEventModal({
         selectedEvent: todoEvent,
       });
 
-      // Click complete
-      const completeButton = screen.getByRole('button', { name: /complete to do/i });
-      userEvent.click(completeButton);
-
-      // Wait for confirmation modal
-      await waitFor(() => {
-        expect(screen.getByText(/mark this to do as completed/i)).toBeInTheDocument();
-      });
-
-      // Click cancel
-      const cancelButton = screen.getByRole('button', { name: /cancel/i });
-      userEvent.click(cancelButton);
-
-      // Confirmation modal should close, main modal should still be open
-      await waitFor(() => {
-        expect(screen.queryByText(/mark this to do as completed/i)).not.toBeInTheDocument();
-      });
-
-      // Main form should still be there
-      expect(screen.getByRole('form')).toBeInTheDocument();
-
-      // completeTodo should NOT be called
-      expect(mockCompleteTodo).not.toHaveBeenCalled();
+      expect(screen.queryByRole('button', { name: /complete to do/i })).not.toBeInTheDocument();
+      expect(screen.queryByText(/mark this to do as completed/i)).not.toBeInTheDocument();
     });
   });
 

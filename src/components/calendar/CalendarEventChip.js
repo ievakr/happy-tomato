@@ -43,6 +43,8 @@ export default function CalendarEventChip({
   listMode = false,
   /** Bulk-edit row selected (daily view): use success tint instead of primary */
   bulkEditSelected = false,
+  /** When true (e.g. day list with external complete circle), omit leading status icon */
+  hideLeadingStatusIcon = false,
 }) {
   const { isTodoEvent } = useRecurringActions();
   const { isMobile } = useResponsive();
@@ -71,13 +73,15 @@ export default function CalendarEventChip({
       title={titleText}
     >
       <div className="d-flex align-items-center w-100">
-        <Icon
-          name={getEventIconName(evt, isTodoEvent)}
-          className="me-1"
-          style={{ fontSize: '12px' }}
-        />
+        {!hideLeadingStatusIcon && (
+          <Icon
+            name={getEventIconName(evt, isTodoEvent)}
+            className="me-1"
+            style={{ fontSize: '12px' }}
+          />
+        )}
         <div
-          className="d-flex flex-wrap align-items-center flex-grow-1"
+          className={`d-flex flex-wrap align-items-center flex-grow-1${evt.completed ? ' text-decoration-line-through' : ''}`}
           style={{ maxWidth: '100%', wordWrap: 'break-word' }}
         >
           {evt.toDo && !evt.title && (

@@ -2,7 +2,14 @@ import React, { useContext, useEffect, useState } from 'react';
 import dayjs from 'dayjs';
 import CalendarContext from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
-import { getWeekByIndex, getWeekDateRange, getDayHeaders, getCurrentWeekIndex } from '../../utils';
+import {
+  getWeekByIndex,
+  getWeekDateRange,
+  getDayHeaders,
+  getCurrentWeekIndex,
+  monthIndexFromCalendarDate,
+  calendarDateFromMonthIndex,
+} from '../../utils';
 import { useResponsive, useSwipeGestures } from '../../hooks';
 import { useToast } from '../../context/ToastContext';
 import { ConfirmModal } from '../common';
@@ -39,8 +46,9 @@ const WeeklyView = () => {
 
   const handleToday = () => {
     const now = dayjs();
-    setMonthIndex(now.month());
-    setWeekIndex(getCurrentWeekIndex(now.month(), now));
+    const idx = monthIndexFromCalendarDate(now);
+    setMonthIndex(idx);
+    setWeekIndex(getCurrentWeekIndex(idx, now));
   };
 
   const {
@@ -132,9 +140,8 @@ const WeeklyView = () => {
       : '';
   };
 
-  const isCurrentMonth = (day) => {
-    return day.month() === monthIndex;
-  };
+  const weekMonthAnchor = calendarDateFromMonthIndex(monthIndex);
+  const isCurrentMonth = (day) => day.isSame(weekMonthAnchor, 'month');
 
   if (isInitialLoading) {
     return (

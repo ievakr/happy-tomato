@@ -49,8 +49,6 @@ export const createWrapper = (contextValue = {}) => {
     loadingOperation: null,
     bulkEditMode: false,
     setBulkEditMode: jest.fn(),
-    bulkApplyMode: false,
-    setBulkApplyMode: jest.fn(),
     bulkSelectedEventIds: [],
     setBulkSelectedEventIds: jest.fn(),
     toggleBulkEventSelection: jest.fn(),

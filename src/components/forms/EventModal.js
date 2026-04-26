@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect, useRef } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import CalendarContext from "../../context/CalendarContext";
 import { useEventContext } from "../../context/EventContext";
 import { useToast } from "../../context/ToastContext";
@@ -11,18 +11,13 @@ import CustomDropdown from "../common/CustomDropdown";
 import { Modal, ConfirmModal } from "../common";
 import { useRecurringActions, useSavedTodos } from "../../hooks";
 import TodoCombobox from "../common/TodoCombobox";
-import { EVENT_ACTIONS } from "../../constants";
 
-function getTodoLineFromEvent(evt) {
-    if (!evt) return '';
-    if (evt.toDo) {
-        return Array.isArray(evt.toDo) ? evt.toDo.join(', ') : String(evt.toDo);
-    }
-    if (evt.title && typeof evt.title === 'string' && evt.title.startsWith('TO DO:')) {
-        return evt.title;
-    }
-    return '';
-}
+/** Calendar-only typing path; `inputMode: none` + readOnly on the inner input reduces iOS keyboard after picking a date. (Widget `readOnly` would block calendar updates.) */
+const RW_DATE_PICKER_INPUT_PROPS = {
+    readOnly: true,
+    inputMode: "none",
+    autoComplete: "off",
+};
 
 export default function EventModal() {
     const { daySelected } = useContext(CalendarContext);
@@ -36,11 +31,8 @@ export default function EventModal() {
         plantNames,
         displayNameToPlantId,
         plantIdToDisplayName,
-        filteredEvents,
-        bulkApplyMode,
-        bulkSelectedEventIds,
     } = useEventContext(); 
-    const { createActionWithRecurringTodos, completeTodo, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
+    const { createActionWithRecurringTodos, isTodoEvent, updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } = useRecurringActions();
     const { savedItems: savedTodoItems, addItem: addSavedTodo } = useSavedTodos();
     const { showError } = useToast();
     const [description, setDescription] = useState("");
@@ -49,8 +41,6 @@ export default function EventModal() {
     const [title, setTitle] = useState("");
     const [todoText, setTodoText] = useState("");
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
-    const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
     const [isRecurring, setIsRecurring] = useState(false);
     const [recurringInterval, setRecurringInterval] = useState(7);
@@ -59,103 +49,8 @@ export default function EventModal() {
     const [recurringEndType, setRecurringEndType] = useState('count');
     const [recurringUntilDate, setRecurringUntilDate] = useState(() => dayjs().add(1, 'month').toDate());
 
-    const isBulkApply = bulkApplyMode && bulkSelectedEventIds.length > 0;
-
-    /** Only reset bulk form state when the bulk selection (or bulk mode) changes — not when `filteredEvents` refetches. */
-    const lastBulkSessionKeyRef = useRef(null);
-
     // Initialize component state when modal opens
     useEffect(() => {
-        const bulkSessionKey =
-            isBulkApply && bulkSelectedEventIds.length > 0
-                ? [...bulkSelectedEventIds].sort().join(',')
-                : '';
-
-        const firstBulk =
-            isBulkApply && bulkSelectedEventIds.length > 0 && filteredEvents?.length
-                ? filteredEvents.find((e) => e.id === bulkSelectedEventIds[0])
-                : null;
-
-        if (isBulkApply && bulkSelectedEventIds.length > 0) {
-            if (!firstBulk) {
-                return;
-            }
-            if (lastBulkSessionKeyRef.current === bulkSessionKey) {
-                return;
-            }
-            lastBulkSessionKeyRef.current = bulkSessionKey;
-
-            if (daySelected) {
-                setSelectedDate(daySelected.toDate());
-            } else {
-                setSelectedDate(new Date(firstBulk.day));
-            }
-            const labelDisplayNames = (firstBulk.labels || []).map(
-                (id) => (plantIdToDisplayName && plantIdToDisplayName[id]) || id
-            );
-            setSelectedLabels(labelDisplayNames);
-            const isTodoEvent =
-                firstBulk.isRecurringTodo ||
-                (firstBulk.title && typeof firstBulk.title === 'string' && firstBulk.title.startsWith('TO DO:')) ||
-                firstBulk.toDo;
-            if (isTodoEvent) {
-                const todoValue = firstBulk.toDo
-                    ? Array.isArray(firstBulk.toDo)
-                        ? firstBulk.toDo.join(', ')
-                        : firstBulk.toDo
-                    : firstBulk.title && firstBulk.title.startsWith('TO DO:')
-                      ? firstBulk.title
-                      : '';
-                const displayTodo = todoValue.replace(/^TO DO:\s*/i, '').trim() || todoValue;
-                setTodoText(displayTodo);
-                setTitle(firstBulk.title || todoValue);
-            } else {
-                const legacyText = firstBulk.actions?.length
-                    ? firstBulk.actions.join(', ')
-                    : firstBulk.title || '';
-                setTodoText(legacyText);
-                setTitle(firstBulk.title || legacyText);
-            }
-            setDescription(firstBulk.description || '');
-            if (firstBulk.userRecurringConfig) {
-                setIsRecurring(true);
-                setRecurringInterval(firstBulk.userRecurringConfig.interval || 7);
-                const cfg = firstBulk.userRecurringConfig;
-                const useUntil =
-                    cfg.endType === 'count'
-                        ? false
-                        : cfg.endType === 'until'
-                          ? cfg.untilDate != null
-                          : cfg.untilDate != null;
-                if (useUntil && cfg.untilDate != null) {
-                    setRecurringEndType('until');
-                    setRecurringUntilDate(new Date(cfg.untilDate));
-                } else {
-                    setRecurringEndType('count');
-                    setRecurringMaxOccurrences(cfg.maxOccurrences || 2);
-                    setRecurringUntilDate(dayjs(firstBulk.day).add(1, 'month').toDate());
-                }
-            } else if (firstBulk.recurringInterval) {
-                setIsRecurring(true);
-                setRecurringInterval(firstBulk.recurringInterval || 7);
-                setRecurringEndType('count');
-                setRecurringMaxOccurrences(2);
-                setRecurringUntilDate(dayjs(firstBulk.day).add(1, 'month').toDate());
-            } else {
-                setIsRecurring(false);
-                setRecurringInterval(7);
-                setRecurringMaxOccurrences(2);
-                setRecurringEndType('count');
-                setRecurringUntilDate(dayjs(firstBulk.day).add(1, 'month').toDate());
-            }
-            setShowDeleteConfirm(false);
-            setShowBulkDeleteConfirm(false);
-            setShowCompleteConfirm(false);
-            return;
-        }
-
-        lastBulkSessionKeyRef.current = null;
-
         // Set the date from daySelected
         if (daySelected) {
             setSelectedDate(daySelected.toDate());
@@ -241,17 +136,11 @@ export default function EventModal() {
         }
         // Reset confirmation states
         setShowDeleteConfirm(false);
-        setShowBulkDeleteConfirm(false);
-        setShowCompleteConfirm(false);
     }, [
         selectedEvent,
         daySelected,
         setDosage,
         plantIdToDisplayName,
-        isBulkApply,
-        bulkSelectedEventIds,
-        filteredEvents,
-        bulkApplyMode,
     ]);
 
     function handleTodoChange(value) {
@@ -297,133 +186,8 @@ export default function EventModal() {
         }
     }
 
-    async function handleBulkDelete() {
-        try {
-            for (const id of bulkSelectedEventIds) {
-                const evt = filteredEvents.find((e) => e.id === id);
-                if (!evt) continue;
-                if (evt.isRecurringTodo) {
-                    await dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: evt });
-                } else {
-                    if (evt.actions && evt.actions.length > 0) {
-                        try {
-                            await deleteRecurringTodosForEvent(
-                                evt.id,
-                                evt.actions[0],
-                                evt.labels
-                            );
-                        } catch {
-                            // Proceed with main delete
-                        }
-                    }
-                    await dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: evt });
-                }
-            }
-            setShowBulkDeleteConfirm(false);
-            setShowEventModal(false);
-        } catch {
-            showError('Failed to delete some events. Please try again.');
-        }
-    }
-
-    async function handleComplete() {
-        try {
-            await completeTodo(selectedEvent);
-            setShowEventModal(false);
-        } catch {
-            // Error shown via toast in completeTodo
-        }
-    }
-
     async function handleSubmit(e) {
         e.preventDefault();
-
-        if (isBulkApply && bulkSelectedEventIds.length > 0 && filteredEvents?.length) {
-            if (isRecurring) {
-                if (recurringEndType === 'count') {
-                    const n = Number(recurringMaxOccurrences);
-                    if (!Number.isFinite(n) || n < 1) {
-                        showError('Enter a valid number of occurrences (at least 1).');
-                        return;
-                    }
-                } else {
-                    const startDay = dayjs(selectedDate).startOf('day');
-                    const untilDay = dayjs(recurringUntilDate).startOf('day');
-                    if (untilDay.isBefore(startDay)) {
-                        showError('The end date must be on or after the event date.');
-                        return;
-                    }
-                }
-            }
-            try {
-                for (const id of bulkSelectedEventIds) {
-                    const evt = filteredEvents.find((x) => x.id === id);
-                    if (!evt) continue;
-
-                    const todoLine = getTodoLineFromEvent(evt).trim();
-                    const toDoValue = todoLine
-                        ? todoLine.startsWith('TO DO:')
-                          ? todoLine
-                          : `TO DO: ${todoLine.replace(/^TO DO:\s*/i, '').trim()}`
-                        : null;
-
-                    const userRecurringConfig =
-                        toDoValue && isRecurring
-                            ? {
-                                  enabled: true,
-                                  interval: Number(recurringInterval) || 7,
-                                  unit: 'days',
-                                  endType: recurringEndType,
-                                  ...(recurringEndType === 'count'
-                                      ? { maxOccurrences: Number(recurringMaxOccurrences) || 2 }
-                                      : { untilDate: dayjs(recurringUntilDate).endOf('day').valueOf() }),
-                              }
-                            : null;
-
-                    const eventDate = dayjs(selectedDate).startOf('day');
-                    const today = dayjs().startOf('day');
-                    const isPastDate = eventDate.isBefore(today);
-                    const isTodo = !!toDoValue;
-                    const rawTitle = toDoValue || evt.title;
-                    const resolvedTitle =
-                        isTodo && isPastDate && toDoValue
-                            ? toDoValue.replace(/^TO DO:\s*/i, '').trim() || rawTitle
-                            : evt.title;
-
-                    const calendarEvent = {
-                        ...evt,
-                        title: resolvedTitle,
-                        actions: [],
-                        description: evt.description,
-                        labels: evt.labels,
-                        toDo: toDoValue ?? evt.toDo,
-                        day: selectedDate.valueOf(),
-                        id: evt.id,
-                        userRecurringConfig: isTodo && isPastDate ? null : userRecurringConfig,
-                        ...(isTodo && isPastDate
-                            ? {
-                                  completed: true,
-                                  completedAt: evt.completedAt || Date.now(),
-                                  createdFromAction: true,
-                                  isRecurringTodo: false,
-                              }
-                            : isTodo && !isPastDate
-                              ? {
-                                    completed: false,
-                                    completedAt: undefined,
-                                    createdFromAction: false,
-                                }
-                              : {}),
-                    };
-
-                    await updateEventWithRecurringRecalculation(calendarEvent, evt);
-                }
-                setShowEventModal(false);
-            } catch {
-                showError('Failed to update events. Please try again.');
-            }
-            return;
-        }
 
         let calendarEvent;
 
@@ -553,20 +317,7 @@ export default function EventModal() {
 
     const headerExtra = (
         <>
-            {!isBulkApply && selectedEvent && isTodoEvent(selectedEvent) && (
-                <button
-                    type="button"
-                    className="btn btn-sm btn-outline-success"
-                    disabled={isLoading}
-                    onClick={() => setShowCompleteConfirm(true)}
-                    title="Complete TO DO"
-                >
-                    <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-                        check_circle
-                    </span>
-                </button>
-            )}
-            {!isBulkApply && selectedEvent && (
+            {selectedEvent && (
                 <button
                     type="button"
                     className="btn btn-sm btn-outline-danger"
@@ -579,33 +330,13 @@ export default function EventModal() {
                     </span>
                 </button>
             )}
-            {isBulkApply && (
-                <button
-                    type="button"
-                    className="btn btn-sm btn-outline-danger"
-                    disabled={isLoading}
-                    onClick={() => setShowBulkDeleteConfirm(true)}
-                    title="Delete selected events"
-                    aria-label="Delete selected events"
-                >
-                    <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-                        delete
-                    </span>
-                </button>
-            )}
         </>
     );
 
     return (
         <>
             <Modal
-                title={
-                    isBulkApply
-                        ? `Bulk edit (${bulkSelectedEventIds.length} events)`
-                        : selectedEvent
-                          ? 'Edit Event'
-                          : 'New Event'
-                }
+                title={selectedEvent ? 'Edit Event' : 'New Event'}
                 icon="event"
                 onClose={() => setShowEventModal(false)}
                 className="event-modal"
@@ -626,8 +357,6 @@ export default function EventModal() {
                                 </span>
                                 {loadingOperation === 'update' ? 'Updating...' : 'Saving...'}
                             </>
-                        ) : isBulkApply ? (
-                            `Apply to ${bulkSelectedEventIds.length} events`
                         ) : selectedEvent ? (
                             'Update'
                         ) : (
@@ -637,7 +366,7 @@ export default function EventModal() {
                 }
             >
                 <div className="d-grid gap-3">
-                                    <div className={isBulkApply ? 'pe-none opacity-50 user-select-none' : ''}>
+                                    <div>
                                         <label className="form-label d-flex align-items-center gap-2">
                                             <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
                                                 checklist
@@ -652,133 +381,22 @@ export default function EventModal() {
                                         />
                                     </div>
 
-                                    {todoText.trim() && (
-                                        <>
-                                            <div className={`form-check ${isBulkApply ? 'pe-none opacity-50 user-select-none' : ''}`}>
-                                                <input
-                                                    className="form-check-input"
-                                                    type="checkbox"
-                                                    id="isRecurringCheck"
-                                                    checked={isRecurring}
-                                                    onChange={(e) => setIsRecurring(e.target.checked)}
-                                                />
-                                                <label className="form-check-label" htmlFor="isRecurringCheck">
-                                                    <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
-                                                        repeat
-                                                    </span>
-                                                    Make this a recurring event
-                                                </label>
-                                            </div>
+                                    <div>
+                                        <label className="form-label d-flex align-items-center gap-2">
+                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
+                                                yard
+                                            </span>
+                                            Plants
+                                        </label>
+                                        <CustomDropdown
+                                            title={(plantNames || []).length ? "Select plant" : "You don't have any plants - create a plant"}
+                                            options={plantNames || []}
+                                            selectedOptions={selectedLabels || []}
+                                            onSelect={setSelectedLabels}
+                                            singleSelect
+                                        />
+                                    </div>
 
-                                            {isRecurring && (
-                                                <div className="border rounded p-3 bg-light">
-                                                    <div className="mb-3">
-                                                        <label htmlFor="recurringInterval" className="form-label small text-muted">
-                                                            Repeat every (days)
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            className="form-control form-control-sm"
-                                                            id="recurringInterval"
-                                                            min="1"
-                                                            max="365"
-                                                            value={recurringInterval === "" ? "" : recurringInterval}
-                                                            onChange={(e) => {
-                                                                const val = e.target.value;
-                                                                setRecurringInterval(val === "" ? "" : (parseInt(val, 10) || 7));
-                                                            }}
-                                                        />
-                                                    </div>
-                                                    <div className="mb-2" role="group" aria-label="How recurring ends">
-                                                        <div className="form-label small text-muted mb-2">
-                                                            Series ends
-                                                        </div>
-                                                        <div className="d-flex flex-column gap-2">
-                                                            <div className="form-check">
-                                                                <input
-                                                                    className="form-check-input"
-                                                                    type="radio"
-                                                                    name="recurringEndType"
-                                                                    id="recurringEndCount"
-                                                                    checked={recurringEndType === 'count'}
-                                                                    onChange={() => setRecurringEndType('count')}
-                                                                />
-                                                                <label className="form-check-label" htmlFor="recurringEndCount">
-                                                                    After a number of occurrences
-                                                                </label>
-                                                            </div>
-                                                            <div className="form-check">
-                                                                <input
-                                                                    className="form-check-input"
-                                                                    type="radio"
-                                                                    name="recurringEndType"
-                                                                    id="recurringEndUntil"
-                                                                    checked={recurringEndType === 'until'}
-                                                                    onChange={() => setRecurringEndType('until')}
-                                                                />
-                                                                <label className="form-check-label" htmlFor="recurringEndUntil">
-                                                                    On a date (repeat through this day, inclusive)
-                                                                </label>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {recurringEndType === 'count' && (
-                                                        <div className="mb-2">
-                                                            <label htmlFor="recurringMaxOccurrences" className="form-label small text-muted">
-                                                                Number of occurrences
-                                                            </label>
-                                                            <input
-                                                                type="number"
-                                                                className="form-control form-control-sm"
-                                                                id="recurringMaxOccurrences"
-                                                                min="1"
-                                                                max="50"
-                                                                value={recurringMaxOccurrences === "" ? "" : recurringMaxOccurrences}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value;
-                                                                    setRecurringMaxOccurrences(val === "" ? "" : (parseInt(val, 10) || 12));
-                                                                }}
-                                                            />
-                                                            <div className="form-text">
-                                                                Total times this event occurs, including the first one
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {recurringEndType === 'until' && (
-                                                        <div className="mb-2">
-                                                            <label
-                                                                className="form-label small text-muted d-flex align-items-center gap-2"
-                                                                htmlFor="recurringUntilDate"
-                                                            >
-                                                                <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-                                                                    event_repeat
-                                                                </span>
-                                                                Repeat until
-                                                            </label>
-                                                            {/* mx-n3: recurring card has p-3; calendar ~22em — full-bleed matches main Date row width */}
-                                                            <div className="mx-n3">
-                                                                <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
-                                                                    <DatePicker
-                                                                        id="recurringUntilDate"
-                                                                        value={recurringUntilDate}
-                                                                        onChange={(date) => date && setRecurringUntilDate(date)}
-                                                                        valueFormat={{ dateStyle: 'medium' }}
-                                                                        className="w-100"
-                                                                    />
-                                                                </Localization>
-                                                            </div>
-                                                            <div className="form-text">
-                                                                Last occurrence falls on this date or earlier in the series
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </>
-                                    )}
-                                    
                                     <div>
                                         <label className="form-label d-flex align-items-center gap-2">
                                             <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
@@ -793,11 +411,135 @@ export default function EventModal() {
                                                 defaultValue={new Date()}
                                                 valueFormat={{ dateStyle: "medium" }}
                                                 className="w-100"
+                                                inputProps={RW_DATE_PICKER_INPUT_PROPS}
                                             />
                                         </Localization>
                                     </div>
+
+                                    <div className="form-check">
+                                        <input
+                                            className="form-check-input"
+                                            type="checkbox"
+                                            id="isRecurringCheck"
+                                            checked={isRecurring}
+                                            onChange={(e) => setIsRecurring(e.target.checked)}
+                                        />
+                                        <label className="form-check-label" htmlFor="isRecurringCheck">
+                                            <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
+                                                repeat
+                                            </span>
+                                            This is a recurring event
+                                        </label>
+                                    </div>
+
+                                    {isRecurring && (
+                                        <div className="border rounded p-3 bg-light">
+                                            <div className="mb-3">
+                                                <label htmlFor="recurringInterval" className="form-label small text-muted">
+                                                    Repeat every (days)
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    id="recurringInterval"
+                                                    min="1"
+                                                    max="365"
+                                                    value={recurringInterval === "" ? "" : recurringInterval}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setRecurringInterval(val === "" ? "" : (parseInt(val, 10) || 7));
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className="mb-2" role="group" aria-label="How recurring ends">
+                                                <div className="form-label small text-muted mb-2">
+                                                    Series ends
+                                                </div>
+                                                <div className="d-flex flex-column gap-2">
+                                                    <div className="form-check">
+                                                        <input
+                                                            className="form-check-input"
+                                                            type="radio"
+                                                            name="recurringEndType"
+                                                            id="recurringEndCount"
+                                                            checked={recurringEndType === 'count'}
+                                                            onChange={() => setRecurringEndType('count')}
+                                                        />
+                                                        <label className="form-check-label" htmlFor="recurringEndCount">
+                                                            After a number of occurrences
+                                                        </label>
+                                                    </div>
+                                                    <div className="form-check">
+                                                        <input
+                                                            className="form-check-input"
+                                                            type="radio"
+                                                            name="recurringEndType"
+                                                            id="recurringEndUntil"
+                                                            checked={recurringEndType === 'until'}
+                                                            onChange={() => setRecurringEndType('until')}
+                                                        />
+                                                        <label className="form-check-label" htmlFor="recurringEndUntil">
+                                                            On a date (inclusive)
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {recurringEndType === 'count' && (
+                                                <div className="mb-2">
+                                                    <label htmlFor="recurringMaxOccurrences" className="form-label small text-muted">
+                                                        Number of occurrences
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        className="form-control"
+                                                        id="recurringMaxOccurrences"
+                                                        min="1"
+                                                        max="50"
+                                                        value={recurringMaxOccurrences === "" ? "" : recurringMaxOccurrences}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value;
+                                                            setRecurringMaxOccurrences(val === "" ? "" : (parseInt(val, 10) || 12));
+                                                        }}
+                                                    />
+                                                    <div className="form-text">
+                                                        Total times this event occurs, including the first one
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {recurringEndType === 'until' && (
+                                                <div className="mb-2">
+                                                    <label
+                                                        className="form-label small text-muted d-flex align-items-center gap-2"
+                                                        htmlFor="recurringUntilDate"
+                                                    >
+                                                        <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
+                                                            event_repeat
+                                                        </span>
+                                                        Repeat until
+                                                    </label>
+                                                    <div>
+                                                        <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
+                                                            <DatePicker
+                                                                id="recurringUntilDate"
+                                                                value={recurringUntilDate}
+                                                                onChange={(date) => date && setRecurringUntilDate(date)}
+                                                                valueFormat={{ dateStyle: 'medium' }}
+                                                                className="w-100"
+                                                                inputProps={RW_DATE_PICKER_INPUT_PROPS}
+                                                            />
+                                                        </Localization>
+                                                    </div>
+                                                    <div className="form-text">
+                                                        Last occurrence falls on this date or earlier
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                     
-                                    <div className={isBulkApply ? 'pe-none opacity-50 user-select-none' : ''}>
+                                    <div>
                                         <label className="form-label d-flex align-items-center gap-2">
                                             <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
                                                 segment
@@ -809,25 +551,9 @@ export default function EventModal() {
                                             name="description"
                                             placeholder="Add a description"
                                             value={description}
-                                            required={!isBulkApply}
+                                            required
                                             className="form-control"
                                             onChange={(e) => setDescription(e.target.value)}
-                                        />
-                                    </div>
-                                    
-                                    <div className={isBulkApply ? 'pe-none opacity-50 user-select-none' : ''}>
-                                        <label className="form-label d-flex align-items-center gap-2">
-                                            <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
-                                                yard
-                                            </span>
-                                            Plants
-                                        </label>
-                                        <CustomDropdown
-                                            title={(plantNames || []).length ? "Select plant" : "You don't have any plants - create a plant"}
-                                            options={plantNames || []}
-                                            selectedOptions={selectedLabels || []}
-                                            onSelect={setSelectedLabels}
-                                            singleSelect
                                         />
                                     </div>
                                 </div>
@@ -845,37 +571,6 @@ export default function EventModal() {
                 />
             )}
 
-            {showBulkDeleteConfirm && (
-                <ConfirmModal
-                    title="Delete events"
-                    message={
-                        <>
-                            <p className="mb-2">
-                                Delete {bulkSelectedEventIds.length} event
-                                {bulkSelectedEventIds.length !== 1 ? 's' : ''}? This cannot be undone.
-                            </p>
-                        </>
-                    }
-                    confirmLabel="Delete all"
-                    variant="danger"
-                    onConfirm={handleBulkDelete}
-                    onCancel={() => setShowBulkDeleteConfirm(false)}
-                    isLoading={isLoading && loadingOperation === 'delete'}
-                    zIndex={1060}
-                />
-            )}
-
-            {showCompleteConfirm && (
-                <ConfirmModal
-                    title="Complete TO DO"
-                    message="Mark this TO DO as completed? This will create a completed action event and remove the TO DO from your list."
-                    confirmLabel="Complete"
-                    variant="success"
-                    onConfirm={handleComplete}
-                    onCancel={() => setShowCompleteConfirm(false)}
-                    isLoading={isLoading}
-                />
-            )}
         </>
     );
 }

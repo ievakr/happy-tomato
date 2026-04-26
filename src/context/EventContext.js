@@ -29,8 +29,6 @@ const EventContext = React.createContext({
     loadingOperation: null,
     bulkEditMode: false,
     setBulkEditMode: () => {},
-    bulkApplyMode: false,
-    setBulkApplyMode: () => {},
     bulkSelectedEventIds: [],
     setBulkSelectedEventIds: () => {},
     toggleBulkEventSelection: () => {},

@@ -4,6 +4,7 @@ import CalendarContext from './CalendarContext';
 import EventContext from './EventContext';
 import LayoutContext from './LayoutContext';
 import { usePlants } from '../hooks/usePlants';
+import { monthIndexFromCalendarDate } from '../utils';
 import { useEventsQuery } from '../hooks/useEventsQuery';
 import { useEventOperations } from '../hooks/useEventOperations';
 import { useEventFiltering } from '../hooks/useEventFiltering';
@@ -60,7 +61,7 @@ export default function ContextWrapper(props) {
       const next = dayjs(trimmed, 'YYYY-MM-DD', true);
       if (!next.isValid()) return;
       setDaySelected(next);
-      setMonthIndex(next.month());
+      setMonthIndex(monthIndexFromCalendarDate(next));
       setCurrentView(isMobile ? 'daily' : 'month');
       if (openWeeklySummary) {
         setShowWeeklySummaryModal(true);
@@ -135,7 +136,6 @@ export default function ContextWrapper(props) {
   const [dosage, setDosage] = useState('');
 
   const [bulkEditMode, setBulkEditMode] = useState(false);
-  const [bulkApplyMode, setBulkApplyMode] = useState(false);
   const [bulkSelectedEventIds, setBulkSelectedEventIds] = useState([]);
 
   const toggleBulkEventSelection = useCallback((eventId) => {
@@ -157,7 +157,6 @@ export default function ContextWrapper(props) {
   useEffect(() => {
     if (!showEventModal) {
       setSelectedEvent(null);
-      setBulkApplyMode(false);
       setBulkEditMode(false);
       setBulkSelectedEventIds([]);
     }
@@ -232,8 +231,6 @@ export default function ContextWrapper(props) {
           loadingOperation: resolvedLoadingOperation,
           bulkEditMode,
           setBulkEditMode,
-          bulkApplyMode,
-          setBulkApplyMode,
           bulkSelectedEventIds,
           setBulkSelectedEventIds,
           toggleBulkEventSelection,

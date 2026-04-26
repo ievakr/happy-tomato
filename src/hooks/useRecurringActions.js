@@ -24,6 +24,20 @@ function eventHasTodoContent(evt) {
 }
 
 /**
+ * Calendar day (start) of inclusive "repeat until" end, or null if series does not use until-date.
+ * Aligns with {@link parseRecurringInterval} (count end type ignores untilDate).
+ */
+function getUserRecurringUntilStartOfDay(userRecurringConfig) {
+  if (!userRecurringConfig?.enabled || userRecurringConfig.untilDate == null) {
+    return null;
+  }
+  if (userRecurringConfig.endType === 'count') {
+    return null;
+  }
+  return dayjs(userRecurringConfig.untilDate).startOf('day');
+}
+
+/**
  * Custom hook for managing recurring actions and TO DO completion
  */
 export const useRecurringActions = () => {
@@ -128,6 +142,43 @@ export const useRecurringActions = () => {
   };
 
   /**
+   * Reverse {@link completeTodo}: restore pending TO DO fields and clear completion.
+   */
+  const uncompleteTodo = async (event) => {
+    try {
+      const rawToDo = event.toDo
+        ? Array.isArray(event.toDo)
+          ? event.toDo.join(', ')
+          : String(event.toDo)
+        : '';
+      const fromTitle = String(event.title || '').replace(/^TO DO:\s*/i, '').trim();
+      const core = rawToDo.replace(/^TO DO:\s*/i, '').trim() || fromTitle;
+      const toDoValue =
+        rawToDo.trim().startsWith('TO DO:') && rawToDo.trim().length > 6
+          ? rawToDo.trim()
+          : core
+            ? `TO DO: ${core}`
+            : `TO DO: ${fromTitle || 'Task'}`;
+
+      const recurring = Boolean(event.userRecurringConfig?.enabled);
+
+      const restored = {
+        ...event,
+        title: toDoValue,
+        toDo: toDoValue,
+        completed: false,
+        completedAt: undefined,
+        createdFromAction: false,
+        isRecurringTodo: recurring,
+      };
+
+      await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: restored });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  /**
    * Mark a TO DO as completed without deleting it (for UI feedback)
    * @param {Object} todoEvent - The TO DO event to mark as completed
    */
@@ -202,6 +253,10 @@ export const useRecurringActions = () => {
     if (typeof event.title === 'string' && event.title.startsWith('TO DO:')) return true;
     return false;
   };
+
+  /** Day list: show complete / uncomplete control for pending or completed to-dos */
+  const supportsDayViewCompleteToggle = (event) =>
+    Boolean(event && (isTodoEvent(event) || isCompletedTodoAction(event)));
 
   /**
    * Get upcoming TO DOs for a specific action and plant combination
@@ -460,20 +515,36 @@ export const useRecurringActions = () => {
                   return hasMatchingAction && hasMatchingLabels;
                 }).sort((a, b) => a.day - b.day); // Sort by date
                 
-                // Update the current event
-                await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
-                
-                // Find and shift all events AFTER the current one
-                const eventsToShift = seriesEvents.filter(evt => 
-                  evt.id !== updatedEvent.id && dayjs(evt.day).isAfter(originalDate)
-                );
-                
-                for (const evt of eventsToShift) {
-                  const shiftedEvent = {
-                    ...evt,
-                    day: dayjs(evt.day).add(dateShift, 'day').valueOf()
-                  };
-                  await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: shiftedEvent });
+                const untilDay = getUserRecurringUntilStartOfDay(updatedEvent.userRecurringConfig);
+                const primaryPastUntil =
+                  untilDay != null && newDate.startOf('day').isAfter(untilDay);
+
+                if (primaryPastUntil) {
+                  await dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: originalEvent });
+                } else {
+                  await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
+                }
+
+                if (!primaryPastUntil) {
+                  // Shift later occurrences; drop any that would fall after the "until" end date
+                  const eventsToShift = seriesEvents.filter(
+                    (evt) => evt.id !== updatedEvent.id && dayjs(evt.day).isAfter(originalDate)
+                  );
+
+                  for (const evt of eventsToShift) {
+                    const shiftedDay = dayjs(evt.day).add(dateShift, 'day').startOf('day');
+                    if (untilDay != null && shiftedDay.isAfter(untilDay)) {
+                      await dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: evt });
+                    } else {
+                      await dispatchCallEvent({
+                        type: EVENT_ACTIONS.UPDATE,
+                        payload: {
+                          ...evt,
+                          day: shiftedDay.valueOf(),
+                        },
+                      });
+                    }
+                  }
                 }
               }
               
@@ -806,11 +877,13 @@ export const useRecurringActions = () => {
   return {
     createActionWithRecurringTodos,
     completeTodo,
+    uncompleteTodo,
     markTodoCompleted,
     getPendingTodosForDay,
     getCompletedActionsForDay,
     isTodoEvent,
     isCompletedTodoAction,
+    supportsDayViewCompleteToggle,
     getUpcomingTodos,
     getAllPendingTodos,
     deleteAllRecurringTodos,

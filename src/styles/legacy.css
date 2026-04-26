@@ -220,6 +220,9 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   padding: 0 12px;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .daily-week-scroll::-webkit-scrollbar {
@@ -562,6 +565,42 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
 
 .event-modal .rw-widget-picker {
   overflow: visible !important;
+}
+
+/*
+ * Event modal: embedded react-widgets calendar — compact so it fits narrow modals.
+ * Default .rw-calendar uses overflow:hidden and a tall grid; .mx-n3 was clipping Sunday (last column).
+ */
+.modal.event-modal .rw-widget {
+  max-width: 100%;
+}
+.modal.event-modal .rw-calendar {
+  overflow: visible;
+  max-width: 100%;
+  font-size: 0.8125rem;
+}
+.modal.event-modal .rw-calendar-popup {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.modal.event-modal .rw-calendar-header {
+  padding: 0.45em 0.5em;
+}
+.modal.event-modal .rw-calendar-btn {
+  line-height: 1.35em;
+}
+.modal.event-modal .rw-calendar-grid {
+  height: auto;
+  min-height: 10.25em;
+  padding: 2px;
+}
+.modal.event-modal .rw-head-cell {
+  padding: 0.2em 0.08em;
+  font-size: 0.92em;
+}
+.modal.event-modal .rw-cell {
+  padding: 0.18em 0.06em;
 }
 
 /* Mobile responsive styles */

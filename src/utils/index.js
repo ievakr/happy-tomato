@@ -1,8 +1,14 @@
 import dayjs from 'dayjs';
 
+export {
+  calendarNavRefYear,
+  monthIndexFromCalendarDate,
+  calendarDateFromMonthIndex,
+} from './calendarNav';
+
 /**
  * Get the calendar month grid for a given month
- * @param {number} month - Month index (0-11)
+ * @param {number} month - Month index ( offset from January of the current calendar year; any integer )
  * @returns {Array<Array<dayjs.Dayjs>>} 2D array representing calendar weeks
  */
 export function getMonth(month = dayjs().month()) {

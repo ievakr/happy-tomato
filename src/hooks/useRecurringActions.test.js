@@ -164,6 +164,40 @@ describe('useRecurringActions', () => {
     });
   });
 
+  describe('uncompleteTodo', () => {
+    test('should restore pending TO DO fields after complete', async () => {
+      const completedEvent = {
+        id: '1',
+        title: 'Water plants',
+        toDo: 'TO DO: Water plants',
+        day: dayjs().toISOString(),
+        completed: true,
+        isRecurringTodo: false,
+        createdFromAction: true,
+        userRecurringConfig: { enabled: true, interval: 7 },
+      };
+
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        await result.current.uncompleteTodo(completedEvent);
+      });
+
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.UPDATE,
+        payload: expect.objectContaining({
+          id: '1',
+          title: 'TO DO: Water plants',
+          toDo: 'TO DO: Water plants',
+          completed: false,
+          completedAt: undefined,
+          createdFromAction: false,
+          isRecurringTodo: true,
+        }),
+      });
+    });
+  });
+
   describe('markTodoCompleted', () => {
     test('should mark todo as completed without converting', async () => {
       const todoEvent = {

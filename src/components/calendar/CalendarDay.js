@@ -13,8 +13,8 @@ export default function CalendarDay({ day, rowIndex }) {
     const { isTodoEvent, isCompletedTodoAction } = useRecurringActions();
     const [dayEvents, setDayEvents] = useState([]);
     
-    // Check if this day belongs to the currently displayed month
-    const isCurrentMonth = day.month() === monthIndex;
+    const monthAnchor = dayjs(new Date(dayjs().year(), monthIndex, 1));
+    const isCurrentMonth = day.isSame(monthAnchor, 'month');
 
     useEffect(() => {
         const events = filteredEvents.filter(evt => dayjs(evt.day).format("DD-MM-YY") === day.format("DD-MM-YY"));

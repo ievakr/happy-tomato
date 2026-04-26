@@ -6,7 +6,7 @@ import Icon from '../common/Icon';
 /**
  * Individual event item component for calendar display
  */
-const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, showTime = false, showAllIcons = false }) => {
+const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, showTime = false, showAllIcons = false, hideLeadingCompleteIcon = false }) => {
   const { title, toDo, labels = [], description, time } = event;
   
   const displayTitle = title || toDo;
@@ -36,7 +36,7 @@ const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, show
         className={`d-flex align-items-center w-100 ${isCompletedTodo ? 'event-item-completed-main-row' : ''}`}
       >
         {/* Checkmark icon for completed todos */}
-        {isCompletedTodo && (
+        {isCompletedTodo && !hideLeadingCompleteIcon && (
           <Icon name="check_circle" className="text-success me-1" style={{ fontSize: compact ? '14px' : '18px' }} />
         )}
         {/* Show time if requested */}
@@ -59,11 +59,17 @@ const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, show
             />
           )}
           {!toDo && title && (
-            <EventTitle text={title} compact={compact} />
+            <EventTitle text={title} compact={compact} strikethrough={!!event.completed} />
           )}
           
           {/* Event labels/icons */}
-          <EventIcons labels={labels} plantsById={plantsById} compact={compact} showAllIcons={showAllIcons} />
+          <EventIcons
+            labels={labels}
+            plantsById={plantsById}
+            compact={compact}
+            showAllIcons={showAllIcons}
+            strikethrough={!!event.completed}
+          />
         </div>
       </div>
       
@@ -77,7 +83,9 @@ const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, show
  */
 const TodoItem = memo(({ text, compact = false, isCompleted = false }) => (
   <div className="d-flex align-items-center w-100">
-    <span className={`event-item-todo flex-grow-1 ${compact ? 'event-item-todo-compact' : ''} ${isCompleted ? 'event-item-todo-completed' : 'event-item-todo-pending'}`}>
+    <span
+      className={`event-item-todo flex-grow-1 ${compact ? 'event-item-todo-compact' : ''} ${isCompleted ? 'event-item-todo-completed' : 'event-item-todo-pending'}${isCompleted ? ' text-decoration-line-through' : ''}`}
+    >
       {text}
     </span>
   </div>
@@ -86,9 +94,11 @@ const TodoItem = memo(({ text, compact = false, isCompleted = false }) => (
 /**
  * Event title component
  */
-const EventTitle = memo(({ text, compact = false }) => (
+const EventTitle = memo(({ text, compact = false, strikethrough = false }) => (
   <div className="d-flex align-items-center w-100">
-    <span className={`event-item-title flex-grow-1 ${compact ? 'event-item-title-compact' : ''}`}>
+    <span
+      className={`event-item-title flex-grow-1 ${compact ? 'event-item-title-compact' : ''}${strikethrough ? ' text-decoration-line-through' : ''}`}
+    >
       {text}
     </span>
   </div>
@@ -103,7 +113,7 @@ export function plantLabelDisplayText(plant, fallbackLabel) {
 /**
  * Event icons component with responsive display - shows icon + category / variety
  */
-const EventIcons = memo(({ labels, plantsById = {}, compact = false, showAllIcons = false }) => {
+const EventIcons = memo(({ labels, plantsById = {}, compact = false, showAllIcons = false, strikethrough = false }) => {
   const { isMobile } = useResponsive();
   
   if (!labels || labels.length === 0) return null;
@@ -124,9 +134,12 @@ const EventIcons = memo(({ labels, plantsById = {}, compact = false, showAllIcon
   const hasMoreLabels = labels.length > maxIcons;
   
   return (
-    <div className={`d-flex align-items-center event-icons-row ${compact ? 'event-icons-row-compact' : ''}`} style={{
-      flexWrap: isMobile ? 'nowrap' : 'wrap'
-    }}>
+    <div
+      className={`d-flex align-items-center event-icons-row ${compact ? 'event-icons-row-compact' : ''}${strikethrough ? ' text-decoration-line-through' : ''}`}
+      style={{
+        flexWrap: isMobile ? 'nowrap' : 'wrap',
+      }}
+    >
       {visibleLabels.map((label, index) => {
         const plant = plantsById[label];
         const iconClass = plant?.icon || 'leaf';

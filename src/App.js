@@ -24,6 +24,7 @@ const CalendarHeader = lazy(() => import('./components/calendar/CalendarHeader')
 const CalendarGrid = lazy(() => import('./components/calendar/CalendarGrid'));
 const WeeklyView = lazy(() => import('./components/calendar/WeeklyView'));
 const DailyView = lazy(() => import('./components/calendar/DailyView'));
+const YearlyView = lazy(() => import('./components/calendar/YearlyView'));
 const EventModal = lazy(() => import('./components/forms/EventModal'));
 const CreatePlantModal = lazy(() => import('./components/forms/CreatePlantModal'));
 const ManagePlantsModal = lazy(() => import('./components/forms/ManagePlantsModal'));
@@ -318,8 +319,8 @@ function App() {
                   </Suspense>
                 ) : (
                   <>
-                    {/* Show day headers only for monthly view */}
-                    {currentView === 'month' && (
+                    {/* Show day headers for month grid (including desktop fallback when view is year) */}
+                    {(currentView === 'month' || (currentView === 'year' && !isMobile)) && (
                       <Suspense fallback={inlineFallback}>
                         <ComponentErrorBoundary
                           componentName="CalendarHeader"
@@ -330,8 +331,17 @@ function App() {
                       </Suspense>
                     )}
                     
-                    {/* Switch between month, week, and daily views */}
-                    {currentView === 'month' ? (
+                    {/* Switch between month, year (mobile), week, and daily views */}
+                    {currentView === 'year' && isMobile ? (
+                      <Suspense fallback={inlineFallback}>
+                        <ComponentErrorBoundary
+                          componentName="YearlyView"
+                          onError={handleError}
+                        >
+                          <YearlyView />
+                        </ComponentErrorBoundary>
+                      </Suspense>
+                    ) : currentView === 'month' || (currentView === 'year' && !isMobile) ? (
                       <Suspense fallback={inlineFallback}>
                         <ComponentErrorBoundary
                           componentName="CalendarGrid"

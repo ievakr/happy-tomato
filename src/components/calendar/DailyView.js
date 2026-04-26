@@ -1,14 +1,31 @@
-import React, { useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import React, { useContext, useEffect, useLayoutEffect, useState, useRef, useCallback, useMemo } from 'react';
 import dayjs from 'dayjs';
 import CalendarContext from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
-import { getDayHeaders } from '../../utils';
-import { useResponsive } from '../../hooks';
+import { getDayHeaders, monthIndexFromCalendarDate } from '../../utils';
+import { useResponsive, useRecurringActions } from '../../hooks';
 import { useToast } from '../../context/ToastContext';
-import { ConfirmModal } from '../common';
+import { ConfirmModal, Modal } from '../common';
+import DatePicker from 'react-widgets/DatePicker';
+import { Localization } from 'react-widgets';
+import { DateLocalizer } from 'react-widgets/IntlLocalizer';
+import 'react-widgets/styles.css';
 import EventItem from './EventItem';
 import CalendarEventChip from './CalendarEventChip';
+import { EVENT_ACTIONS } from '../../constants';
 import '../../index.css';
+
+/** Mobile day strip: initial window size and how many days to add when scrolling near an edge */
+const STRIP_INITIAL_DAY_COUNT = 60;
+const STRIP_EXTEND_CHUNK = 45;
+const STRIP_SCROLL_EDGE_PX = 100;
+
+/** See EventModal — iOS keyboard after date pick */
+const RW_DATE_PICKER_INPUT_PROPS = {
+  readOnly: true,
+  inputMode: 'none',
+  autoComplete: 'off',
+};
 
 const DailyView = () => {
   const { showError } = useToast();
@@ -32,29 +49,54 @@ const DailyView = () => {
     bulkSelectedEventIds,
     setBulkSelectedEventIds,
     toggleBulkEventSelection,
-    setBulkApplyMode,
   } = useEventContext();
-  
+  const {
+    updateEventWithRecurringRecalculation,
+    deleteRecurringTodosForEvent,
+    completeTodo,
+    uncompleteTodo,
+    supportsDayViewCompleteToggle,
+  } = useRecurringActions();
+
   const { isMobile } = useResponsive();
   const scrollContainerRef = useRef(null);
   const dayElementMapRef = useRef(new Map());
+  /** When prepending days, skip scroll-into-view for the selected day (would fight scroll compensation). */
+  const stripPrependingRef = useRef(false);
+  const stripExtendBusyRef = useRef(false);
+  const stripExtendRafRef = useRef(null);
+  /** Prepend older days only after the user has panned the strip (avoids growing backward on first paint). */
+  const stripUserHasPannedRef = useRef(false);
+  /** Double-tap same day in strip (iOS) or double-click (mouse) → new event modal. */
+  const stripTapRef = useRef({ time: 0, key: '' });
+  const suppressNextStripClickRef = useRef(false);
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const daysToShow = 60;
+  const [showBulkMoveModal, setShowBulkMoveModal] = useState(false);
+  const [bulkMoveDate, setBulkMoveDate] = useState(() => new Date());
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [stripDayCount, setStripDayCount] = useState(STRIP_INITIAL_DAY_COUNT);
 
   // Anchor the strip independently of the selected day so scrolling does not re-build the row and jump.
   const [stripStart, setStripStart] = useState(() =>
-    (daySelected || dayjs()).subtract(Math.floor(daysToShow / 2), 'day')
+    (daySelected || dayjs()).subtract(Math.floor(STRIP_INITIAL_DAY_COUNT / 2), 'day')
   );
 
-  const applyMonthChange = useCallback((newMonth) => {
-    const currentDayValue = daySelected || dayjs();
-    const dayOfMonth = currentDayValue.date();
-    const newDay = dayjs(new Date(currentDayValue.year(), newMonth, dayOfMonth));
-    setMonthIndex(newMonth);
-    setDaySelected(newDay);
-    setStripStart(newDay.subtract(Math.floor(daysToShow / 2), 'day'));
-  }, [daySelected, setMonthIndex, setDaySelected, daysToShow]);
+  const applyMonthChange = useCallback(
+    (newMonthIndex) => {
+      const currentDayValue = daySelected || dayjs();
+      const dayOfMonth = currentDayValue.date();
+      const refYear = dayjs().year();
+      const dim = dayjs(new Date(refYear, newMonthIndex, 1)).daysInMonth();
+      const newDay = dayjs(new Date(refYear, newMonthIndex, Math.min(dayOfMonth, dim)));
+      setMonthIndex(newMonthIndex);
+      setDaySelected(newDay);
+      stripUserHasPannedRef.current = false;
+      setStripDayCount(STRIP_INITIAL_DAY_COUNT);
+      setStripStart(newDay.subtract(Math.floor(STRIP_INITIAL_DAY_COUNT / 2), 'day'));
+    },
+    [daySelected, setMonthIndex, setDaySelected]
+  );
 
   const scrollToDay = useCallback((targetEl) => {
     const container = scrollContainerRef.current;
@@ -73,6 +115,57 @@ const DailyView = () => {
 
     container.scrollLeft = nextLeft;
   }, []);
+
+  const maybeExtendStrip = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !isMobile || stripExtendBusyRef.current || stripPrependingRef.current) {
+      return;
+    }
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+    const maxScroll = scrollWidth - clientWidth;
+    if (maxScroll <= 0) {
+      return;
+    }
+
+    if (scrollLeft > 48) {
+      stripUserHasPannedRef.current = true;
+    }
+
+    const firstCell = container.querySelector('[data-daily-strip-date]');
+    const cellW = firstCell
+      ? Math.max(1, Math.round(firstCell.getBoundingClientRect().width))
+      : 70;
+
+    const nearRight = scrollLeft >= maxScroll - STRIP_SCROLL_EDGE_PX;
+    const nearLeft =
+      stripUserHasPannedRef.current &&
+      scrollLeft <= STRIP_SCROLL_EDGE_PX &&
+      scrollLeft < maxScroll - STRIP_SCROLL_EDGE_PX;
+
+    if (nearLeft) {
+      stripExtendBusyRef.current = true;
+      stripPrependingRef.current = true;
+      const chunk = STRIP_EXTEND_CHUNK;
+      setStripStart((s) => s.subtract(chunk, 'day'));
+      setStripDayCount((c) => c + chunk);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const el = scrollContainerRef.current;
+          if (el) {
+            el.scrollLeft += cellW * chunk;
+          }
+          stripPrependingRef.current = false;
+          stripExtendBusyRef.current = false;
+        });
+      });
+      return;
+    }
+
+    if (nearRight) {
+      setStripDayCount((c) => c + STRIP_EXTEND_CHUNK);
+    }
+  }, [isMobile]);
 
   /** Month shown in the header label — follows strip scroll, not only the selected day */
   const [visibleStripMonthKey, setVisibleStripMonthKey] = useState(() =>
@@ -115,43 +208,40 @@ const DailyView = () => {
     if (!centered || !centered.isValid()) return;
     const key = centered.format('YYYY-MM');
     setVisibleStripMonthKey(key);
-    setMonthIndex(centered.month());
+    setMonthIndex(monthIndexFromCalendarDate(centered));
   }, [getCenteredDayFromScroll, isMobile, setMonthIndex]);
 
   // When the selected calendar day changes (tap, Today, month arrows, open from month view), align label + month index
   useEffect(() => {
     const d = dayjs(selectedDayCalendarKey);
     setVisibleStripMonthKey(d.format('YYYY-MM'));
-    setMonthIndex(d.month());
+    setMonthIndex(monthIndexFromCalendarDate(d));
   }, [selectedDayCalendarKey, setMonthIndex]);
 
-  // Strip scroll updates the month label (does not change the selected day)
+  // Strip scroll: infinite horizontal range + month label (updates every frame while scrolling)
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container || !isMobile) return;
 
-    const supportsScrollEnd =
-      typeof document !== 'undefined' && 'onscrollend' in document.createElement('div');
-
-    let debounceId;
-    const run = () => syncVisibleMonthFromScroll();
-    const debounced = () => {
-      clearTimeout(debounceId);
-      debounceId = setTimeout(run, supportsScrollEnd ? 450 : 320);
-    };
-
-    container.addEventListener('scroll', debounced, { passive: true });
-    if (supportsScrollEnd) {
-      container.addEventListener('scrollend', run, { passive: true });
-    }
-    return () => {
-      container.removeEventListener('scroll', debounced);
-      if (supportsScrollEnd) {
-        container.removeEventListener('scrollend', run);
+    const onScroll = () => {
+      if (stripExtendRafRef.current == null) {
+        stripExtendRafRef.current = requestAnimationFrame(() => {
+          stripExtendRafRef.current = null;
+          maybeExtendStrip();
+          syncVisibleMonthFromScroll();
+        });
       }
-      clearTimeout(debounceId);
     };
-  }, [syncVisibleMonthFromScroll, isMobile]);
+
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', onScroll);
+      if (stripExtendRafRef.current != null) {
+        cancelAnimationFrame(stripExtendRafRef.current);
+        stripExtendRafRef.current = null;
+      }
+    };
+  }, [syncVisibleMonthFromScroll, isMobile, maybeExtendStrip]);
 
   // After strip re-renders / re-anchors, read scroll position so the label matches what's on screen
   useEffect(() => {
@@ -162,7 +252,7 @@ const DailyView = () => {
       });
     });
     return () => cancelAnimationFrame(id);
-  }, [stripStart, isMobile, syncVisibleMonthFromScroll]);
+  }, [stripStart, stripDayCount, isMobile, syncVisibleMonthFromScroll]);
 
   // Get current day or fallback to today
   const currentDay = daySelected || dayjs();
@@ -196,11 +286,51 @@ const DailyView = () => {
     }
   }, [dayEventIds, bulkSelectedEventIds, setBulkSelectedEventIds]);
 
-  const openBulkApplyModal = useCallback(() => {
+  const openBulkMoveModal = useCallback(() => {
     if (bulkSelectedEventIds.length === 0) return;
-    setBulkApplyMode(true);
-    setShowEventModal(true);
-  }, [bulkSelectedEventIds, setBulkApplyMode, setShowEventModal]);
+    setBulkMoveDate(currentDay.toDate());
+    setShowBulkMoveModal(true);
+  }, [bulkSelectedEventIds, currentDay]);
+
+  const confirmBulkMove = async () => {
+    const dayMs = dayjs(bulkMoveDate).startOf('day').valueOf();
+    try {
+      for (const id of bulkSelectedEventIds) {
+        const evt = filteredEvents.find((e) => e.id === id);
+        if (!evt) continue;
+        await updateEventWithRecurringRecalculation({ ...evt, day: dayMs }, evt);
+      }
+      setShowBulkMoveModal(false);
+      setBulkEditMode(false);
+    } catch {
+      showError('Failed to move events. Please try again.');
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    try {
+      for (const id of bulkSelectedEventIds) {
+        const evt = filteredEvents.find((e) => e.id === id);
+        if (!evt) continue;
+        if (evt.isRecurringTodo) {
+          await dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: evt });
+        } else {
+          if (evt.actions && evt.actions.length > 0) {
+            try {
+              await deleteRecurringTodosForEvent(evt.id, evt.actions[0], evt.labels);
+            } catch {
+              // Proceed with main delete
+            }
+          }
+          await dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: evt });
+        }
+      }
+      setShowBulkDeleteConfirm(false);
+      setBulkEditMode(false);
+    } catch {
+      showError('Failed to delete some events. Please try again.');
+    }
+  };
 
   const visibleMonthLabel = useMemo(
     () => dayjs(`${visibleStripMonthKey}-01`).format('MMMM YYYY'),
@@ -209,8 +339,8 @@ const DailyView = () => {
 
   const allDays = useMemo(
     () =>
-      Array.from({ length: daysToShow }, (_, i) => stripStart.add(i, 'day')),
-    [stripStart, daysToShow]
+      Array.from({ length: stripDayCount }, (_, i) => stripStart.add(i, 'day')),
+    [stripStart, stripDayCount]
   );
 
   const dayHeaders = getDayHeaders('short');
@@ -218,16 +348,17 @@ const DailyView = () => {
   // If selected day jumps outside the strip (e.g. open modal from elsewhere), re-anchor the strip.
   useEffect(() => {
     if (!isMobile || !daySelected) return;
-    const stripEnd = stripStart.add(daysToShow - 1, 'day');
+    const stripEnd = stripStart.add(stripDayCount - 1, 'day');
     if (daySelected.isBefore(stripStart, 'day') || daySelected.isAfter(stripEnd, 'day')) {
-      setStripStart(daySelected.subtract(Math.floor(daysToShow / 2), 'day'));
+      stripUserHasPannedRef.current = false;
+      setStripDayCount(STRIP_INITIAL_DAY_COUNT);
+      setStripStart(daySelected.subtract(Math.floor(STRIP_INITIAL_DAY_COUNT / 2), 'day'));
     }
-  }, [daySelected, isMobile, stripStart, daysToShow]);
+  }, [daySelected, isMobile, stripStart, stripDayCount]);
 
-  // Keep the strip scrolled so the selected day stays visible when selection changes (tap, Today, month nav, etc.).
-  // Scrolling alone does not change the selected day.
-  useEffect(() => {
-    if (!isMobile) {
+  // After selection or re-anchor, center the selected day in the strip (not when user is extending via scroll).
+  useLayoutEffect(() => {
+    if (!isMobile || stripPrependingRef.current) {
       return;
     }
 
@@ -238,9 +369,17 @@ const DailyView = () => {
     }
   }, [currentDay, stripStart, isMobile, scrollToDay]);
 
+  const openNewEventForDay = useCallback(
+    (day) => {
+      setDaySelected(day);
+      setSelectedEvent(null);
+      setShowEventModal(true);
+    },
+    [setDaySelected, setSelectedEvent, setShowEventModal]
+  );
+
   const handleDayClick = (day) => {
-    setDaySelected(day);
-    setShowEventModal(true);
+    openNewEventForDay(day);
   };
 
   const handleDaySelection = useCallback((day) => {
@@ -249,9 +388,37 @@ const DailyView = () => {
       return;
     }
 
-    setStripStart(day.subtract(Math.floor(daysToShow / 2), 'day'));
-    // Scroll alignment runs in useEffect after strip re-renders (scrollToDay here would run too early).
-  }, [isMobile, setDaySelected, daysToShow]);
+    stripUserHasPannedRef.current = false;
+    setStripDayCount(STRIP_INITIAL_DAY_COUNT);
+    setStripStart(day.subtract(Math.floor(STRIP_INITIAL_DAY_COUNT / 2), 'day'));
+  }, [isMobile, setDaySelected]);
+
+  const handleStripDayTouchEnd = useCallback(
+    (day) => {
+      const key = day.format('YYYY-MM-DD');
+      const now = Date.now();
+      const prev = stripTapRef.current;
+      if (prev.key === key && now - prev.time < 450) {
+        stripTapRef.current = { time: 0, key: '' };
+        suppressNextStripClickRef.current = true;
+        openNewEventForDay(day);
+        return;
+      }
+      stripTapRef.current = { time: now, key };
+    },
+    [openNewEventForDay]
+  );
+
+  const handleStripDayClick = useCallback(
+    (day) => {
+      if (suppressNextStripClickRef.current) {
+        suppressNextStripClickRef.current = false;
+        return;
+      }
+      handleDaySelection(day);
+    },
+    [handleDaySelection]
+  );
 
   const handleEventClick = (evt, e) => {
     e.stopPropagation();
@@ -262,6 +429,37 @@ const DailyView = () => {
     setSelectedEvent(evt);
     setShowEventModal(true);
   };
+
+  const handleDayViewToggleComplete = async (evt, e) => {
+    e.stopPropagation();
+    if (!evt?.id || bulkEditMode) return;
+    try {
+      if (evt.completed) {
+        await uncompleteTodo(evt);
+      } else {
+        await completeTodo(evt);
+      }
+    } catch {
+      showError(evt.completed ? 'Could not restore to-do.' : 'Could not mark complete.');
+    }
+  };
+
+  const renderDayTodoCompleteButton = (evt, extraClassName = '') => (
+    <button
+      type="button"
+      className={`daily-todo-complete-circle flex-shrink-0 ${evt.completed ? 'daily-todo-complete-circle--done' : ''} ${extraClassName}`.trim()}
+      onClick={(e) => handleDayViewToggleComplete(evt, e)}
+      disabled={isLoading}
+      aria-label={evt.completed ? 'Mark as to-do' : 'Mark complete'}
+      aria-pressed={!!evt.completed}
+    >
+      {evt.completed && (
+        <span className="material-icons-outlined daily-todo-complete-circle__check" aria-hidden>
+          check
+        </span>
+      )}
+    </button>
+  );
 
   const handleQuickDelete = (evt, e) => {
     e.stopPropagation();
@@ -296,9 +494,11 @@ const DailyView = () => {
   const jumpToToday = useCallback(() => {
     const today = dayjs();
     setDaySelected(today);
-    setMonthIndex(today.month());
-    setStripStart(today.subtract(Math.floor(daysToShow / 2), 'day'));
-  }, [setDaySelected, setMonthIndex, daysToShow]);
+    setMonthIndex(monthIndexFromCalendarDate(today));
+    stripUserHasPannedRef.current = false;
+    setStripDayCount(STRIP_INITIAL_DAY_COUNT);
+    setStripStart(today.subtract(Math.floor(STRIP_INITIAL_DAY_COUNT / 2), 'day'));
+  }, [setDaySelected, setMonthIndex]);
 
   if (isInitialLoading) {
     return (
@@ -378,7 +578,9 @@ const DailyView = () => {
                   className={`daily-week-day text-center ${getCurrentDayClass(day)}${
                     selectedDayCalendarKey === day.format('YYYY-MM-DD') ? ' selected' : ''
                   }`}
-                  onClick={() => handleDaySelection(day)}
+                  onClick={() => handleStripDayClick(day)}
+                  onDoubleClick={() => openNewEventForDay(day)}
+                  onTouchEnd={() => handleStripDayTouchEnd(day)}
                   ref={(node) => {
                     const key = day.format('YYYY-MM-DD');
                     if (node) {
@@ -445,7 +647,7 @@ const DailyView = () => {
                           event_available
                         </span>
                       </div>
-                      <p className="text-muted">No events scheduled for this day</p>
+                      <p className="text-muted">No to-dos scheduled for this day</p>
                     </div>
                   ) : (
                   <div className="events-list">
@@ -474,9 +676,17 @@ const DailyView = () => {
                               type="button"
                               className="btn btn-sm btn-success"
                               disabled={bulkSelectedEventIds.length === 0}
-                              onClick={openBulkApplyModal}
+                              onClick={openBulkMoveModal}
                             >
-                              Edit selected
+                              Move
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-danger"
+                              disabled={bulkSelectedEventIds.length === 0}
+                              onClick={() => setShowBulkDeleteConfirm(true)}
+                            >
+                              Delete
                             </button>
                           </>
                         )}
@@ -506,6 +716,7 @@ const DailyView = () => {
                                   aria-label={`Select ${evt.title || evt.toDo || 'event'}`}
                                 />
                               )}
+                              {!bulkEditMode && supportsDayViewCompleteToggle(evt) && renderDayTodoCompleteButton(evt)}
                               <div className="flex-grow-1 min-w-0">
                                 <CalendarEventChip
                                   event={evt}
@@ -514,6 +725,9 @@ const DailyView = () => {
                                   preferFullPlantIcons
                                   bulkEditSelected={
                                     !!evt.id && bulkSelectedEventIds.includes(evt.id)
+                                  }
+                                  hideLeadingStatusIcon={
+                                    !bulkEditMode && supportsDayViewCompleteToggle(evt)
                                   }
                                   onClick={(e) => handleEventClick(evt, e)}
                                 />
@@ -539,6 +753,9 @@ const DailyView = () => {
                               aria-label={`Select ${evt.title || evt.toDo || 'event'}`}
                             />
                           )}
+                          {!bulkEditMode &&
+                            supportsDayViewCompleteToggle(evt) &&
+                            renderDayTodoCompleteButton(evt, 'align-self-center')}
                           <div
                             className={`event-item-daily flex-grow-1 p-2 border rounded position-relative min-w-0 ${isDone ? 'event-item-daily-completed' : ''} ${bulkEditMode && evt.id && bulkSelectedEventIds.includes(evt.id) ? 'border-success border-2' : ''}`}
                             onClick={(e) => handleEventClick(evt, e)}
@@ -550,6 +767,7 @@ const DailyView = () => {
                             showTime={true}
                             plantsById={plantsById || {}}
                             showAllIcons={true}
+                            hideLeadingCompleteIcon
                           />
                           {!bulkEditMode && (
                           <button
@@ -599,6 +817,79 @@ const DailyView = () => {
             setEventToDelete(null);
           }}
           isLoading={isLoading && loadingOperation === 'delete'}
+        />
+      )}
+
+      {showBulkMoveModal && (
+        <Modal
+          title={`Move ${bulkSelectedEventIds.length} event${bulkSelectedEventIds.length !== 1 ? 's' : ''}`}
+          icon="event"
+          onClose={() => setShowBulkMoveModal(false)}
+          size="sm"
+          footer={
+            <div className="d-flex gap-2 w-100">
+              <button
+                type="button"
+                className="btn btn-outline-secondary flex-grow-1"
+                onClick={() => setShowBulkMoveModal(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-success flex-grow-1"
+                onClick={confirmBulkMove}
+                disabled={isLoading}
+              >
+                {isLoading && loadingOperation === 'update' ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" />
+                    Moving…
+                  </>
+                ) : (
+                  'Move'
+                )}
+              </button>
+            </div>
+          }
+        >
+          <div>
+            <label className="form-label d-flex align-items-center gap-2">
+              <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
+                schedule
+              </span>
+              New date
+            </label>
+            <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
+              <DatePicker
+                value={bulkMoveDate}
+                onChange={(date) => date && setBulkMoveDate(date)}
+                defaultValue={new Date()}
+                valueFormat={{ dateStyle: 'medium' }}
+                className="w-100"
+                inputProps={RW_DATE_PICKER_INPUT_PROPS}
+              />
+            </Localization>
+          </div>
+        </Modal>
+      )}
+
+      {showBulkDeleteConfirm && (
+        <ConfirmModal
+          title="Delete events"
+          message={
+            <p className="mb-0">
+              Delete {bulkSelectedEventIds.length} event
+              {bulkSelectedEventIds.length !== 1 ? 's' : ''}? This can't be undone.
+            </p>
+          }
+          confirmLabel="Delete all"
+          variant="danger"
+          onConfirm={confirmBulkDelete}
+          onCancel={() => setShowBulkDeleteConfirm(false)}
+          isLoading={isLoading && loadingOperation === 'delete'}
+          zIndex={1060}
         />
       )}
     </div>
