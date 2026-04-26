@@ -1,4 +1,3 @@
-import dayjs from 'dayjs';
 import React, { memo, useContext } from 'react';
 import CalendarContext from '../../context/CalendarContext';
 import { useResponsive } from '../../hooks';
