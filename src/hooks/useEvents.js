@@ -34,21 +34,33 @@ export const useEvents = () => {
       ...eventData,
       id: String(Date.now())
     };
-    dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: calendarEvent });
+    void Promise.resolve(dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: calendarEvent })).catch(
+      () => {
+        // Toast already shown by dispatchCallEvent
+      }
+    );
   };
 
   /**
    * Update an existing event
    */
   const updateEvent = (eventData) => {
-    dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: eventData });
+    void Promise.resolve(dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: eventData })).catch(
+      () => {
+        // Toast already shown by dispatchCallEvent
+      }
+    );
   };
 
   /**
    * Delete an event
    */
   const deleteEvent = (event) => {
-    dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: event });
+    void Promise.resolve(dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: event })).catch(
+      () => {
+        // Toast already shown by dispatchCallEvent
+      }
+    );
   };
 
   /**

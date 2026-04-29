@@ -474,7 +474,7 @@ const DailyView = () => {
         setShowDeleteConfirm(false);
         setEventToDelete(null);
       } catch {
-        showError('Failed to delete event. Please try again.');
+        // Toast already shown by dispatchCallEvent
       }
     }
   };

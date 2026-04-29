@@ -460,8 +460,8 @@ export const usePushNotifications = () => {
       }
     }
 
-    const dueTodos = getDueTodos();
-    const overdueTodos = getOverdueTodos();
+    const dueTodos = pushPreferences.dueTodayReminders !== false ? getDueTodos() : [];
+    const overdueTodos = pushPreferences.overdueReminders !== false ? getOverdueTodos() : [];
     const allTodos = [...overdueTodos, ...dueTodos];
 
     // Manual sends should not report success when there is nothing to push (callable requires ≥1 todo).
@@ -604,8 +604,8 @@ export const usePushNotifications = () => {
     const isTimeToSend = isWithinReminderWindow(now, effectiveDailyTime(pushPreferences));
     const haventSentAutoToday = !lastSent || !lastSent.isSame(now, 'day');
 
-    const dueTodos = getDueTodos();
-    const overdueTodos = getOverdueTodos();
+    const dueTodos = pushPreferences.dueTodayReminders !== false ? getDueTodos() : [];
+    const overdueTodos = pushPreferences.overdueReminders !== false ? getOverdueTodos() : [];
     const hasTodosToRemind = dueTodos.length > 0 || overdueTodos.length > 0;
 
     return isTimeToSend && haventSentAutoToday && hasTodosToRemind;

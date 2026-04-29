@@ -195,7 +195,9 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
                 disabled={!pushPreferences.enabled}
               />
               <Form.Text className="text-muted">
-                When to send today&apos;s and overdue tasks reminder
+                When to send today&apos;s and overdue tasks reminder (uses your device timezone, saved
+                with your account). This is separate from <strong>Advance reminder time</strong> below — if
+                you only changed one, the other can still fire at a different hour.
               </Form.Text>
             </Form.Group>
           )}

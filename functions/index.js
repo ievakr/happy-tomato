@@ -41,6 +41,59 @@ function getReminderIanaTimeZone(prefs) {
 }
 
 /**
+ * Daily send time from prefs: dailyReminderTime wins; else legacy reminderTime.
+ * @param {Object} prefs - emailPreferences doc
+ * @return {string} HH:mm
+ */
+function effectiveDailyReminderTime(prefs) {
+  const d = typeof prefs.dailyReminderTime === "string" ?
+    prefs.dailyReminderTime.trim() : "";
+  const r = typeof prefs.reminderTime === "string" ?
+    prefs.reminderTime.trim() : "";
+  return d || r || "09:00";
+}
+
+/**
+ * Advance send time: advanceReminderTime wins, else legacy reminderTime.
+ * @param {Object} prefs
+ * @return {string} HH:mm
+ */
+function effectiveAdvanceReminderTime(prefs) {
+  const a = typeof prefs.advanceReminderTime === "string" ?
+    prefs.advanceReminderTime.trim() : "";
+  const r = typeof prefs.reminderTime === "string" ?
+    prefs.reminderTime.trim() : "";
+  return a || r || "09:00";
+}
+
+/**
+ * Apply due-today / overdue toggles from prefs (defaults on for older docs).
+ * @param {Array} dueAndOverdue - from getDueAndOverdueTodos
+ * @param {Object} prefs
+ * @param {string} tz - IANA
+ * @return {Array}
+ */
+function filterDailyTodosByReminderPrefs(dueAndOverdue, prefs, tz) {
+  const allowOverdue = prefs.overdueReminders !== false;
+  const allowDueToday = prefs.dueTodayReminders !== false;
+  if (allowOverdue && allowDueToday) {
+    return dueAndOverdue;
+  }
+  const todayStart = dayjs.tz(new Date(), tz).startOf("day");
+  return dueAndOverdue.filter((evt) => {
+    const eventDate = eventDayToStartInTz(evt.day, tz);
+    if (!eventDate) return false;
+    if (eventDate.isBefore(todayStart, "day")) {
+      return allowOverdue;
+    }
+    if (eventDate.isSame(todayStart, "day")) {
+      return allowDueToday;
+    }
+    return false;
+  });
+}
+
+/**
  * True if now is in [scheduled, scheduled + REMINDER_CRON_MINUTES) today (tz).
  * @param {dayjs.Dayjs} now - TZ-aware in the caller's zone
  * @param {string} timeStr - "HH:mm"
@@ -754,11 +807,7 @@ exports.sendDailyReminders = functions.pubsub
           const tz = getReminderIanaTimeZone(prefs);
           const userNow = dayjs.tz(new Date(), tz);
 
-          const dailyTime =
-            (typeof prefs.dailyReminderTime === "string" &&
-              prefs.dailyReminderTime.trim()) ?
-              prefs.dailyReminderTime.trim() :
-              (prefs.reminderTime || "09:00");
+          const dailyTime = effectiveDailyReminderTime(prefs);
 
           if (!isInReminderSendWindow(userNow, dailyTime)) {
             continue;
@@ -812,11 +861,19 @@ exports.sendDailyReminders = functions.pubsub
               `(${visibleEvents.length} visible for reminders)`,
           );
 
-          // Due/overdue TODOs: same calendar day as the app
-          const dueTodos = getDueAndOverdueTodos(visibleEvents, tz);
+          // Due/overdue TODOs in user's calendar day (respect reminder toggles)
+          const dueAndOverdue = getDueAndOverdueTodos(visibleEvents, tz);
+          const dueTodos = filterDailyTodosByReminderPrefs(
+              dueAndOverdue,
+              prefs,
+              tz,
+          );
 
           if (dueTodos.length === 0) {
-            console.log(`No due TODOs for ${prefs.userEmail}`);
+            console.log(
+                `No due TODOs for ${prefs.userEmail} ` +
+                `(after due-today/overdue prefs)`,
+            );
             continue;
           }
 
@@ -892,11 +949,7 @@ exports.sendAdvanceReminders = functions.pubsub
           console.log(
               `\n👤 Checking user: ${prefs.userEmail}`,
           );
-          const advanceTime =
-            (typeof prefs.advanceReminderTime === "string" &&
-              prefs.advanceReminderTime.trim()) ?
-              prefs.advanceReminderTime.trim() :
-              (prefs.reminderTime || "09:00");
+          const advanceTime = effectiveAdvanceReminderTime(prefs);
 
           console.log(
               `   Settings: advanceDays=${prefs.advanceDays || 3}, ` +

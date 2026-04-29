@@ -11,13 +11,11 @@ import {
   calendarDateFromMonthIndex,
 } from '../../utils';
 import { useResponsive, useSwipeGestures } from '../../hooks';
-import { useToast } from '../../context/ToastContext';
 import { ConfirmModal } from '../common';
 import EventItem from './EventItem';
 import '../../index.css';
 
 const WeeklyView = () => {
-  const { showError } = useToast();
   const { 
     monthIndex, 
     weekIndex, 
@@ -123,7 +121,7 @@ const WeeklyView = () => {
         setShowDeleteConfirm(false);
         setEventToDelete(null);
       } catch {
-        showError('Failed to delete event. Please try again.');
+        // Toast already shown by dispatchCallEvent
       }
     }
   };

@@ -171,6 +171,9 @@ export function useEventOperations({ currentUser, queryKey, showError }) {
             return { type, payload: clientPayloadFromEventPayload(payload) };
           }
           case 'delete': {
+            if (!payload?.id || typeof payload.id !== 'string') {
+              throw new Error('Cannot delete event: missing event ID');
+            }
             const deleteDocRef = doc(db, 'events', payload.id);
             const docSnap = await getDoc(deleteDocRef);
             if (docSnap.exists()) {
@@ -195,7 +198,7 @@ export function useEventOperations({ currentUser, queryKey, showError }) {
 
       if (!currentUser) {
         showError?.('Please sign in to manage events.', 6000);
-        return;
+        throw new Error('Not signed in');
       }
 
       setIsProcessingOperation(true);
@@ -218,6 +221,7 @@ export function useEventOperations({ currentUser, queryKey, showError }) {
         if (type !== 'delete') {
           updateEventCache(type, clientPayloadFromEventPayload(payload));
         }
+        throw error;
       } finally {
         setIsLoading(false);
         setLoadingOperation(null);

@@ -180,9 +180,8 @@ export default function EventModal() {
                 await dispatchCallEvent({ type: "delete", payload: selectedEvent });
             }
             setShowEventModal(false);
-        } catch (error) {
-            // Show user-friendly error message
-            showError('Failed to delete event. Please try again.');
+        } catch {
+            // Error toast already shown by dispatchCallEvent / deleteRecurringTodosForEvent
         }
     }
 
