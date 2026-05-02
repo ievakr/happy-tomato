@@ -2,7 +2,7 @@ import React from 'react';
 import Icon from '../common/Icon';
 import { UI_CONSTANTS } from '../../constants';
 import { useRecurringActions, useResponsive } from '../../hooks';
-import { plantLabelDisplayText } from './EventItem';
+import { plantLabelDisplayText, eventTodoOrTitleText } from './EventItem';
 
 function buildEventClasses(evt, isTodoEvent, listMode, bulkEditSelected) {
   const base = listMode
@@ -54,10 +54,10 @@ export default function CalendarEventChip({
       ? labels.length
       : UI_CONSTANTS.MAX_ICONS_PER_EVENT;
   const iconsFlexWrap = preferFullPlantIcons || !isMobile ? 'wrap' : 'nowrap';
-  const titleText =
-    evt.title || evt.toDo
-      ? `${evt.title || evt.toDo}${evt.description ? ` - ${evt.description}` : ''}`
-      : '';
+  const primaryText = eventTodoOrTitleText(evt);
+  const titleText = primaryText
+    ? `${primaryText}${evt.description ? ` - ${evt.description}` : ''}`
+    : '';
 
   return (
     <div
@@ -84,7 +84,7 @@ export default function CalendarEventChip({
           className={`d-flex flex-wrap align-items-center flex-grow-1${evt.completed ? ' text-decoration-line-through' : ''}`}
           style={{ maxWidth: '100%', wordWrap: 'break-word' }}
         >
-          {evt.toDo && !evt.title && (
+          {primaryText ? (
             <div className="d-flex align-items-center w-100">
               <span
                 className="flex-grow-1"
@@ -94,25 +94,10 @@ export default function CalendarEventChip({
                   whiteSpace: 'normal',
                 }}
               >
-                {evt.toDo}
+                {primaryText}
               </span>
             </div>
-          )}
-
-          {evt.title && (
-            <div className="d-flex align-items-center w-100">
-              <span
-                className="flex-grow-1"
-                style={{
-                  fontSize: '0.6rem',
-                  wordWrap: 'break-word',
-                  whiteSpace: 'normal',
-                }}
-              >
-                {evt.title}
-              </span>
-            </div>
-          )}
+          ) : null}
 
           <div
             className="d-flex align-items-center mt-1"

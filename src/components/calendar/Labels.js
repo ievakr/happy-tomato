@@ -29,7 +29,14 @@ export default function Labels() {
         setLabels((prev) => prev.map((lbl) => ({ ...lbl, checked: false })));
     };
 
+    /** Check every category filter option. */
+    const handleSelectAllFilters = () => {
+        setLabels((prev) => prev.map((lbl) => ({ ...lbl, checked: true })));
+    };
+
     const noCategoriesSelected = selectedLabels.length === 0;
+    const allCategoriesSelected =
+        labelOptions.length > 0 && selectedLabels.length === labelOptions.length;
     
     // Create a custom title that doesn't show all selected items
     const dropdownTitle = useMemo(() => {
@@ -41,27 +48,45 @@ export default function Labels() {
             return `${selectedLabels.length} categor${selectedLabels.length > 1 ? 'ies' : 'y'} selected`;
         }
     }, [selectedLabels.length, labelOptions.length]);
-    
+
+    const bulkBtnClass =
+        'btn btn-sm border-0 bg-transparent px-0 py-0 fw-normal text-decoration-none shadow-none labels-filter-category-bulk-btn';
+
     return (
         <React.Fragment>
-            <div className="d-flex align-items-center justify-content-between gap-2 text-secondary fw-bold mt-4 mb-2">
-                <div className="d-flex align-items-center min-w-0">
+            <div className="mt-4 mb-2">
+                <div className="d-flex align-items-center min-w-0 text-secondary fw-bold">
                     <span className="material-icons-outlined me-2 flex-shrink-0" style={{ fontSize: '1.25rem' }}>
                         filter_list
                     </span>
                     <span className="text-truncate">Filter by Category</span>
                 </div>
                 {labelOptions.length > 0 && (
-                    <button
-                        type="button"
-                        className="btn btn-link btn-sm text-secondary text-decoration-none flex-shrink-0 p-0"
-                        onClick={handleClearAllFilters}
-                        disabled={noCategoriesSelected}
-                        title="Uncheck all categories"
-                        aria-label="Uncheck all filter categories"
-                    >
-                        Clear all
-                    </button>
+                    <div className="d-flex align-items-center gap-2 mt-2">
+                        <button
+                            type="button"
+                            className={bulkBtnClass}
+                            onClick={handleSelectAllFilters}
+                            disabled={allCategoriesSelected}
+                            title="Check all categories"
+                            aria-label="Select all filter categories"
+                        >
+                            Select all
+                        </button>
+                        <span className="fw-normal" style={{ color: '#495057' }} aria-hidden>
+                            ·
+                        </span>
+                        <button
+                            type="button"
+                            className={bulkBtnClass}
+                            onClick={handleClearAllFilters}
+                            disabled={noCategoriesSelected}
+                            title="Uncheck all categories"
+                            aria-label="Uncheck all filter categories"
+                        >
+                            Clear all
+                        </button>
+                    </div>
                 )}
             </div>
             {isInitialLoading ? (

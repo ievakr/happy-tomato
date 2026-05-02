@@ -65,6 +65,26 @@ const defaultPrefs = normalizePushPreferences({
   lastWeeklySummarySent: null,
 });
 
+describe('normalizePushPreferences', () => {
+  test('folds stale advance 15:00 when daily matches legacy reminderTime', () => {
+    const out = normalizePushPreferences({
+      reminderTime: '08:30',
+      dailyReminderTime: '08:30',
+      advanceReminderTime: '15:00',
+    });
+    expect(out.advanceReminderTime).toBe('08:30');
+  });
+
+  test('keeps distinct advance 15:00 when reminderTime disagrees with daily', () => {
+    const out = normalizePushPreferences({
+      reminderTime: '08:30',
+      dailyReminderTime: '09:00',
+      advanceReminderTime: '15:00',
+    });
+    expect(out.advanceReminderTime).toBe('15:00');
+  });
+});
+
 describe('usePushNotifications', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -137,6 +157,31 @@ describe('usePushNotifications', () => {
 
       expect(result.current.pushPreferences.userEmail).toBe('test@example.com');
       expect(result.current.pushPreferences.userName).toBe('Test User');
+    });
+
+    test('syncs advanceReminderTime when only dailyReminderTime is patched', () => {
+      const { result } = renderHook(() => usePushNotifications(), { wrapper: createWrapper() });
+
+      act(() => {
+        result.current.updatePushPreferences({
+          userEmail: 'test@example.com',
+          dailyReminderTime: '09:00',
+          advanceReminderTime: '16:00',
+          reminderTime: '08:00',
+        });
+      });
+
+      expect(result.current.pushPreferences.advanceReminderTime).toBe('16:00');
+
+      act(() => {
+        result.current.updatePushPreferences({
+          dailyReminderTime: '08:00',
+        });
+      });
+
+      expect(result.current.pushPreferences.dailyReminderTime).toBe('08:00');
+      expect(result.current.pushPreferences.reminderTime).toBe('08:00');
+      expect(result.current.pushPreferences.advanceReminderTime).toBe('08:00');
     });
   });
 

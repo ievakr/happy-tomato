@@ -6,6 +6,7 @@ import pushService from '../services/pushService';
 import dayjs from 'dayjs';
 import { db } from '../firebase';
 import { doc, setDoc, getDoc, arrayUnion } from 'firebase/firestore';
+import { coerceReminderTimeHm, reminderWallParts } from '../utils/reminderTime';
 
 const STORAGE_KEY = 'push-notification-preferences';
 const LEGACY_STORAGE_KEY = 'email-preferences';
@@ -43,26 +44,39 @@ const DEFAULT_PUSH_PREFS = {
  */
 export function normalizePushPreferences(raw) {
   const merged = { ...DEFAULT_PUSH_PREFS, ...raw };
-  const reminderTime =
+  const reminderTime = coerceReminderTimeHm(
     typeof merged.reminderTime === 'string' && merged.reminderTime.trim()
       ? merged.reminderTime.trim()
-      : '09:00';
-  const dailyReminderTime =
+      : merged.reminderTime,
+    '09:00'
+  );
+  let dailyReminderTime =
     typeof merged.dailyReminderTime === 'string' && merged.dailyReminderTime.trim()
-      ? merged.dailyReminderTime.trim()
+      ? coerceReminderTimeHm(merged.dailyReminderTime.trim(), reminderTime)
       : reminderTime;
-  const advanceReminderTime =
+  let advanceReminderTime =
     typeof merged.advanceReminderTime === 'string' && merged.advanceReminderTime.trim()
-      ? merged.advanceReminderTime.trim()
+      ? coerceReminderTimeHm(merged.advanceReminderTime.trim(), reminderTime)
       : reminderTime;
+
+  /** Drift cleanup: stale advance stayed at default-like 15:00 while singleton reminder matched daily */
+  if (
+    advanceReminderTime === '15:00' &&
+    dailyReminderTime !== '15:00' &&
+    reminderTime === dailyReminderTime
+  ) {
+    advanceReminderTime = dailyReminderTime;
+  }
   let weeklySummaryDay = parseInt(merged.weeklySummaryDay, 10);
   if (Number.isNaN(weeklySummaryDay) || weeklySummaryDay < 0 || weeklySummaryDay > 6) {
     weeklySummaryDay = 1;
   }
-  const weeklySummaryTime =
+  const weeklySummaryTime = coerceReminderTimeHm(
     typeof merged.weeklySummaryTime === 'string' && merged.weeklySummaryTime.trim()
       ? merged.weeklySummaryTime.trim()
-      : '08:00';
+      : merged.weeklySummaryTime,
+    '08:00'
+  );
 
   return {
     ...merged,
@@ -97,11 +111,9 @@ function effectiveAdvanceTime(prefs) {
 
 function isWithinReminderWindow(now, timeStr, windowMinutes = REMINDER_SEND_WINDOW_MINUTES) {
   if (!timeStr || typeof timeStr !== 'string') return false;
-  const parts = timeStr.trim().split(':');
-  const h = parseInt(parts[0], 10);
-  const m = parseInt(parts[1] || '0', 10);
-  if (Number.isNaN(h) || Number.isNaN(m)) return false;
-  const start = now.clone().startOf('day').hour(h).minute(m).second(0).millisecond(0);
+  const p = reminderWallParts(timeStr.trim());
+  if (!p) return false;
+  const start = now.clone().startOf('day').hour(p.h).minute(p.m).second(0).millisecond(0);
   const end = start.add(windowMinutes, 'minute');
   return !now.isBefore(start) && now.isBefore(end);
 }
@@ -311,6 +323,12 @@ export const usePushNotifications = () => {
       }
       if ('dailyReminderTime' in newPreferences) {
         merged.reminderTime = merged.dailyReminderTime;
+      }
+      if (
+        'dailyReminderTime' in newPreferences &&
+        !('advanceReminderTime' in newPreferences)
+      ) {
+        merged.advanceReminderTime = merged.dailyReminderTime;
       }
 
       const updated = normalizePushPreferences(merged);

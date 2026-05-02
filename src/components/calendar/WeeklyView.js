@@ -9,10 +9,11 @@ import {
   getCurrentWeekIndex,
   monthIndexFromCalendarDate,
   calendarDateFromMonthIndex,
+  sortCalendarEventsAlphabeticallyMobile,
 } from '../../utils';
 import { useResponsive, useSwipeGestures } from '../../hooks';
 import { ConfirmModal } from '../common';
-import EventItem from './EventItem';
+import EventItem, { eventTodoOrTitleText } from './EventItem';
 import '../../index.css';
 
 const WeeklyView = () => {
@@ -127,9 +128,10 @@ const WeeklyView = () => {
   };
 
   const getEventsForDay = (day) => {
-    return filteredEvents.filter(evt => 
+    const forDay = filteredEvents.filter(evt =>
       dayjs(evt.day).format("DD-MM-YY") === day.format("DD-MM-YY")
     );
+    return isMobile ? sortCalendarEventsAlphabeticallyMobile(forDay, plantsById || {}) : forDay;
   };
 
   const getCurrentDayClass = (day) => {
@@ -283,7 +285,7 @@ const WeeklyView = () => {
           title="Delete Event"
           message={
             <>
-              <p className="mb-2">Delete "{eventToDelete.title || eventToDelete.toDo}"?</p>
+              <p className="mb-2">Delete "{eventTodoOrTitleText(eventToDelete)}"?</p>
               <p className="mb-0 small">This action cannot be undone.</p>
             </>
           }

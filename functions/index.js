@@ -17,6 +17,12 @@ dayjs.tz.setDefault("Europe/Vilnius");
 
 admin.initializeApp();
 
+const {
+  coerceReminderTimeHm,
+  reminderWallParts,
+  effectiveAdvanceReminderTimeDedup,
+} = require("./reminderTime");
+
 /** Match cron step: functions run every REMINDER_CRON_MINUTES minutes */
 const REMINDER_CRON_MINUTES = 5;
 
@@ -46,11 +52,16 @@ function getReminderIanaTimeZone(prefs) {
  * @return {string} HH:mm
  */
 function effectiveDailyReminderTime(prefs) {
-  const d = typeof prefs.dailyReminderTime === "string" ?
+  const r = coerceReminderTimeHm(
+      typeof prefs.reminderTime === "string" && prefs.reminderTime.trim() ?
+        prefs.reminderTime.trim() :
+        prefs.reminderTime,
+      "09:00",
+  );
+  const dStr = typeof prefs.dailyReminderTime === "string" ?
     prefs.dailyReminderTime.trim() : "";
-  const r = typeof prefs.reminderTime === "string" ?
-    prefs.reminderTime.trim() : "";
-  return d || r || "09:00";
+  const d = dStr ? coerceReminderTimeHm(dStr, r) : r;
+  return d;
 }
 
 /**
@@ -59,11 +70,17 @@ function effectiveDailyReminderTime(prefs) {
  * @return {string} HH:mm
  */
 function effectiveAdvanceReminderTime(prefs) {
-  const a = typeof prefs.advanceReminderTime === "string" ?
+  const r = coerceReminderTimeHm(
+      typeof prefs.reminderTime === "string" && prefs.reminderTime.trim() ?
+        prefs.reminderTime.trim() :
+        prefs.reminderTime,
+      "09:00",
+  );
+  const aStr = typeof prefs.advanceReminderTime === "string" ?
     prefs.advanceReminderTime.trim() : "";
-  const r = typeof prefs.reminderTime === "string" ?
-    prefs.reminderTime.trim() : "";
-  return a || r || "09:00";
+  const daily = effectiveDailyReminderTime(prefs);
+  const a = aStr ? coerceReminderTimeHm(aStr, r) : r;
+  return effectiveAdvanceReminderTimeDedup(daily, r, a);
 }
 
 /**
@@ -103,16 +120,14 @@ function isInReminderSendWindow(now, timeStr) {
   if (!timeStr || typeof timeStr !== "string") {
     return false;
   }
-  const parts = timeStr.trim().split(":");
-  const h = parseInt(parts[0], 10);
-  const m = parseInt(parts[1] || "0", 10);
-  if (Number.isNaN(h) || Number.isNaN(m)) {
+  const parts = reminderWallParts(timeStr.trim());
+  if (!parts) {
     return false;
   }
   const scheduled = now.clone()
       .startOf("day")
-      .hour(h)
-      .minute(m)
+      .hour(parts.h)
+      .minute(parts.m)
       .second(0)
       .millisecond(0);
   const end = scheduled.add(REMINDER_CRON_MINUTES, "minute");
@@ -1145,7 +1160,10 @@ exports.sendWeeklySummary = functions.pubsub
             continue;
           }
 
-          const weeklyTime = prefs.weeklySummaryTime || "08:00";
+          const weeklyTime = coerceReminderTimeHm(
+              prefs.weeklySummaryTime || "08:00",
+              "08:00",
+          );
           if (!isInReminderSendWindow(userNow, weeklyTime)) {
             continue;
           }

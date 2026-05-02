@@ -4,12 +4,26 @@ import { useResponsive } from '../../hooks';
 import Icon from '../common/Icon';
 
 /**
+ * Primary line for event chips / list rows: prefer `toDo` when set so "TO DO:" is shown
+ * (past to-dos store a stripped `title` plus full `toDo`).
+ */
+export function eventTodoOrTitleText(event) {
+  const raw = event?.toDo;
+  const toDoStr = Array.isArray(raw) ? raw.filter(Boolean).join(', ') : raw;
+  if (toDoStr != null && String(toDoStr).trim() !== '') {
+    return String(toDoStr);
+  }
+  const t = event?.title;
+  return t != null ? String(t) : '';
+}
+
+/**
  * Individual event item component for calendar display
  */
 const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, showTime = false, showAllIcons = false, hideLeadingCompleteIcon = false }) => {
   const { title, toDo, labels = [], description, time } = event;
   
-  const displayTitle = title || toDo;
+  const displayTitle = eventTodoOrTitleText(event);
   const tooltipText = displayTitle + (description ? ` - ${description}` : '');
   
   // Check if this is a completed todo item
@@ -50,10 +64,10 @@ const EventItem = memo(({ event, onClick, plantsById = {}, compact = false, show
           maxWidth: "100%", 
           wordWrap: 'break-word'
         }}>
-          {/* To-do line: pill styling (red/green). Prefer title when set (e.g. after Complete) so pill shows with cleaned text */}
+          {/* To-do line: pill styling (red/green). Prefer `toDo` text so "TO DO:" remains visible when stored there. */}
           {toDo && (
             <TodoItem
-              text={title || toDo}
+              text={eventTodoOrTitleText(event)}
               compact={compact}
               isCompleted={!!event.completed}
             />

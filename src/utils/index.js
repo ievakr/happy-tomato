@@ -6,6 +6,11 @@ export {
   calendarDateFromMonthIndex,
 } from './calendarNav';
 
+export {
+  getCalendarEventAlphabeticalLabel,
+  sortCalendarEventsAlphabeticallyMobile,
+} from './eventSorting';
+
 /**
  * Get the calendar month grid for a given month
  * @param {number} month - Month index ( offset from January of the current calendar year; any integer )

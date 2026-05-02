@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useLayoutEffect, useState, useRef, useCal
 import dayjs from 'dayjs';
 import CalendarContext from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
-import { getDayHeaders, monthIndexFromCalendarDate } from '../../utils';
+import { getDayHeaders, monthIndexFromCalendarDate, sortCalendarEventsAlphabeticallyMobile } from '../../utils';
 import { useResponsive, useRecurringActions } from '../../hooks';
 import { useToast } from '../../context/ToastContext';
 import { ConfirmModal, Modal } from '../common';
@@ -10,7 +10,7 @@ import DatePicker from 'react-widgets/DatePicker';
 import { Localization } from 'react-widgets';
 import { DateLocalizer } from 'react-widgets/IntlLocalizer';
 import 'react-widgets/styles.css';
-import EventItem from './EventItem';
+import EventItem, { eventTodoOrTitleText } from './EventItem';
 import CalendarEventChip from './CalendarEventChip';
 import { EVENT_ACTIONS } from '../../constants';
 import '../../index.css';
@@ -257,13 +257,13 @@ const DailyView = () => {
   // Get current day or fallback to today
   const currentDay = daySelected || dayjs();
 
-  const dayEvents = useMemo(
-    () =>
-      filteredEvents.filter(
-        (evt) => dayjs(evt.day).format('DD-MM-YY') === currentDay.format('DD-MM-YY')
-      ),
-    [filteredEvents, currentDay]
-  );
+  const dayEvents = useMemo(() => {
+    const forDay = filteredEvents.filter(
+      (evt) => dayjs(evt.day).format('DD-MM-YY') === currentDay.format('DD-MM-YY')
+    );
+    if (!isMobile) return forDay;
+    return sortCalendarEventsAlphabeticallyMobile(forDay, plantsById || {});
+  }, [filteredEvents, currentDay, isMobile, plantsById]);
 
   const selectAllCheckboxRef = useRef(null);
 
@@ -713,7 +713,7 @@ const DailyView = () => {
                                   checked={evt.id ? bulkSelectedEventIds.includes(evt.id) : false}
                                   onClick={(e) => e.stopPropagation()}
                                   onChange={() => evt.id && toggleBulkEventSelection(evt.id)}
-                                  aria-label={`Select ${evt.title || evt.toDo || 'event'}`}
+                                  aria-label={`Select ${eventTodoOrTitleText(evt) || 'event'}`}
                                 />
                               )}
                               {!bulkEditMode && supportsDayViewCompleteToggle(evt) && renderDayTodoCompleteButton(evt)}
@@ -750,7 +750,7 @@ const DailyView = () => {
                               checked={evt.id ? bulkSelectedEventIds.includes(evt.id) : false}
                               onClick={(e) => e.stopPropagation()}
                               onChange={() => evt.id && toggleBulkEventSelection(evt.id)}
-                              aria-label={`Select ${evt.title || evt.toDo || 'event'}`}
+                              aria-label={`Select ${eventTodoOrTitleText(evt) || 'event'}`}
                             />
                           )}
                           {!bulkEditMode &&
@@ -805,7 +805,7 @@ const DailyView = () => {
           title="Delete Event"
           message={
             <>
-              <p className="mb-2">Delete "{eventToDelete.title || eventToDelete.toDo}"?</p>
+              <p className="mb-2">Delete "{eventTodoOrTitleText(eventToDelete)}"?</p>
               <p className="mb-0 small">This action cannot be undone.</p>
             </>
           }
