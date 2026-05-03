@@ -9,7 +9,7 @@ import errorLogger from '../utils/errorLogger';
 export function useEventsQuery(userId, { onError, showError } = {}) {
   const queryClient = useQueryClient();
   const queryHealAttemptedRef = useRef(false);
-  const queryKey = ['events', userId];
+  const queryKey = useMemo(() => ['events', userId], [userId]);
 
   useEffect(() => {
     queryHealAttemptedRef.current = false;
