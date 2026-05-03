@@ -95,13 +95,16 @@ const queryClient = new QueryClient({
 if (typeof window !== 'undefined') {
   const persister = createSyncStoragePersister({
     storage: window.localStorage,
-    key: 'happy-tomato-react-query'
+    key: 'happy-tomato-react-query-v2',
   });
 
   persistQueryClient({
     queryClient,
     persister,
-    maxAge: 1000 * 60 * 60 * 24
+    maxAge: 1000 * 60 * 60 * 24,
+    dehydrateOptions: {
+      shouldDehydrateQuery: (q) => q.queryKey[0] !== 'events',
+    },
   });
 }
 

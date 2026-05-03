@@ -322,12 +322,9 @@ export const useRecurringActions = () => {
         );
       }
       
-      // Delete all todos in parallel for better performance
-      const deletePromises = todosToDelete.map((todo) =>
-        dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: todo })
-      );
-      
-      await Promise.all(deletePromises);
+      for (const todo of todosToDelete) {
+        await dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: todo });
+      }
       
       // Cancel the recurring series to prevent regeneration
       const actionsCancelled = new Set();
@@ -398,11 +395,9 @@ export const useRecurringActions = () => {
       });
       
       if (todosToDelete.length > 0) {
-        const deletePromises = todosToDelete.map(todo => 
-          dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: todo })
-        );
-        
-        await Promise.all(deletePromises);
+        for (const todo of todosToDelete) {
+          await dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: todo });
+        }
       }
       
       return todosToDelete.length;
@@ -591,10 +586,9 @@ export const useRecurringActions = () => {
                 });
                 
                 if (todosToDelete.length > 0) {
-                  const deletePromises = todosToDelete.map(todo => 
-                    dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: todo })
-                  );
-                  await Promise.all(deletePromises);
+                  for (const todo of todosToDelete) {
+                    await dispatchCallEvent({ type: EVENT_ACTIONS.DELETE, payload: todo });
+                  }
                 }
               }
               

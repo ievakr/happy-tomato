@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMemo, useEffect, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchEvents } from '../services/eventsService';
 import errorLogger from '../utils/errorLogger';
 
@@ -7,7 +7,14 @@ import errorLogger from '../utils/errorLogger';
  * TanStack Query hook for fetching user events from Firestore.
  */
 export function useEventsQuery(userId, { onError, showError } = {}) {
+  const queryClient = useQueryClient();
+  const queryHealAttemptedRef = useRef(false);
   const queryKey = ['events', userId];
+
+  useEffect(() => {
+    queryHealAttemptedRef.current = false;
+  }, [userId]);
+
   const query = useQuery({
     queryKey,
     queryFn: () => fetchEvents(userId),
@@ -27,7 +34,35 @@ export function useEventsQuery(userId, { onError, showError } = {}) {
     },
   });
 
-  const savedEvents = useMemo(() => (userId ? (query.data || []) : []), [userId, query.data]);
+  useEffect(() => {
+    if (!userId || !query.data?.length) return;
+    const hasBadId = query.data.some(
+      (e) => !e || typeof e !== 'object' || e.id == null || String(e.id).trim() === ''
+    );
+    if (!hasBadId) {
+      queryHealAttemptedRef.current = false;
+      return;
+    }
+    if (queryHealAttemptedRef.current) return;
+    queryHealAttemptedRef.current = true;
+    errorLogger.logError(
+      new Error('events query contained entries without a document id'),
+      null,
+      'Events Query',
+      { userId, eventCount: query.data.length }
+    );
+    void queryClient.invalidateQueries({ queryKey });
+  }, [userId, query.data, queryClient, queryKey]);
+
+  const savedEvents = useMemo(() => {
+    if (!userId) return [];
+    const raw = query.data || [];
+    return raw.map((e) =>
+      e && typeof e === 'object' && e.id != null && String(e.id).trim() !== ''
+        ? { ...e, id: String(e.id).trim() }
+        : e
+    );
+  }, [userId, query.data]);
   const isInitialLoading = !!userId && query.isLoading;
 
   return {

@@ -118,12 +118,13 @@ async function retryOperation(operation, maxRetries = 2) {
 }
 
 /**
- * Hook for Firebase event CRUD operations with retry, queue, and cache updates.
+ * Hook for Firebase event CRUD operations with retry, serialized writes, and cache updates.
  */
 export function useEventOperations({ currentUser, queryKey, showError }) {
   const queryClient = useQueryClient();
-  const [, setOperationQueue] = useState([]);
-  const [isProcessingOperation, setIsProcessingOperation] = useState(false);
+  /** Serializes Firebase event writes: React state is async; a ref + promise chain avoids overlapping mutations from Promise.all / rapid taps. */
+  const dispatchChainRef = useRef(Promise.resolve());
+  const dispatchInFlightRef = useRef(0);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingOperation, setLoadingOperation] = useState(null);
 
@@ -131,13 +132,16 @@ export function useEventOperations({ currentUser, queryKey, showError }) {
     (type, payload) => {
       if (!currentUser) return;
       queryClient.setQueryData(queryKey, (existing = []) => {
+        const idStr = (v) => (v != null && v !== '' ? String(v) : '');
         switch (type) {
           case 'push':
             return [...existing, payload];
           case 'update':
-            return existing.map((evt) => (evt.id === payload.id ? payload : evt));
+            return existing.map((evt) =>
+              idStr(evt.id) === idStr(payload.id) ? payload : evt
+            );
           case 'delete':
-            return existing.filter((evt) => evt.id !== payload.id);
+            return existing.filter((evt) => idStr(evt.id) !== idStr(payload.id));
           default:
             return existing;
         }
@@ -163,23 +167,29 @@ export function useEventOperations({ currentUser, queryKey, showError }) {
             };
           }
           case 'update': {
-            if (!payload.id) {
+            const updateId =
+              payload.id != null && payload.id !== '' ? String(payload.id).trim() : '';
+            if (!updateId) {
               throw new Error('Cannot update event: missing event ID');
             }
             const fields = eventPayloadToFirestoreUpdateFields(payload);
-            await updateDoc(doc(db, 'events', payload.id), fields);
-            return { type, payload: clientPayloadFromEventPayload(payload) };
+            await updateDoc(doc(db, 'events', updateId), fields);
+            return {
+              type,
+              payload: clientPayloadFromEventPayload({ ...payload, id: updateId }),
+            };
           }
           case 'delete': {
-            if (!payload?.id || typeof payload.id !== 'string') {
+            const deleteId = payload?.id != null && payload.id !== '' ? String(payload.id).trim() : '';
+            if (!deleteId) {
               throw new Error('Cannot delete event: missing event ID');
             }
-            const deleteDocRef = doc(db, 'events', payload.id);
+            const deleteDocRef = doc(db, 'events', deleteId);
             const docSnap = await getDoc(deleteDocRef);
             if (docSnap.exists()) {
               await deleteDoc(deleteDocRef);
             }
-            return { type, payload };
+            return { type, payload: { ...payload, id: deleteId } };
           }
           default:
             return { type, payload };
@@ -188,65 +198,54 @@ export function useEventOperations({ currentUser, queryKey, showError }) {
     },
   });
 
-  const dispatchCallEventRef = useRef();
   const dispatchCallEvent = useCallback(
-    async ({ type, payload }) => {
-      if (isProcessingOperation) {
-        setOperationQueue((prev) => [...prev, { type, payload }]);
-        return;
-      }
-
-      if (!currentUser) {
-        showError?.('Please sign in to manage events.', 6000);
-        throw new Error('Not signed in');
-      }
-
-      setIsProcessingOperation(true);
-      setIsLoading(true);
-      setLoadingOperation(type);
-
-      try {
-        const result = await mutation.mutateAsync({ type, payload });
-        const updatedPayload = result?.payload || payload;
-        updateEventCache(type, updatedPayload);
-        queryClient.invalidateQueries({ queryKey });
-      } catch (error) {
-        errorLogger.logError(error, null, 'Event Operation', {
-          operation: type,
-          payload,
-          timestamp: new Date().toISOString(),
-        });
-        const errorMessage = getErrorMessage(error, type);
-        showError?.(`${errorMessage}. If this problem persists, try refreshing the page.`, 8000);
-        if (type !== 'delete') {
-          updateEventCache(type, clientPayloadFromEventPayload(payload));
+    ({ type, payload }) => {
+      const run = async () => {
+        if (!currentUser) {
+          showError?.('Please sign in to manage events.', 6000);
+          throw new Error('Not signed in');
         }
-        throw error;
-      } finally {
-        setIsLoading(false);
-        setLoadingOperation(null);
-        setIsProcessingOperation(false);
 
-        setOperationQueue((prev) => {
-          const nextOp = prev.length > 0 ? prev[0] : null;
-          if (nextOp) {
-            setTimeout(() => dispatchCallEventRef.current?.(nextOp), 100);
+        dispatchInFlightRef.current += 1;
+        if (dispatchInFlightRef.current === 1) {
+          setIsLoading(true);
+        }
+        setLoadingOperation(type);
+
+        try {
+          const result = await mutation.mutateAsync({ type, payload });
+          const updatedPayload = result?.payload || payload;
+          updateEventCache(type, updatedPayload);
+          queryClient.invalidateQueries({ queryKey });
+          return result;
+        } catch (error) {
+          errorLogger.logError(error, null, 'Event Operation', {
+            operation: type,
+            payload,
+            timestamp: new Date().toISOString(),
+          });
+          const errorMessage = getErrorMessage(error, type);
+          showError?.(`${errorMessage}. If this problem persists, try refreshing the page.`, 8000);
+          if (type !== 'delete') {
+            updateEventCache(type, clientPayloadFromEventPayload(payload));
           }
-          return prev.length > 0 ? prev.slice(1) : prev;
-        });
-      }
+          throw error;
+        } finally {
+          dispatchInFlightRef.current -= 1;
+          if (dispatchInFlightRef.current <= 0) {
+            dispatchInFlightRef.current = 0;
+            setIsLoading(false);
+            setLoadingOperation(null);
+          }
+        }
+      };
+
+      const chained = dispatchChainRef.current.then(run, run);
+      dispatchChainRef.current = chained.catch(() => {});
+      return chained;
     },
-    [
-      currentUser,
-      isProcessingOperation,
-      mutation,
-      updateEventCache,
-      queryClient,
-      queryKey,
-      showError,
-    ]
+    [currentUser, mutation, updateEventCache, queryClient, queryKey, showError]
   );
-  dispatchCallEventRef.current = dispatchCallEvent;
 
   return {
     dispatchCallEvent,
