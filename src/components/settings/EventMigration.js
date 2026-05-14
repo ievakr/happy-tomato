@@ -63,7 +63,7 @@ function EventMigration({ onClose }) {
 
   const handleDelete = async () => {
     const confirmed = window.confirm(
-      `⚠️ WARNING: This will permanently delete ${eventCount} unassigned events. This action cannot be undone. Continue?`
+      `⚠️ WARNING: This will permanently delete ${eventCount} unassigned events. This action can't be undone. Continue?`
     );
 
     if (!confirmed) return;

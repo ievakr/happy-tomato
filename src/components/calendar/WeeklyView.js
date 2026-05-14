@@ -286,7 +286,7 @@ const WeeklyView = () => {
           message={
             <>
               <p className="mb-2">Delete "{eventTodoOrTitleText(eventToDelete)}"?</p>
-              <p className="mb-0 small">This action cannot be undone.</p>
+              <p className="mb-0 small">This action can't be undone.</p>
             </>
           }
           confirmLabel="Delete"

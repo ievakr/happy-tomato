@@ -147,6 +147,18 @@ html.capacitor-ios-native .calendar-header {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Mobile daily swipe-delete: Material glyph sits low in its em box; nudge up optically */
+.mobile-daily-event-swipe__track .mobile-daily-event-swipe-delete-icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: block;
+  font-size: 1.3rem;
+  line-height: 1;
+  transform: translate(-50%, calc(-50% - 0.45em));
+  user-select: none;
+}
+
 .calendar-event-box {
     width: 100%;
     max-width: 160px;

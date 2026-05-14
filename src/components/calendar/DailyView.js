@@ -27,8 +27,10 @@ const RW_DATE_PICKER_INPUT_PROPS = {
   autoComplete: 'off',
 };
 
-/** Width of the delete action revealed when swiping left (px). */
-const MOBILE_EVENT_DELETE_REVEAL_PX = 72;
+/** Width of the delete hint strip revealed when swiping left (px). */
+const MOBILE_EVENT_DELETE_REVEAL_PX = 52;
+/** Release past this fraction of the reveal width → delete (icon is visual only). Higher = longer swipe required. */
+const MOBILE_EVENT_DELETE_RELEASE_RATIO = 0.85;
 
 function MobileDailyEventRow({
   evt,
@@ -39,7 +41,7 @@ function MobileDailyEventRow({
   supportsDayViewCompleteToggle,
   renderDayTodoCompleteButton,
   handleEventClick,
-  onDeleteEvent,
+  onRequestDeleteConfirm,
   deleteDisabled,
 }) {
   const [openPx, setOpenPx] = useState(0);
@@ -53,18 +55,18 @@ function MobileDailyEventRow({
     openPxRef.current = openPx;
   }, [openPx]);
 
-  const runDelete = useCallback(() => {
+  const openDeleteConfirmFromSwipe = useCallback(() => {
     if (!evt?.id || deleteDisabled) return;
     setOpenPx(0);
-    onDeleteEvent(evt);
-  }, [evt, deleteDisabled, onDeleteEvent]);
+    onRequestDeleteConfirm(evt);
+  }, [evt, deleteDisabled, onRequestDeleteConfirm]);
 
   useEffect(() => {
     if (bulkEditMode) return;
     const el = contentRef.current;
     if (!el) return;
 
-    const SNAP_OPEN_AT = MOBILE_EVENT_DELETE_REVEAL_PX * 0.42;
+    const DELETE_RELEASE_AT = MOBILE_EVENT_DELETE_REVEAL_PX * MOBILE_EVENT_DELETE_RELEASE_RATIO;
     const AXIS_LOCK_PX = 10;
 
     const clampOpen = (v) =>
@@ -113,27 +115,20 @@ function MobileDailyEventRow({
       panModeRef.current = 'undecided';
       setIsHorizontalPan(false);
       const x = openPxRef.current;
-      if (x > SNAP_OPEN_AT) {
-        openPxRef.current = MOBILE_EVENT_DELETE_REVEAL_PX;
-        setOpenPx(MOBILE_EVENT_DELETE_REVEAL_PX);
-      } else {
-        openPxRef.current = 0;
-        setOpenPx(0);
+      if (x >= DELETE_RELEASE_AT && !deleteDisabled) {
+        openDeleteConfirmFromSwipe();
+        return;
       }
+      openPxRef.current = 0;
+      setOpenPx(0);
     };
 
     const onTouchCancel = () => {
       const wasH = panModeRef.current === 'horizontal';
       panModeRef.current = 'undecided';
       if (wasH) setIsHorizontalPan(false);
-      const x = openPxRef.current;
-      if (x > MOBILE_EVENT_DELETE_REVEAL_PX * 0.5) {
-        openPxRef.current = MOBILE_EVENT_DELETE_REVEAL_PX;
-        setOpenPx(MOBILE_EVENT_DELETE_REVEAL_PX);
-      } else {
-        openPxRef.current = 0;
-        setOpenPx(0);
-      }
+      openPxRef.current = 0;
+      setOpenPx(0);
     };
 
     el.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -147,7 +142,7 @@ function MobileDailyEventRow({
       el.removeEventListener('touchend', onTouchEnd);
       el.removeEventListener('touchcancel', onTouchCancel);
     };
-  }, [bulkEditMode]);
+  }, [bulkEditMode, deleteDisabled, openDeleteConfirmFromSwipe]);
 
   const rowShellClass = 'd-flex align-items-stretch mb-1 mobile-daily-event-swipe';
 
@@ -192,29 +187,27 @@ function MobileDailyEventRow({
 
   return (
     <div className={`${rowShellClass} position-relative overflow-hidden rounded`}>
-      <div
-        className="mobile-daily-event-swipe__track bg-danger d-flex align-items-stretch justify-content-end position-absolute top-0 end-0 bottom-0"
-        style={{ width: MOBILE_EVENT_DELETE_REVEAL_PX }}
-      >
-        <button
-          type="button"
-          className="btn btn-link text-white d-flex align-items-center justify-content-center flex-shrink-0 rounded-0 border-0 h-100 w-100 p-0"
-          style={{ minWidth: MOBILE_EVENT_DELETE_REVEAL_PX }}
-          onClick={(e) => {
-            e.stopPropagation();
-            runDelete();
+      {openPx > 0 && (
+        <div
+          className="mobile-daily-event-swipe__track position-absolute top-0 end-0 bottom-0"
+          style={{
+            width: MOBILE_EVENT_DELETE_REVEAL_PX,
+            background: 'transparent',
+            pointerEvents: 'none',
           }}
-          disabled={deleteDisabled}
-          aria-label={`Delete ${eventTodoOrTitleText(evt) || 'event'}`}
+          aria-hidden
         >
-          <span className="material-icons-outlined" style={{ fontSize: '1.5rem' }}>
+          <span
+            className="material-icons-outlined text-danger mobile-daily-event-swipe-delete-icon"
+            aria-hidden
+          >
             delete
           </span>
-        </button>
-      </div>
+        </div>
+      )}
       <div
         ref={contentRef}
-        className="mobile-daily-event-swipe__content position-relative bg-white d-flex align-items-start gap-2 w-100"
+        className="mobile-daily-event-swipe__content position-relative d-flex align-items-start gap-2 w-100"
         style={{
           touchAction: 'pan-y',
           transform: `translateX(${-openPx}px)`,
@@ -557,8 +550,10 @@ const DailyView = () => {
   }, [daySelected, isMobile, stripStart, stripDayCount]);
 
   // After selection or re-anchor, center the selected day in the strip (not when user is extending via scroll).
+  // Include isInitialLoading: while loading we render a spinner (no strip); when loading ends deps were often
+  // unchanged so this effect would not re-run and the strip stayed at scrollLeft 0 — wrong day centered / empty list perception until Today.
   useLayoutEffect(() => {
-    if (!isMobile || stripPrependingRef.current) {
+    if (!isMobile || stripPrependingRef.current || isInitialLoading) {
       return;
     }
 
@@ -567,7 +562,7 @@ const DailyView = () => {
     if (selectedEl) {
       scrollToDay(selectedEl);
     }
-  }, [currentDay, stripStart, isMobile, scrollToDay]);
+  }, [currentDay, stripStart, isMobile, isInitialLoading, scrollToDay]);
 
   const openNewEventForDay = useCallback(
     (day) => {
@@ -661,22 +656,14 @@ const DailyView = () => {
     </button>
   );
 
-  const deleteMobileEvent = useCallback(
-    async (evt) => {
-      if (!evt?.id) return;
-      try {
-        await dispatchCallEvent({ type: 'delete', payload: evt });
-      } catch {
-        // Toast already shown by dispatchCallEvent
-      }
-    },
-    [dispatchCallEvent]
-  );
+  const openDeleteConfirmForEvent = useCallback((evt) => {
+    setEventToDelete(evt);
+    setShowDeleteConfirm(true);
+  }, []);
 
   const handleQuickDelete = (evt, e) => {
     e.stopPropagation();
-    setEventToDelete(evt);
-    setShowDeleteConfirm(true);
+    openDeleteConfirmForEvent(evt);
   };
 
   const confirmDelete = async () => {
@@ -924,7 +911,7 @@ const DailyView = () => {
                               supportsDayViewCompleteToggle={supportsDayViewCompleteToggle}
                               renderDayTodoCompleteButton={renderDayTodoCompleteButton}
                               handleEventClick={handleEventClick}
-                              onDeleteEvent={deleteMobileEvent}
+                              onRequestDeleteConfirm={openDeleteConfirmForEvent}
                               deleteDisabled={isLoading}
                             />
                           );
@@ -1000,7 +987,7 @@ const DailyView = () => {
           message={
             <>
               <p className="mb-2">Delete "{eventTodoOrTitleText(eventToDelete)}"?</p>
-              <p className="mb-0 small">This action cannot be undone.</p>
+              <p className="mb-0 small">This action can't be undone.</p>
             </>
           }
           confirmLabel="Delete"

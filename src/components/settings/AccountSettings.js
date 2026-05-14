@@ -216,7 +216,7 @@ function AccountSettings({ onClose }) {
                       ) : (
                         <div className="d-grid gap-3">
                           <div className="alert alert-danger">
-                            <strong>Warning:</strong> This action cannot be undone.
+                            <strong>Warning:</strong> This action can't be undone.
                             <ul className="mb-0 mt-2">
                               <li>Permanently delete all your events and data</li>
                               <li>Remove your account from the system</li>

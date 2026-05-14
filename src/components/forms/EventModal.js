@@ -561,7 +561,7 @@ export default function EventModal() {
             {showDeleteConfirm && (
                 <ConfirmModal
                     title="Delete Event"
-                    message="Are you sure you want to delete this event? This action cannot be undone."
+                    message="Are you sure you want to delete this event? This action can't be undone."
                     confirmLabel="Delete"
                     variant="danger"
                     onConfirm={handleDelete}
