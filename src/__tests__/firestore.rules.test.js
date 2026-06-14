@@ -67,14 +67,14 @@ describe('Firestore security rules', () => {
       await assertSucceeds(getDoc(doc(db, 'events', 'event-own')));
     });
 
-    test('allows authenticated user to read legacy event without userId', async () => {
+    test('denies authenticated user from reading legacy event without userId', async () => {
       await seedDoc('events', 'event-legacy', {
         day: '2026-01-15',
         title: 'Legacy event'
       });
 
       const db = getAuthedDb('user-1');
-      await assertSucceeds(getDoc(doc(db, 'events', 'event-legacy')));
+      await assertFails(getDoc(doc(db, 'events', 'event-legacy')));
     });
 
     test('denies authenticated user from reading others events', async () => {
@@ -194,14 +194,14 @@ describe('Firestore security rules', () => {
       );
     });
 
-    test('allows update to claim legacy event without userId', async () => {
+    test('denies update to claim legacy event without userId', async () => {
       await seedDoc('events', 'event-legacy-claim', {
         day: '2026-01-15',
         title: 'Legacy title'
       });
 
       const db = getAuthedDb('user-1');
-      await assertSucceeds(
+      await assertFails(
         updateDoc(doc(db, 'events', 'event-legacy-claim'), {
           userId: 'user-1',
           title: 'Claimed'
@@ -250,14 +250,14 @@ describe('Firestore security rules', () => {
       await assertSucceeds(deleteDoc(doc(db, 'events', 'event-delete-own')));
     });
 
-    test('allows delete of legacy event without userId', async () => {
+    test('denies delete of legacy event without userId', async () => {
       await seedDoc('events', 'event-delete-legacy', {
         day: '2026-01-15',
         title: 'Legacy delete'
       });
 
       const db = getAuthedDb('user-1');
-      await assertSucceeds(deleteDoc(doc(db, 'events', 'event-delete-legacy')));
+      await assertFails(deleteDoc(doc(db, 'events', 'event-delete-legacy')));
     });
 
     test('denies delete of other users event', async () => {

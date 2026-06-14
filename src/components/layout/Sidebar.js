@@ -1,34 +1,16 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState } from 'react';
 import CreateEventButton from '../forms/CreateEventButton';
 import Labels from '../calendar/Labels';
 import CalendarContext from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
 import { useEventContext } from '../../context/EventContext';
-import EventMigration from '../settings/EventMigration';
-import { countEventsWithoutUser } from '../../utils/migrateEvents';
 
 export default function Sidebar() {
     const { showSidebar, setShowSidebar } = useContext(LayoutContext);
     const { setCurrentView, currentView } = useContext(CalendarContext);
     const { setShowManagePlantsModal, setShowManageTodoModal } = useEventContext();
-    const [showMigration, setShowMigration] = useState(false);
-    const [hasUnassignedEvents, setHasUnassignedEvents] = useState(false);
     const [isPlantManagementExpanded, setIsPlantManagementExpanded] = useState(false);
     const [isActionManagementExpanded, setIsActionManagementExpanded] = useState(false);
-
-    useEffect(() => {
-        // Check if there are unassigned events on mount
-        const checkEvents = async () => {
-            try {
-                const count = await countEventsWithoutUser();
-                setHasUnassignedEvents(count > 0);
-            } catch {
-                // Ignore - user may not have permission
-            }
-        };
-        
-        checkEvents();
-    }, []);
 
     return (
         <>
@@ -149,31 +131,7 @@ export default function Sidebar() {
                 <div className="mb-4">
                     <Labels />
                 </div>
-
-                {/* Migration button - only show if there are unassigned events */}
-                {hasUnassignedEvents && (
-                    <div className="mt-4 pt-3 border-top">
-                        <button
-                            className="btn btn-warning w-100"
-                            onClick={() => setShowMigration(true)}
-                            title="Migrate or delete events without a user"
-                        >
-                            <span className="material-icons-outlined" style={{ fontSize: '1rem', verticalAlign: 'middle', marginRight: '4px' }}>
-                                warning
-                            </span>
-                            Manage Unassigned Events
-                        </button>
-                    </div>
-                )}
             </aside>
-
-            {/* Migration Modal */}
-            {showMigration && (
-                <EventMigration onClose={() => {
-                    setShowMigration(false);
-                    setHasUnassignedEvents(false);
-                }} />
-            )}
         </>
     );
 }

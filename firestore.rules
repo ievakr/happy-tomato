@@ -21,16 +21,20 @@ service cloud.firestore {
       return request.resource.data.userId == resource.data.userId;
     }
     
+    // User owns an event document
+    function ownsEvent() {
+      return isAuthenticated() &&
+        resource.data.userId is string &&
+        resource.data.userId == request.auth.uid;
+    }
+    
     // ========================================
     // EVENTS COLLECTION
     // ========================================
     
     match /events/{eventId} {
-      // Users can read their own events OR events without userId (for migration)
-      allow read: if isAuthenticated() && (
-                      resource.data.userId == request.auth.uid ||
-                      !('userId' in resource.data)
-                    );
+      // Strict ownership — legacy events without userId are admin-only (see functions/migrate-legacy-events.js)
+      allow read: if ownsEvent();
       
       // Users can create events only with their own userId
       // The day field can be either a string (date string) or number (timestamp)
@@ -40,17 +44,9 @@ service cloud.firestore {
                       request.resource.data.userId is string &&
                       (request.resource.data.day is string || request.resource.data.day is number);
       
-      // Users can update their own events OR add userId to events without one (for migration)
-      allow update: if isAuthenticated() && (
-                      (resource.data.userId == request.auth.uid && userIdNotChanged()) ||
-                      (!('userId' in resource.data) && isSettingOwnUserId())
-                    );
+      allow update: if ownsEvent() && userIdNotChanged();
       
-      // Users can delete their own events OR events without userId (for cleanup)
-      allow delete: if isAuthenticated() && (
-                      resource.data.userId == request.auth.uid ||
-                      !('userId' in resource.data)
-                    );
+      allow delete: if ownsEvent();
     }
     
     // ========================================
