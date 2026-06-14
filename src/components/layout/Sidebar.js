@@ -66,7 +66,10 @@ export default function Sidebar() {
                             <button
                                 type="button"
                                 className="btn btn-outline-secondary w-100"
-                                onClick={() => setShowManagePlantsModal(true)}
+                                onClick={() => {
+                                    setShowSidebar(false);
+                                    setShowManagePlantsModal(true);
+                                }}
                             >
                                 <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
                                     eco
@@ -101,7 +104,10 @@ export default function Sidebar() {
                             <button
                                 type="button"
                                 className="btn btn-outline-secondary w-100"
-                                onClick={() => setShowManageTodoModal(true)}
+                                onClick={() => {
+                                    setShowSidebar(false);
+                                    setShowManageTodoModal(true);
+                                }}
                             >
                                 <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
                                     edit_note

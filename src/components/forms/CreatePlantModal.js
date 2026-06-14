@@ -86,7 +86,7 @@ export default function CreatePlantModal() {
             footer={footer}
             closeDisabled={isLoading}
         >
-            <div className="d-grid gap-3">
+            <div className="d-grid gap-3" style={{ minWidth: 0, maxWidth: '100%' }}>
                 <div>
                     <label className="form-label d-flex align-items-center gap-2">
                         <Icon name="category" className="text-muted" style={{ fontSize: '1rem' }} />
@@ -114,14 +114,14 @@ export default function CreatePlantModal() {
                         onChange={(e) => setPlantVariety(e.target.value)}
                     />
                 </div>
-                <div>
+                <div className="min-w-0 overflow-hidden">
                     <label className="form-label d-flex align-items-center gap-2">
                         <Icon name="eco" className="text-muted" style={{ fontSize: '1rem' }} />
                         Choose icon
                     </label>
                     <div
-                        className="d-flex flex-wrap gap-2 p-2 border rounded bg-light"
-                        style={{ minHeight: '80px' }}
+                        className="d-flex flex-wrap gap-2 p-2 border rounded bg-light overflow-y-auto"
+                        style={{ maxHeight: '104px', overflowX: 'hidden', minWidth: 0, maxWidth: '100%' }}
                     >
                         {Object.entries(VEGETABLE_ICONS).map(([iconKey, displayName]) => (
                             <button
@@ -134,12 +134,12 @@ export default function CreatePlantModal() {
                                 }`}
                                 onClick={() => setSelectedIcon(iconKey)}
                                 title={displayName}
-                                style={{ width: '44px', height: '44px' }}
+                                style={{ width: '40px', height: '40px' }}
                             >
-                                                <Icon
-                                                    plantIcon={iconKey}
-                                                    style={{ fontSize: '1.25rem' }}
-                                                />
+                                <Icon
+                                    plantIcon={iconKey}
+                                    style={{ fontSize: '1.25rem' }}
+                                />
                             </button>
                         ))}
                     </div>

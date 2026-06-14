@@ -17,6 +17,23 @@ function eventDayStart(evt) {
   return d.isValid() ? d.startOf('day') : null;
 }
 
+export function formatTodoLabel(evt) {
+  if (evt.toDo) {
+    const raw = Array.isArray(evt.toDo) ? evt.toDo.join(', ') : String(evt.toDo);
+    return raw.replace(/^TO DO:\s*/i, '').trim() || raw;
+  }
+  if (typeof evt.title === 'string' && evt.title.startsWith('TO DO:')) {
+    return evt.title.replace(/^TO DO:\s*/i, '').trim() || evt.title;
+  }
+  return evt.title || 'Task';
+}
+
+function compareTodosByLabel(a, b) {
+  return formatTodoLabel(a).localeCompare(formatTodoLabel(b), undefined, {
+    sensitivity: 'base',
+  });
+}
+
 /**
  * TODOs for the current "week ahead" window (Mon–Sun), matching Cloud Function logic.
  * @param {Array<Object>} events
@@ -52,16 +69,10 @@ export function getTodosForWeekAhead(events) {
     }
   });
 
-  return { overdue, byDay, weekStart, weekEnd };
-}
+  overdue.sort(compareTodosByLabel);
+  Object.keys(byDay).forEach((key) => {
+    byDay[key].sort(compareTodosByLabel);
+  });
 
-export function formatTodoLabel(evt) {
-  if (evt.toDo) {
-    const raw = Array.isArray(evt.toDo) ? evt.toDo.join(', ') : String(evt.toDo);
-    return raw.replace(/^TO DO:\s*/i, '').trim() || raw;
-  }
-  if (typeof evt.title === 'string' && evt.title.startsWith('TO DO:')) {
-    return evt.title.replace(/^TO DO:\s*/i, '').trim() || evt.title;
-  }
-  return evt.title || 'Task';
+  return { overdue, byDay, weekStart, weekEnd };
 }
