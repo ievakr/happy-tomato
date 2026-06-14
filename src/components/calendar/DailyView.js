@@ -264,6 +264,10 @@ const DailyView = () => {
   const stripTapRef = useRef({ time: 0, key: '' });
   const suppressNextStripClickRef = useRef(false);
   const stripEdgeObserverRef = useRef(null);
+  /** Bumped only when the strip should scroll to the selected day (not on strip taps). */
+  const [stripRecenterNonce, setStripRecenterNonce] = useState(0);
+  const selectedDayKeyForRecenterRef = useRef(null);
+  const wasInitialLoadingRef = useRef(isInitialLoading);
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBulkMoveModal, setShowBulkMoveModal] = useState(false);
@@ -288,6 +292,7 @@ const DailyView = () => {
       stripUserHasPannedRef.current = false;
       setStripDayCount(STRIP_INITIAL_DAY_COUNT);
       setStripStart(newDay.subtract(Math.floor(STRIP_INITIAL_DAY_COUNT / 2), 'day'));
+      setStripRecenterNonce((n) => n + 1);
     },
     [daySelected, setMonthIndex, setDaySelected]
   );
@@ -395,6 +400,10 @@ const DailyView = () => {
     () => (daySelected || dayjs()).format('YYYY-MM-DD'),
     [daySelected]
   );
+
+  useEffect(() => {
+    selectedDayKeyForRecenterRef.current = selectedDayCalendarKey;
+  }, [selectedDayCalendarKey]);
 
   const getCenteredDayFromScroll = useCallback(() => {
     const container = scrollContainerRef.current;
@@ -663,27 +672,30 @@ const DailyView = () => {
       stripUserHasPannedRef.current = false;
       setStripDayCount(STRIP_INITIAL_DAY_COUNT);
       setStripStart(daySelected.subtract(Math.floor(STRIP_INITIAL_DAY_COUNT / 2), 'day'));
+      setStripRecenterNonce((n) => n + 1);
     }
   }, [daySelected, isMobile, stripStart, stripDayCount]);
 
-  // Center the selected day only after initial load or explicit strip re-anchor (Today, month nav, deep link).
-  // Do not run when the user taps a day in the strip — that would jump scroll position.
+  // Center the selected day after initial load or explicit strip re-anchor (Today, month nav, deep link).
   useLayoutEffect(() => {
-    if (
-      !isMobile ||
-      stripPrependingRef.current ||
-      isInitialLoading ||
-      stripUserHasPannedRef.current
-    ) {
+    if (!isMobile || stripPrependingRef.current || isInitialLoading || stripRecenterNonce === 0) {
       return;
     }
 
-    const selectedKey = (daySelected || dayjs()).format('YYYY-MM-DD');
-    const selectedEl = dayElementMapRef.current.get(selectedKey);
+    const selectedKey = selectedDayKeyForRecenterRef.current;
+    const selectedEl = selectedKey ? dayElementMapRef.current.get(selectedKey) : null;
     if (selectedEl) {
       scrollToDay(selectedEl);
     }
-  }, [stripStart, isMobile, isInitialLoading, scrollToDay]);
+  }, [stripRecenterNonce, isMobile, isInitialLoading, scrollToDay]);
+
+  // First paint after the loading spinner: center the selected day in the strip.
+  useEffect(() => {
+    if (wasInitialLoadingRef.current && !isInitialLoading && isMobile) {
+      setStripRecenterNonce((n) => n + 1);
+    }
+    wasInitialLoadingRef.current = isInitialLoading;
+  }, [isInitialLoading, isMobile]);
 
   const openNewEventForDay = useCallback(
     (day) => {
@@ -811,6 +823,7 @@ const DailyView = () => {
     stripUserHasPannedRef.current = false;
     setStripDayCount(STRIP_INITIAL_DAY_COUNT);
     setStripStart(today.subtract(Math.floor(STRIP_INITIAL_DAY_COUNT / 2), 'day'));
+    setStripRecenterNonce((n) => n + 1);
   }, [setDaySelected, setMonthIndex]);
 
   if (isInitialLoading) {
