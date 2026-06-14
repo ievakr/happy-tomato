@@ -265,7 +265,7 @@ const DailyView = () => {
   const suppressNextStripClickRef = useRef(false);
   const stripEdgeObserverRef = useRef(null);
   /** Bumped only when the strip should scroll to the selected day (not on strip taps). */
-  const [stripRecenterNonce, setStripRecenterNonce] = useState(0);
+  const [stripRecenterNonce, setStripRecenterNonce] = useState(1);
   const selectedDayKeyForRecenterRef = useRef(null);
   const wasInitialLoadingRef = useRef(isInitialLoading);
   const [eventToDelete, setEventToDelete] = useState(null);
@@ -678,7 +678,7 @@ const DailyView = () => {
 
   // Center the selected day after initial load or explicit strip re-anchor (Today, month nav, deep link).
   useLayoutEffect(() => {
-    if (!isMobile || stripPrependingRef.current || isInitialLoading || stripRecenterNonce === 0) {
+    if (!isMobile || stripPrependingRef.current || isInitialLoading) {
       return;
     }
 
