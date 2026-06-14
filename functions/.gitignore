@@ -1,2 +1,3 @@
 node_modules/
+# Firebase Admin SDK — download from Console → Project settings → Service accounts
 serviceAccountKey.json

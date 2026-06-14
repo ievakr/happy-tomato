@@ -22,6 +22,9 @@ public/__firebase-sw-config.js
 .env.test.local
 .env.production.local
 
+# Firebase Admin SDK key for local scripts in functions/ (never commit)
+**/serviceAccountKey.json
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
