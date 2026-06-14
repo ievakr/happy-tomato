@@ -102,10 +102,15 @@ function AccountSettings({ onClose }) {
       setDeleting(true);
       setError('');
 
-      // Step 1: Delete user's events and data
-      await deleteAllUserData(currentUser.uid);
+      // Step 1: Delete user's Firestore data (events, plants, garden, notifications, saved to-dos)
+      await deleteAllUserData(currentUser.uid, {
+        userEmail: currentUser.email ?? undefined,
+      });
 
-      // Step 2: Delete the Firebase Auth account
+      // Step 2: Clear local notification prefs (FCM tokens are removed from Firestore above)
+      pushNotifications.resetPushPreferences();
+
+      // Step 3: Delete the Firebase Auth account
       await deleteAccount(isGoogleUser ? null : password);
 
       // User is automatically logged out and redirected to login screen

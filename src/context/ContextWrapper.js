@@ -162,11 +162,12 @@ export default function ContextWrapper(props) {
     }
   }, [showEventModal]);
 
-  // Clear events query when user logs out
+  // Clear cached queries when user logs out
   useEffect(() => {
     if (!currentUser) {
       queryClient.removeQueries({ queryKey: ['events'] });
       queryClient.removeQueries({ queryKey: ['gardenPlan'] });
+      queryClient.removeQueries({ queryKey: ['plants'] });
     }
   }, [currentUser, queryClient]);
 
