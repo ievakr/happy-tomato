@@ -273,9 +273,48 @@ describe('Firestore security rules', () => {
   });
 
   describe('emailPreferences', () => {
+    test('allows read of legacy preferences without userId when email matches', async () => {
+      await seedDoc('emailPreferences', 'pref-legacy', {
+        userEmail: 'user@example.com',
+        enabled: true
+      });
+
+      const db = getAuthedDb('user-1', 'user@example.com');
+      await assertSucceeds(getDoc(doc(db, 'emailPreferences', 'pref-legacy')));
+    });
+
+    test('allows update of legacy preferences without userId', async () => {
+      await seedDoc('emailPreferences', 'pref-legacy-update', {
+        userEmail: 'user@example.com',
+        enabled: true
+      });
+
+      const db = getAuthedDb('user-1', 'user@example.com');
+      await assertSucceeds(
+        updateDoc(doc(db, 'emailPreferences', 'pref-legacy-update'), {
+          enabled: false
+        })
+      );
+    });
+
+    test('allows legacy preferences to gain userId on update', async () => {
+      await seedDoc('emailPreferences', 'pref-legacy-claim', {
+        userEmail: 'user@example.com',
+        enabled: true
+      });
+
+      const db = getAuthedDb('user-1', 'user@example.com');
+      await assertSucceeds(
+        updateDoc(doc(db, 'emailPreferences', 'pref-legacy-claim'), {
+          userId: 'user-1'
+        })
+      );
+    });
+
     test('allows read of own preferences', async () => {
       await seedDoc('emailPreferences', 'pref-own', {
         userEmail: 'user@example.com',
+        userId: 'user-1',
         enabled: true
       });
 
@@ -286,6 +325,7 @@ describe('Firestore security rules', () => {
     test('denies read of other users preferences', async () => {
       await seedDoc('emailPreferences', 'pref-other', {
         userEmail: 'other@example.com',
+        userId: 'user-2',
         enabled: true
       });
 
@@ -293,11 +333,23 @@ describe('Firestore security rules', () => {
       await assertFails(getDoc(doc(db, 'emailPreferences', 'pref-other')));
     });
 
-    test('allows create when userEmail matches auth token', async () => {
+    test('denies read when userId does not match auth', async () => {
+      await seedDoc('emailPreferences', 'pref-wrong-user', {
+        userEmail: 'user@example.com',
+        userId: 'user-2',
+        enabled: true
+      });
+
+      const db = getAuthedDb('user-1', 'user@example.com');
+      await assertFails(getDoc(doc(db, 'emailPreferences', 'pref-wrong-user')));
+    });
+
+    test('allows create when userEmail and userId match auth', async () => {
       const db = getAuthedDb('user-1', 'user@example.com');
       await assertSucceeds(
         setDoc(doc(db, 'emailPreferences', 'pref-new'), {
           userEmail: 'user@example.com',
+          userId: 'user-1',
           enabled: true
         })
       );
@@ -308,6 +360,18 @@ describe('Firestore security rules', () => {
       await assertFails(
         setDoc(doc(db, 'emailPreferences', 'pref-wrong'), {
           userEmail: 'other@example.com',
+          userId: 'user-1',
+          enabled: true
+        })
+      );
+    });
+
+    test('denies create when userId does not match auth', async () => {
+      const db = getAuthedDb('user-1', 'user@example.com');
+      await assertFails(
+        setDoc(doc(db, 'emailPreferences', 'pref-wrong-user'), {
+          userEmail: 'user@example.com',
+          userId: 'user-2',
           enabled: true
         })
       );
@@ -318,6 +382,17 @@ describe('Firestore security rules', () => {
       await assertFails(
         setDoc(doc(db, 'emailPreferences', 'pref-bad-type'), {
           userEmail: 123,
+          userId: 'user-1',
+          enabled: true
+        })
+      );
+    });
+
+    test('denies create when userId is missing', async () => {
+      const db = getAuthedDb('user-1', 'user@example.com');
+      await assertFails(
+        setDoc(doc(db, 'emailPreferences', 'pref-missing-user'), {
+          userEmail: 'user@example.com',
           enabled: true
         })
       );
@@ -326,6 +401,7 @@ describe('Firestore security rules', () => {
     test('allows update of own preferences', async () => {
       await seedDoc('emailPreferences', 'pref-update', {
         userEmail: 'user@example.com',
+        userId: 'user-1',
         enabled: true
       });
 
@@ -337,9 +413,40 @@ describe('Firestore security rules', () => {
       );
     });
 
+    test('denies update that changes userEmail', async () => {
+      await seedDoc('emailPreferences', 'pref-update-email', {
+        userEmail: 'user@example.com',
+        userId: 'user-1',
+        enabled: true
+      });
+
+      const db = getAuthedDb('user-1', 'user@example.com');
+      await assertFails(
+        updateDoc(doc(db, 'emailPreferences', 'pref-update-email'), {
+          userEmail: 'other@example.com'
+        })
+      );
+    });
+
+    test('denies update that changes userId', async () => {
+      await seedDoc('emailPreferences', 'pref-update-user', {
+        userEmail: 'user@example.com',
+        userId: 'user-1',
+        enabled: true
+      });
+
+      const db = getAuthedDb('user-1', 'user@example.com');
+      await assertFails(
+        updateDoc(doc(db, 'emailPreferences', 'pref-update-user'), {
+          userId: 'user-2'
+        })
+      );
+    });
+
     test('denies update of other users preferences', async () => {
       await seedDoc('emailPreferences', 'pref-update-other', {
         userEmail: 'other@example.com',
+        userId: 'user-2',
         enabled: true
       });
 
@@ -354,6 +461,7 @@ describe('Firestore security rules', () => {
     test('allows delete of own preferences', async () => {
       await seedDoc('emailPreferences', 'pref-delete', {
         userEmail: 'user@example.com',
+        userId: 'user-1',
         enabled: true
       });
 
@@ -364,11 +472,134 @@ describe('Firestore security rules', () => {
     test('denies delete of other users preferences', async () => {
       await seedDoc('emailPreferences', 'pref-delete-other', {
         userEmail: 'other@example.com',
+        userId: 'user-2',
         enabled: true
       });
 
       const db = getAuthedDb('user-1', 'user@example.com');
       await assertFails(deleteDoc(doc(db, 'emailPreferences', 'pref-delete-other')));
+    });
+  });
+
+  describe('plants', () => {
+    test('allows authenticated user to read own plant', async () => {
+      await seedDoc('plants', 'plant-own', {
+        userId: 'user-1',
+        category: 'Tomato',
+        variety: 'Cherry',
+        icon: 'tomato'
+      });
+
+      const db = getAuthedDb('user-1');
+      await assertSucceeds(getDoc(doc(db, 'plants', 'plant-own')));
+    });
+
+    test('denies authenticated user from reading others plants', async () => {
+      await seedDoc('plants', 'plant-other', {
+        userId: 'user-2',
+        category: 'Tomato',
+        variety: 'Cherry',
+        icon: 'tomato'
+      });
+
+      const db = getAuthedDb('user-1');
+      await assertFails(getDoc(doc(db, 'plants', 'plant-other')));
+    });
+
+    test('allows create with own userId', async () => {
+      const db = getAuthedDb('user-1');
+      await assertSucceeds(
+        setDoc(doc(db, 'plants', 'plant-new'), {
+          userId: 'user-1',
+          category: 'Tomato',
+          variety: 'Cherry',
+          icon: 'tomato'
+        })
+      );
+    });
+
+    test('denies create when userId does not match auth', async () => {
+      const db = getAuthedDb('user-1');
+      await assertFails(
+        setDoc(doc(db, 'plants', 'plant-wrong-user'), {
+          userId: 'user-2',
+          category: 'Tomato',
+          variety: 'Cherry',
+          icon: 'tomato'
+        })
+      );
+    });
+
+    test('allows update of own plant when userId is unchanged', async () => {
+      await seedDoc('plants', 'plant-update-own', {
+        userId: 'user-1',
+        category: 'Tomato',
+        variety: 'Cherry',
+        icon: 'tomato'
+      });
+
+      const db = getAuthedDb('user-1');
+      await assertSucceeds(
+        updateDoc(doc(db, 'plants', 'plant-update-own'), {
+          variety: 'Beefsteak'
+        })
+      );
+    });
+
+    test('denies update that changes userId', async () => {
+      await seedDoc('plants', 'plant-update-user', {
+        userId: 'user-1',
+        category: 'Tomato',
+        variety: 'Cherry',
+        icon: 'tomato'
+      });
+
+      const db = getAuthedDb('user-1');
+      await assertFails(
+        updateDoc(doc(db, 'plants', 'plant-update-user'), {
+          userId: 'user-2'
+        })
+      );
+    });
+
+    test('denies update of other users plant', async () => {
+      await seedDoc('plants', 'plant-update-other', {
+        userId: 'user-2',
+        category: 'Tomato',
+        variety: 'Cherry',
+        icon: 'tomato'
+      });
+
+      const db = getAuthedDb('user-1');
+      await assertFails(
+        updateDoc(doc(db, 'plants', 'plant-update-other'), {
+          variety: 'Blocked'
+        })
+      );
+    });
+
+    test('allows delete of own plant', async () => {
+      await seedDoc('plants', 'plant-delete-own', {
+        userId: 'user-1',
+        category: 'Tomato',
+        variety: 'Cherry',
+        icon: 'tomato'
+      });
+
+      const db = getAuthedDb('user-1');
+      await assertSucceeds(deleteDoc(doc(db, 'plants', 'plant-delete-own')));
+    });
+
+    test('denies delete of other users plant', async () => {
+      await seedDoc('plants', 'plant-delete-other', {
+        userId: 'user-2',
+        category: 'Tomato',
+        variety: 'Cherry',
+        icon: 'tomato'
+      });
+
+      const db = getAuthedDb('user-1');
+      await assertFails(deleteDoc(doc(db, 'plants', 'plant-delete-other')));
     });
   });
 

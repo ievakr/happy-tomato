@@ -6,26 +6,55 @@ service cloud.firestore {
     // HELPER FUNCTIONS
     // ========================================
     
-    // Check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Check if the user is trying to set their own userId
     function isSettingOwnUserId() {
       return isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
     
-    // Check if userId is not being changed
     function userIdNotChanged() {
       return request.resource.data.userId == resource.data.userId;
     }
     
-    // User owns an event document
     function ownsEvent() {
       return isAuthenticated() &&
         resource.data.userId is string &&
         resource.data.userId == request.auth.uid;
+    }
+    
+    function ownsPlant() {
+      return isAuthenticated() &&
+        resource.data.userId is string &&
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // emailPreferences: read/delete — email must match; userId must match when present (legacy docs may omit userId)
+    function canReadEmailPrefs(doc) {
+      return isAuthenticated() &&
+        doc.userEmail is string &&
+        doc.userEmail == request.auth.token.email &&
+        (!('userId' in doc) || (doc.userId is string && doc.userId == request.auth.uid));
+    }
+    
+    // emailPreferences: new docs must bind both email and uid
+    function emailPrefsIdentityValid(doc) {
+      return doc.userEmail is string &&
+        doc.userEmail == request.auth.token.email &&
+        doc.userId is string &&
+        doc.userId == request.auth.uid;
+    }
+    
+    function emailPrefsEmailUnchanged() {
+      return request.resource.data.userEmail is string &&
+        request.resource.data.userEmail == resource.data.userEmail;
+    }
+    
+    function emailPrefsUserIdUnchanged() {
+      return !('userId' in resource.data)
+        ? (!('userId' in request.resource.data) || request.resource.data.userId == request.auth.uid)
+        : request.resource.data.userId == resource.data.userId;
     }
     
     // ========================================
@@ -33,11 +62,8 @@ service cloud.firestore {
     // ========================================
     
     match /events/{eventId} {
-      // Strict ownership — legacy events without userId are admin-only (see functions/migrate-legacy-events.js)
       allow read: if ownsEvent();
       
-      // Users can create events only with their own userId
-      // The day field can be either a string (date string) or number (timestamp)
       allow create: if isAuthenticated() && 
                       isSettingOwnUserId() &&
                       request.resource.data.keys().hasAll(['userId', 'day']) &&
@@ -54,12 +80,10 @@ service cloud.firestore {
     // ========================================
     
     match /plants/{plantId} {
-      // Users can read their own plants
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow read: if ownsPlant();
       
-      // Users can create their own plants (category, variety, icon) or legacy (name, icon)
       allow create: if isAuthenticated() && 
-                      request.resource.data.userId == request.auth.uid &&
+                      isSettingOwnUserId() &&
                       request.resource.data.keys().hasAll(['userId', 'icon']) &&
                       request.resource.data.userId is string &&
                       request.resource.data.icon is string &&
@@ -69,38 +93,27 @@ service cloud.firestore {
                        (request.resource.data.keys().hasAny(['name']) &&
                         request.resource.data.name is string));
       
-      // Users can update their own plants
-      allow update: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow update: if ownsPlant() && userIdNotChanged();
       
-      // Users can delete their own plants
-      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow delete: if ownsPlant();
     }
     
     // ========================================
     // EMAIL PREFERENCES COLLECTION
     // ========================================
     
-    // User owns the emailPreferences doc if email or userId matches
-    function ownsEmailPrefs(doc) {
-      return (doc.userEmail != null && doc.userEmail == request.auth.token.email) ||
-             (doc.userId != null && doc.userId == request.auth.uid);
-    }
-    
     match /emailPreferences/{docId} {
-      // Users can read their own preferences (by email or userId)
-      allow read: if isAuthenticated() && ownsEmailPrefs(resource.data);
+      allow read: if canReadEmailPrefs(resource.data);
       
-      // Users can create their own preferences
       allow create: if isAuthenticated() &&
-                       request.resource.data.userEmail is string &&
-                       (request.resource.data.userEmail == request.auth.token.email ||
-                        request.resource.data.userId == request.auth.uid);
+                       emailPrefsIdentityValid(request.resource.data);
       
-      // Users can update their own preferences
-      allow update: if isAuthenticated() && ownsEmailPrefs(resource.data);
+      allow update: if isAuthenticated() &&
+                       canReadEmailPrefs(resource.data) &&
+                       emailPrefsEmailUnchanged() &&
+                       emailPrefsUserIdUnchanged();
       
-      // Users can delete their own preferences
-      allow delete: if isAuthenticated() && ownsEmailPrefs(resource.data);
+      allow delete: if canReadEmailPrefs(resource.data);
     }
     
     // ========================================
@@ -118,7 +131,6 @@ service cloud.firestore {
     // ========================================
     
     match /savedTodos/{userId} {
-      // Users can read/write only their own saved todos doc
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
     
@@ -126,10 +138,8 @@ service cloud.firestore {
     // DEFAULT DENY ALL
     // ========================================
     
-    // Deny access to all other collections/documents by default
     match /{document=**} {
       allow read, write: if false;
     }
   }
 }
-
