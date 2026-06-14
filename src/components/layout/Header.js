@@ -90,7 +90,10 @@ export default function Header() {
 
     /** Mobile: one control for day → month → year (iPhone Calendar–style), replacing the icon toggle. */
     const mobileCalendarHierarchyYear = calendarDateFromMonthIndex(monthIndex).year();
-    const mobileNavMonthName = (daySelected || dayjs()).format('MMMM');
+    const mobileNavMonthName =
+        currentView === 'daily'
+            ? calendarDateFromMonthIndex(monthIndex).format('MMMM')
+            : (daySelected || dayjs()).format('MMMM');
     const handleMobileCalendarNav = () => {
         if (currentView === 'garden') return;
         if (currentView === 'daily') {

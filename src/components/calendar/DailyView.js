@@ -263,6 +263,7 @@ const DailyView = () => {
   /** Double-tap same day in strip (iOS) or double-click (mouse) → new event modal. */
   const stripTapRef = useRef({ time: 0, key: '' });
   const suppressNextStripClickRef = useRef(false);
+  const stripEdgeObserverRef = useRef(null);
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showBulkMoveModal, setShowBulkMoveModal] = useState(false);
@@ -309,6 +310,50 @@ const DailyView = () => {
     container.scrollLeft = nextLeft;
   }, []);
 
+  const getStripCellWidth = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return 70;
+    const firstCell = container.querySelector('[data-daily-strip-date]');
+    return firstCell
+      ? Math.max(1, Math.round(firstCell.getBoundingClientRect().width))
+      : 70;
+  }, []);
+
+  const extendStripBackward = useCallback(() => {
+    if (
+      !isMobile ||
+      stripExtendBusyRef.current ||
+      stripPrependingRef.current ||
+      !stripUserHasPannedRef.current
+    ) {
+      return;
+    }
+
+    stripExtendBusyRef.current = true;
+    stripPrependingRef.current = true;
+    const chunk = STRIP_EXTEND_CHUNK;
+    const cellW = getStripCellWidth();
+    setStripStart((s) => s.subtract(chunk, 'day'));
+    setStripDayCount((c) => c + chunk);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const el = scrollContainerRef.current;
+        if (el) {
+          el.scrollLeft += cellW * chunk;
+        }
+        stripPrependingRef.current = false;
+        stripExtendBusyRef.current = false;
+      });
+    });
+  }, [getStripCellWidth, isMobile]);
+
+  const extendStripForward = useCallback(() => {
+    if (!isMobile || stripExtendBusyRef.current || stripPrependingRef.current) {
+      return;
+    }
+    setStripDayCount((c) => c + STRIP_EXTEND_CHUNK);
+  }, [isMobile]);
+
   const maybeExtendStrip = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container || !isMobile || stripExtendBusyRef.current || stripPrependingRef.current) {
@@ -325,11 +370,6 @@ const DailyView = () => {
       stripUserHasPannedRef.current = true;
     }
 
-    const firstCell = container.querySelector('[data-daily-strip-date]');
-    const cellW = firstCell
-      ? Math.max(1, Math.round(firstCell.getBoundingClientRect().width))
-      : 70;
-
     const nearRight = scrollLeft >= maxScroll - STRIP_SCROLL_EDGE_PX;
     const nearLeft =
       stripUserHasPannedRef.current &&
@@ -337,28 +377,14 @@ const DailyView = () => {
       scrollLeft < maxScroll - STRIP_SCROLL_EDGE_PX;
 
     if (nearLeft) {
-      stripExtendBusyRef.current = true;
-      stripPrependingRef.current = true;
-      const chunk = STRIP_EXTEND_CHUNK;
-      setStripStart((s) => s.subtract(chunk, 'day'));
-      setStripDayCount((c) => c + chunk);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          const el = scrollContainerRef.current;
-          if (el) {
-            el.scrollLeft += cellW * chunk;
-          }
-          stripPrependingRef.current = false;
-          stripExtendBusyRef.current = false;
-        });
-      });
+      extendStripBackward();
       return;
     }
 
     if (nearRight) {
-      setStripDayCount((c) => c + STRIP_EXTEND_CHUNK);
+      extendStripForward();
     }
-  }, [isMobile]);
+  }, [extendStripBackward, extendStripForward, isMobile]);
 
   /** Month shown in the header label — follows strip scroll, not only the selected day */
   const [visibleStripMonthKey, setVisibleStripMonthKey] = useState(() =>
@@ -395,14 +421,86 @@ const DailyView = () => {
     return dateStr ? dayjs(dateStr) : null;
   }, []);
 
+  /** Month label follows strip scroll; selected day / events only change on tap */
   const syncVisibleMonthFromScroll = useCallback(() => {
     if (!isMobile) return;
+
+    const container = scrollContainerRef.current;
+    if (container && container.scrollLeft > 48) {
+      stripUserHasPannedRef.current = true;
+    }
+
     const centered = getCenteredDayFromScroll();
     if (!centered || !centered.isValid()) return;
-    const key = centered.format('YYYY-MM');
-    setVisibleStripMonthKey(key);
-    setMonthIndex(monthIndexFromCalendarDate(centered));
+
+    const monthKey = centered.format('YYYY-MM');
+    const nextMonthIndex = monthIndexFromCalendarDate(centered);
+
+    setVisibleStripMonthKey((prev) => (prev === monthKey ? prev : monthKey));
+    setMonthIndex((prev) => (prev === nextMonthIndex ? prev : nextMonthIndex));
   }, [getCenteredDayFromScroll, isMobile, setMonthIndex]);
+
+  const scheduleStripScrollWork = useCallback(() => {
+    if (stripExtendRafRef.current != null) return;
+    stripExtendRafRef.current = requestAnimationFrame(() => {
+      stripExtendRafRef.current = null;
+      maybeExtendStrip();
+      syncVisibleMonthFromScroll();
+    });
+  }, [maybeExtendStrip, syncVisibleMonthFromScroll]);
+
+  const attachStripEdgeObserver = useCallback(() => {
+    const container = scrollContainerRef.current;
+    if (!container || !isMobile) return;
+
+    if (stripEdgeObserverRef.current) {
+      stripEdgeObserverRef.current.disconnect();
+      stripEdgeObserverRef.current = null;
+    }
+
+    const cells = container.querySelectorAll('[data-daily-strip-date]');
+    const first = cells[0];
+    const last = cells[cells.length - 1];
+    if (!first || !last || first === last) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          if (entry.target === last) {
+            extendStripForward();
+          } else if (entry.target === first) {
+            extendStripBackward();
+          }
+        }
+      },
+      { root: container, threshold: 0.01 }
+    );
+
+    observer.observe(first);
+    observer.observe(last);
+    stripEdgeObserverRef.current = observer;
+  }, [extendStripBackward, extendStripForward, isMobile]);
+
+  const bindStripScrollContainer = useCallback(
+    (node) => {
+      scrollContainerRef.current = node;
+      if (!node || !isMobile) {
+        if (stripEdgeObserverRef.current) {
+          stripEdgeObserverRef.current.disconnect();
+          stripEdgeObserverRef.current = null;
+        }
+        return;
+      }
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          attachStripEdgeObserver();
+          syncVisibleMonthFromScroll();
+        });
+      });
+    },
+    [attachStripEdgeObserver, isMobile, syncVisibleMonthFromScroll]
+  );
 
   // When the selected calendar day changes (tap, Today, month arrows, open from month view), align label + month index
   useEffect(() => {
@@ -411,41 +509,60 @@ const DailyView = () => {
     setMonthIndex(monthIndexFromCalendarDate(d));
   }, [selectedDayCalendarKey, setMonthIndex]);
 
-  // Strip scroll: infinite horizontal range + month label (updates every frame while scrolling)
+  // Strip scroll: listeners must re-bind after loading spinner unmounts (isInitialLoading → false).
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container || !isMobile) return;
+    if (!container || !isMobile || isInitialLoading) return;
 
-    const onScroll = () => {
-      if (stripExtendRafRef.current == null) {
-        stripExtendRafRef.current = requestAnimationFrame(() => {
-          stripExtendRafRef.current = null;
-          maybeExtendStrip();
-          syncVisibleMonthFromScroll();
-        });
-      }
-    };
+    const supportsScrollEnd =
+      typeof document !== 'undefined' && 'onscrollend' in document.createElement('div');
 
-    container.addEventListener('scroll', onScroll, { passive: true });
+    container.addEventListener('scroll', scheduleStripScrollWork, { passive: true });
+    container.addEventListener('touchmove', scheduleStripScrollWork, { passive: true });
+    if (supportsScrollEnd) {
+      container.addEventListener('scrollend', scheduleStripScrollWork, { passive: true });
+    }
+
     return () => {
-      container.removeEventListener('scroll', onScroll);
+      container.removeEventListener('scroll', scheduleStripScrollWork);
+      container.removeEventListener('touchmove', scheduleStripScrollWork);
+      if (supportsScrollEnd) {
+        container.removeEventListener('scrollend', scheduleStripScrollWork);
+      }
       if (stripExtendRafRef.current != null) {
         cancelAnimationFrame(stripExtendRafRef.current);
         stripExtendRafRef.current = null;
       }
     };
-  }, [syncVisibleMonthFromScroll, isMobile, maybeExtendStrip]);
+  }, [scheduleStripScrollWork, isMobile, isInitialLoading]);
+
+  // Re-observe first/last strip cells whenever the rendered day window changes.
+  useEffect(() => {
+    if (!isMobile || isInitialLoading) return;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        attachStripEdgeObserver();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(id);
+      if (stripEdgeObserverRef.current) {
+        stripEdgeObserverRef.current.disconnect();
+        stripEdgeObserverRef.current = null;
+      }
+    };
+  }, [attachStripEdgeObserver, isMobile, isInitialLoading, stripStart, stripDayCount]);
 
   // After strip re-renders / re-anchors, read scroll position so the label matches what's on screen
   useEffect(() => {
-    if (!isMobile) return;
+    if (!isMobile || isInitialLoading) return;
     const id = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         syncVisibleMonthFromScroll();
       });
     });
     return () => cancelAnimationFrame(id);
-  }, [stripStart, stripDayCount, isMobile, syncVisibleMonthFromScroll]);
+  }, [stripStart, stripDayCount, isMobile, isInitialLoading, syncVisibleMonthFromScroll]);
 
   // Get current day or fallback to today
   const currentDay = daySelected || dayjs();
@@ -549,20 +666,24 @@ const DailyView = () => {
     }
   }, [daySelected, isMobile, stripStart, stripDayCount]);
 
-  // After selection or re-anchor, center the selected day in the strip (not when user is extending via scroll).
-  // Include isInitialLoading: while loading we render a spinner (no strip); when loading ends deps were often
-  // unchanged so this effect would not re-run and the strip stayed at scrollLeft 0 — wrong day centered / empty list perception until Today.
+  // Center the selected day only after initial load or explicit strip re-anchor (Today, month nav, deep link).
+  // Do not run when the user taps a day in the strip — that would jump scroll position.
   useLayoutEffect(() => {
-    if (!isMobile || stripPrependingRef.current || isInitialLoading) {
+    if (
+      !isMobile ||
+      stripPrependingRef.current ||
+      isInitialLoading ||
+      stripUserHasPannedRef.current
+    ) {
       return;
     }
 
-    const selectedKey = currentDay.format('YYYY-MM-DD');
+    const selectedKey = (daySelected || dayjs()).format('YYYY-MM-DD');
     const selectedEl = dayElementMapRef.current.get(selectedKey);
     if (selectedEl) {
       scrollToDay(selectedEl);
     }
-  }, [currentDay, stripStart, isMobile, isInitialLoading, scrollToDay]);
+  }, [stripStart, isMobile, isInitialLoading, scrollToDay]);
 
   const openNewEventForDay = useCallback(
     (day) => {
@@ -579,14 +700,7 @@ const DailyView = () => {
 
   const handleDaySelection = useCallback((day) => {
     setDaySelected(day);
-    if (!isMobile) {
-      return;
-    }
-
-    stripUserHasPannedRef.current = false;
-    setStripDayCount(STRIP_INITIAL_DAY_COUNT);
-    setStripStart(day.subtract(Math.floor(STRIP_INITIAL_DAY_COUNT / 2), 'day'));
-  }, [isMobile, setDaySelected]);
+  }, [setDaySelected]);
 
   const handleStripDayTouchEnd = useCallback(
     (day) => {
@@ -755,8 +869,11 @@ const DailyView = () => {
       {isMobile && (
         <div className="daily-week-header bg-light py-2" style={{ minHeight: '60px' }}>
           <div 
-            ref={scrollContainerRef}
+            ref={bindStripScrollContainer}
             className="d-flex daily-week-scroll"
+            onScroll={scheduleStripScrollWork}
+            onTouchMove={scheduleStripScrollWork}
+            onTouchEnd={scheduleStripScrollWork}
           >
             <style dangerouslySetInnerHTML={{
               __html: `
