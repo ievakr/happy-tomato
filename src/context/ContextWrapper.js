@@ -166,7 +166,6 @@ export default function ContextWrapper(props) {
   useEffect(() => {
     if (!currentUser) {
       queryClient.removeQueries({ queryKey: ['events'] });
-      queryClient.removeQueries({ queryKey: ['gardenPlan'] });
       queryClient.removeQueries({ queryKey: ['plants'] });
     }
   }, [currentUser, queryClient]);

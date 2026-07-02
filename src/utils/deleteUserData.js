@@ -94,16 +94,6 @@ export async function deleteUserEmailPreferences(userId, userEmail) {
 }
 
 /**
- * Delete all yearly garden plan docs for a user.
- * @param {string} userId
- * @returns {Promise<number>}
- */
-export async function deleteUserGardenPlans(userId) {
-  const yearsSnap = await getDocs(collection(db, 'gardenPlans', userId, 'years'));
-  return deleteDocSnapshots(yearsSnap.docs);
-}
-
-/**
  * Delete the user's saved to-do templates doc.
  * @param {string} userId
  * @returns {Promise<number>}
@@ -127,20 +117,17 @@ export async function deleteAllUserData(userId, options = {}) {
 
   const eventsDeleted = await deleteUserEvents(userId);
   const plantsDeleted = await deleteUserPlants(userId);
-  const gardenPlansDeleted = await deleteUserGardenPlans(userId);
   const emailPreferencesDeleted = await deleteUserEmailPreferences(userId, userEmail);
   const savedTodosDeleted = await deleteUserSavedTodos(userId);
 
   return {
     eventsDeleted,
     plantsDeleted,
-    gardenPlansDeleted,
     emailPreferencesDeleted,
     savedTodosDeleted,
     totalDeleted:
       eventsDeleted +
       plantsDeleted +
-      gardenPlansDeleted +
       emailPreferencesDeleted +
       savedTodosDeleted,
   };

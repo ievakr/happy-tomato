@@ -10,7 +10,7 @@ import { useResponsive } from './hooks/useResponsive';
 import { useEventContext } from './context/EventContext';
 import { useLayoutContext } from './context/LayoutContext';
 import { getLoadingMessage } from './utils';
-import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay, LoadingSpinner, OfflineBanner, ServiceWorkerUpdateBanner } from './components/common';
+import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay, LoadingSpinner, IntroSplash, OfflineBanner, ServiceWorkerUpdateBanner } from './components/common';
 import errorLogger from './utils/errorLogger';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import notificationService from './services/notificationService';
@@ -30,7 +30,7 @@ const CreatePlantModal = lazy(() => import('./components/forms/CreatePlantModal'
 const ManagePlantsModal = lazy(() => import('./components/forms/ManagePlantsModal'));
 const ManageTodoModal = lazy(() => import('./components/forms/ManageTodoModal'));
 const WeeklySummaryTodoModal = lazy(() => import('./components/calendar/WeeklySummaryTodoModal'));
-const GardenPlannerView = lazy(() => import('./components/garden/GardenPlannerView'));
+const VegetableGuideView = lazy(() => import('./components/guide/VegetableGuideView'));
 
 /**
  * Main application component with responsive layout
@@ -50,9 +50,15 @@ function App() {
     loadingOperation,
   } = useEventContext();
   const { showSidebar } = useLayoutContext();
-  const { currentView } = useCalendarContext();
+  const { currentView, setCurrentView } = useCalendarContext();
   const { isMobile } = useResponsive();
-  const gardenMobileImmersive = currentView === 'garden' && isMobile;
+
+  useEffect(() => {
+    if (currentView === 'garden') {
+      setCurrentView(isMobile ? 'daily' : 'month');
+    }
+  }, [currentView, isMobile, setCurrentView]);
+
   const pushNotifications = usePushNotifications();
   const isOnline = useOnlineStatus();
   const { updateReady, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
@@ -171,16 +177,13 @@ function App() {
       message="The calendar application encountered an unexpected error."
       onError={handleError}
     >
-      <Suspense fallback={<LoadingOverlay text="Loading application..." backdrop={true} />}>
+      <Suspense fallback={<IntroSplash />}>
         <AuthWrapper>
           {/* Single column wrapper so .app-shell is a flex child and fills the screen on iOS WKWebView */}
           <div className="app-viewport-root">
-          {/* Initial loading overlay */}
+          {/* Initial loading overlay — branded intro while the calendar data loads */}
           {isInitialLoading && (
-            <LoadingOverlay 
-              text={getLoadingMessage(loadingOperation || 'load')} 
-              backdrop={true}
-            />
+            <IntroSplash label={getLoadingMessage(loadingOperation || 'load')} />
           )}
 
           {/* Event modal overlay - render in portal to escape overflow constraints */}
@@ -253,17 +256,14 @@ function App() {
                 onDismiss={dismissUpdate}
               />
             )}
-            {/* Application header — hidden on mobile garden for full-bleed map */}
-            {!gardenMobileImmersive && (
-              <Suspense fallback={inlineFallback}>
-                <ComponentErrorBoundary
-                  componentName="Header"
-                  onError={handleError}
-                >
-                  <Header />
-                </ComponentErrorBoundary>
-              </Suspense>
-            )}
+            <Suspense fallback={inlineFallback}>
+              <ComponentErrorBoundary
+                componentName="Header"
+                onError={handleError}
+              >
+                <Header />
+              </ComponentErrorBoundary>
+            </Suspense>
             
             {/* Main content area */}
             <main 
@@ -304,17 +304,21 @@ function App() {
                 className={`flex-grow-1 d-flex flex-column${currentView === 'daily' ? ' calendar-section-daily' : ''}`}
                 style={{ 
                   minHeight: 0,
-                  overflow: gardenMobileImmersive ? 'hidden' : currentView === 'garden' ? 'auto' : 'hidden',
+                  overflow: currentView === 'guide' ? 'auto' : 'hidden',
                 }}
-                aria-label={currentView === 'garden' ? 'Garden Planner' : 'Calendar view'}
+                aria-label={
+                  currentView === 'guide'
+                    ? 'Vegetable Guide'
+                    : 'Calendar view'
+                }
               >
-                {currentView === 'garden' ? (
+                {currentView === 'guide' ? (
                   <Suspense fallback={inlineFallback}>
                     <ComponentErrorBoundary
-                      componentName="GardenPlannerView"
+                      componentName="VegetableGuideView"
                       onError={handleError}
                     >
-                      <GardenPlannerView />
+                      <VegetableGuideView />
                     </ComponentErrorBoundary>
                   </Suspense>
                 ) : (

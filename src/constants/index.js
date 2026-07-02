@@ -34,7 +34,20 @@ export const VEGETABLE_ICONS = {
   "potato": "Potato",
   "apple-whole": "Apple",
   "seedling": "Seedling",
-  "plant-growth": "Plant"
+  "plant-growth": "Plant",
+  "aubergine": "Aubergine",
+  "salad": "Salad bowl",
+  "olive": "Olive",
+  "melon": "Melon",
+  "pineapple": "Pineapple",
+  "kiwi-fruit": "Kiwi",
+  "coconut": "Coconut",
+  "blueberries": "Blueberries",
+  "wheat": "Grain",
+  "spa": "Sprig",
+  "clover-alt": "Clover",
+  "cactus": "Cactus",
+  "tree": "Tree"
 };
 
 // Plant action configurations

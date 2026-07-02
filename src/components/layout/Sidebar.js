@@ -121,16 +121,16 @@ export default function Sidebar() {
                 <div className="mb-4">
                     <button
                         type="button"
-                        className={`btn w-100 ${currentView === 'garden' ? 'btn-danger' : 'btn-outline-secondary'}`}
+                        className={`btn w-100 ${currentView === 'guide' ? 'btn-danger' : 'btn-outline-secondary'}`}
                         onClick={() => {
-                            setCurrentView('garden');
+                            setCurrentView('guide');
                             setShowSidebar(false);
                         }}
                     >
                         <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
-                            yard
+                            menu_book
                         </span>
-                        Garden Planner
+                        Vegetable Guide
                     </button>
                 </div>
 

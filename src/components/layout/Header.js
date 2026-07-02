@@ -38,7 +38,7 @@ export default function Header() {
     
     // Auto-switch views based on screen size
     useEffect(() => {
-        if (currentView === 'garden') {
+        if (currentView === 'guide') {
             return;
         }
         if (!isMobile && currentView === 'year') {
@@ -95,7 +95,7 @@ export default function Header() {
             ? calendarDateFromMonthIndex(monthIndex).format('MMMM')
             : (daySelected || dayjs()).format('MMMM');
     const handleMobileCalendarNav = () => {
-        if (currentView === 'garden') return;
+        if (currentView === 'guide') return;
         if (currentView === 'daily') {
             setCurrentView('month');
         } else if (currentView === 'month') {
@@ -155,7 +155,7 @@ export default function Header() {
                         
                         {/* Right side: Month/year drill-down + settings (day view is default on mobile) */}
                         <div className="d-flex align-items-center gap-1">
-                            {currentView !== 'garden' && currentView !== 'year' && (
+                            {currentView !== 'guide' && currentView !== 'year' && (
                                 <button
                                     type="button"
                                     className="calendar-header-mobile-calendar-nav btn btn-sm flex-shrink-0 text-nowrap"
@@ -186,9 +186,9 @@ export default function Header() {
 
                     {/* Center navigation - week or month */}
                     <div className="calendar-month-nav calendar-month-nav-centered d-flex align-items-center">
-                        {currentView === 'garden' ? (
+                        {currentView === 'guide' ? (
                             <span className="calendar-month-label mx-2 text-secondary">
-                                Plan beds by year
+                                Care guide for common crops
                             </span>
                         ) : currentView === 'week' ? (
                             <>

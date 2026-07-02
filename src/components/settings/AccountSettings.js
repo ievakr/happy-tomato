@@ -102,7 +102,7 @@ function AccountSettings({ onClose }) {
       setDeleting(true);
       setError('');
 
-      // Step 1: Delete user's Firestore data (events, plants, garden, notifications, saved to-dos)
+      // Step 1: Delete user's Firestore data (events, plants, notifications, saved to-dos)
       await deleteAllUserData(currentUser.uid, {
         userEmail: currentUser.email ?? undefined,
       });

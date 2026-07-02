@@ -31,13 +31,6 @@ const seedDoc = async (collectionName, docId, data) => {
   });
 };
 
-const seedGardenYearDoc = async (userId, year, data) => {
-  await testEnv.withSecurityRulesDisabled(async (context) => {
-    const adminDb = context.firestore();
-    await setDoc(doc(adminDb, 'gardenPlans', userId, 'years', year), data);
-  });
-};
-
 beforeAll(async () => {
   const rules = fs.readFileSync(RULES_PATH, 'utf8');
   testEnv = await initializeTestEnvironment({
@@ -600,78 +593,6 @@ describe('Firestore security rules', () => {
 
       const db = getAuthedDb('user-1');
       await assertFails(deleteDoc(doc(db, 'plants', 'plant-delete-other')));
-    });
-  });
-
-  describe('gardenPlans', () => {
-    test('allows authenticated user to read own yearly plan', async () => {
-      await seedGardenYearDoc('user-1', '2026', {
-        year: 2026,
-        plotWidthM: 10,
-        plotHeightM: 6,
-        beds: [],
-        updatedAt: new Date().toISOString()
-      });
-
-      const db = getAuthedDb('user-1');
-      await assertSucceeds(getDoc(doc(db, 'gardenPlans', 'user-1', 'years', '2026')));
-    });
-
-    test('denies authenticated user from reading another users plan', async () => {
-      await seedGardenYearDoc('user-1', '2026', {
-        year: 2026,
-        plotWidthM: 10,
-        plotHeightM: 6,
-        beds: [],
-        updatedAt: new Date().toISOString()
-      });
-
-      const db = getAuthedDb('user-2');
-      await assertFails(getDoc(doc(db, 'gardenPlans', 'user-1', 'years', '2026')));
-    });
-
-    test('allows create and update of own yearly plan', async () => {
-      const db = getAuthedDb('user-1');
-      await assertSucceeds(
-        setDoc(doc(db, 'gardenPlans', 'user-1', 'years', '2027'), {
-          year: 2027,
-          plotWidthM: 8,
-          plotHeightM: 5,
-          beds: [],
-          updatedAt: new Date().toISOString()
-        })
-      );
-      await assertSucceeds(
-        updateDoc(doc(db, 'gardenPlans', 'user-1', 'years', '2027'), {
-          plotWidthM: 9
-        })
-      );
-    });
-
-    test('denies write to another users garden path', async () => {
-      const db = getAuthedDb('user-2');
-      await assertFails(
-        setDoc(doc(db, 'gardenPlans', 'user-1', 'years', '2028'), {
-          year: 2028,
-          plotWidthM: 10,
-          plotHeightM: 6,
-          beds: [],
-          updatedAt: new Date().toISOString()
-        })
-      );
-    });
-
-    test('denies unauthenticated access', async () => {
-      await seedGardenYearDoc('user-1', '2026', {
-        year: 2026,
-        plotWidthM: 10,
-        plotHeightM: 6,
-        beds: [],
-        updatedAt: new Date().toISOString()
-      });
-
-      const db = getUnauthedDb();
-      await assertFails(getDoc(doc(db, 'gardenPlans', 'user-1', 'years', '2026')));
     });
   });
 

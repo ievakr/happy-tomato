@@ -16,7 +16,10 @@
 
 /* App title - matches user avatar green */
 .app-title {
-  color: #15803d;
+  font-family: 'Fredoka', 'Open Sans', system-ui, sans-serif;
+  font-weight: 600;
+  color: #33a13a;
+  letter-spacing: 0.2px;
 }
 
 .mobile-title-sub {

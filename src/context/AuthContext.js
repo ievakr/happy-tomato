@@ -14,7 +14,11 @@ import {
   reauthenticateWithPopup
 } from 'firebase/auth';
 import { auth } from '../firebase';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import IntroSplash from '../components/common/IntroSplash';
+
+// Minimum time (ms) to show the intro splash on app open, so the brand is
+// always visible for a moment even when auth resolves instantly.
+const INTRO_MIN_DISPLAY_MS = 2000;
 
 const AuthContext = createContext();
 
@@ -24,8 +28,12 @@ export function useAuth() {
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [authReady, setAuthReady] = useState(false);
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
   const [error, setError] = useState(null);
+
+  // Keep the intro splash up until auth has resolved AND the minimum time passed.
+  const loading = !(authReady && minTimeElapsed);
 
   // Sign up with email and password
   async function signup(email, password, displayName) {
@@ -161,12 +169,16 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    const minTimer = setTimeout(() => setMinTimeElapsed(true), INTRO_MIN_DISPLAY_MS);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
-      setLoading(false);
+      setAuthReady(true);
     });
 
-    return unsubscribe;
+    return () => {
+      clearTimeout(minTimer);
+      unsubscribe();
+    };
   }, []);
 
   const value = {
@@ -185,13 +197,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? (
-        <div className="d-flex min-vh-100 w-100 justify-content-center align-items-center bg-white">
-          <LoadingSpinner size="lg" text="Loading session…" />
-        </div>
-      ) : (
-        children
-      )}
+      {loading ? <IntroSplash label="Loading session…" /> : children}
     </AuthContext.Provider>
   );
 }
