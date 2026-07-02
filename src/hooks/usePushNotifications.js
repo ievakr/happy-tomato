@@ -101,6 +101,15 @@ function loadInitialPreferences() {
   return normalizePushPreferences({ ...DEFAULT_PUSH_PREFS });
 }
 
+function dailyTodoBucketsForPrefs(prefs, getDueTodos, getOverdueTodos) {
+  const allowDueToday = prefs.dueTodayReminders !== false;
+  const allowOverdue = prefs.overdueReminders !== false;
+  const bothOff = !allowDueToday && !allowOverdue;
+  const dueTodos = allowDueToday || bothOff ? getDueTodos() : [];
+  const overdueTodos = allowOverdue || bothOff ? getOverdueTodos() : [];
+  return { dueTodos, overdueTodos };
+}
+
 function effectiveDailyTime(prefs) {
   return prefs.dailyReminderTime || prefs.reminderTime || '09:00';
 }
@@ -147,13 +156,14 @@ export const usePushNotifications = () => {
   const syncPreferencesToFirestore = useCallback(
     async (preferences) => {
       try {
-        const emailForDoc = prefsEmail(preferences);
+        const normalized = normalizePushPreferences(preferences);
+        const emailForDoc = prefsEmail(normalized);
         if (!emailForDoc) return;
 
         const docId = emailForDoc.replace(/[.#$[\]]/g, '_');
         const payload = {
-          ...preferences,
-          userId: currentUser?.uid || preferences.userId,
+          ...normalized,
+          userId: currentUser?.uid || normalized.userId,
           userEmail: emailForDoc,
           updatedAt: new Date().toISOString(),
         };
@@ -220,6 +230,16 @@ export const usePushNotifications = () => {
           );
         } else if (localUpdated > firestoreUpdated) {
           syncPreferencesToFirestore(normalizePushPreferences(localPrefs));
+        }
+
+        if (firestorePrefs.dailyReminder === undefined) {
+          syncPreferencesToFirestore(
+            normalizePushPreferences({
+              ...localPrefs,
+              ...firestorePrefs,
+              dailyReminder: true,
+            }),
+          );
         }
       } else {
         syncPreferencesToFirestore(normalizePushPreferences(localPrefs));
@@ -478,8 +498,11 @@ export const usePushNotifications = () => {
       }
     }
 
-    const dueTodos = pushPreferences.dueTodayReminders !== false ? getDueTodos() : [];
-    const overdueTodos = pushPreferences.overdueReminders !== false ? getOverdueTodos() : [];
+    const { dueTodos, overdueTodos } = dailyTodoBucketsForPrefs(
+      pushPreferences,
+      getDueTodos,
+      getOverdueTodos,
+    );
     const allTodos = [...overdueTodos, ...dueTodos];
 
     // Manual sends should not report success when there is nothing to push (callable requires ≥1 todo).
@@ -622,8 +645,11 @@ export const usePushNotifications = () => {
     const isTimeToSend = isWithinReminderWindow(now, effectiveDailyTime(pushPreferences));
     const haventSentAutoToday = !lastSent || !lastSent.isSame(now, 'day');
 
-    const dueTodos = pushPreferences.dueTodayReminders !== false ? getDueTodos() : [];
-    const overdueTodos = pushPreferences.overdueReminders !== false ? getOverdueTodos() : [];
+    const { dueTodos, overdueTodos } = dailyTodoBucketsForPrefs(
+      pushPreferences,
+      getDueTodos,
+      getOverdueTodos,
+    );
     const hasTodosToRemind = dueTodos.length > 0 || overdueTodos.length > 0;
 
     return isTimeToSend && haventSentAutoToday && hasTodosToRemind;

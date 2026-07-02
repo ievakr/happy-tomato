@@ -22,29 +22,45 @@ const db = admin.firestore();
 
 const BATCH_SIZE = 500;
 
+/**
+ * Parse CLI flags for dry-run, assign, or delete.
+ * @param {string[]} argv - process.argv
+ * @return {Object} Parsed mode and optional userId
+ */
 function parseArgs(argv) {
   const args = argv.slice(2);
   if (args.includes("--dry-run")) {
-    return { mode: "dry-run" };
+    return {mode: "dry-run"};
   }
   if (args.includes("--delete")) {
-    return { mode: "delete" };
+    return {mode: "delete"};
   }
   const assignIdx = args.indexOf("--assign");
   if (assignIdx !== -1 && args[assignIdx + 1]) {
-    return { mode: "assign", userId: String(args[assignIdx + 1]).trim() };
+    return {mode: "assign", userId: String(args[assignIdx + 1]).trim()};
   }
-  return { mode: "help" };
+  return {mode: "help"};
 }
 
+/**
+ * Events in Firestore with missing or empty userId.
+ * @return {Promise<Array>} Legacy event document snapshots
+ */
 async function listLegacyEventDocs() {
   const snap = await db.collection("events").get();
   return snap.docs.filter((d) => {
     const data = d.data();
-    return !data.userId || typeof data.userId !== "string" || data.userId.trim() === "";
+    const uid = data.userId;
+    return !uid || typeof uid !== "string" || uid.trim() === "";
   });
 }
 
+/**
+ * Run Firestore writes in batches of BATCH_SIZE.
+ * @param {Array} docs - Document snapshots to process
+ * @param {Function} buildBatch - Adds ops to a WriteBatch per doc
+ * @return {Promise<number>} Number of documents processed
+ */
 async function commitBatches(docs, buildBatch) {
   let count = 0;
   for (let i = 0; i < docs.length; i += BATCH_SIZE) {
@@ -57,12 +73,16 @@ async function commitBatches(docs, buildBatch) {
   return count;
 }
 
+/**
+ * Entry point: list legacy events and assign, delete, or dry-run.
+ * @return {Promise<void>}
+ */
 async function main() {
   const opts = parseArgs(process.argv);
 
   if (opts.mode === "help") {
     console.log(
-      "Usage:\n" +
+        "Usage:\n" +
         "  node migrate-legacy-events.js --dry-run\n" +
         "  node migrate-legacy-events.js --assign <firebaseAuthUid>\n" +
         "  node migrate-legacy-events.js --delete",
@@ -79,7 +99,7 @@ async function main() {
 
   if (opts.mode === "dry-run") {
     legacy.slice(0, 20).forEach((d) => {
-      const { day, title } = d.data();
+      const {day, title} = d.data();
       console.log(`  ${d.id}  day=${day}  title=${title || "(no title)"}`);
     });
     if (legacy.length > 20) {
@@ -90,7 +110,7 @@ async function main() {
 
   if (opts.mode === "assign") {
     const n = await commitBatches(legacy, (batch, docSnap) => {
-      batch.update(docSnap.ref, { userId: opts.userId });
+      batch.update(docSnap.ref, {userId: opts.userId});
     });
     console.log(`Assigned userId=${opts.userId} to ${n} event(s).`);
     return;

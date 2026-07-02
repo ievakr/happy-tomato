@@ -84,6 +84,49 @@ function effectiveAdvanceReminderTime(prefs) {
 }
 
 /**
+ * Daily reminders default on; only an explicit `false` opts out (legacy docs).
+ * @param {Object} prefs - emailPreferences doc
+ * @return {boolean}
+ */
+function isDailyReminderEnabled(prefs) {
+  return prefs && prefs.dailyReminder !== false;
+}
+
+/**
+ * Parse last-sent fields stored as Timestamp, millis, ISO string, or Date.
+ * @param {*} raw - Firestore / client value
+ * @param {string} tz - IANA
+ * @return {dayjs.Dayjs|null}
+ */
+function prefSentInstantToDayjs(raw, tz) {
+  if (raw == null) {
+    return null;
+  }
+  let d;
+  if (typeof raw.toDate === "function") {
+    d = raw.toDate();
+  } else if (
+    typeof raw === "object" &&
+    typeof raw.seconds === "number"
+  ) {
+    d = new Date(raw.seconds * 1000 +
+      Math.floor((raw.nanoseconds || 0) / 1e6));
+  } else if (typeof raw === "number" && Number.isFinite(raw)) {
+    d = new Date(raw);
+  } else if (typeof raw === "string") {
+    d = new Date(raw);
+  } else if (raw instanceof Date) {
+    d = raw;
+  } else {
+    return null;
+  }
+  if (!d || Number.isNaN(d.getTime())) {
+    return null;
+  }
+  return dayjs.tz(d, tz);
+}
+
+/**
  * Apply due-today / overdue toggles from prefs (defaults on for older docs).
  * @param {Array} dueAndOverdue - from getDueAndOverdueTodos
  * @param {Object} prefs
@@ -93,6 +136,9 @@ function effectiveAdvanceReminderTime(prefs) {
 function filterDailyTodosByReminderPrefs(dueAndOverdue, prefs, tz) {
   const allowOverdue = prefs.overdueReminders !== false;
   const allowDueToday = prefs.dueTodayReminders !== false;
+  if (!allowOverdue && !allowDueToday) {
+    return dueAndOverdue;
+  }
   if (allowOverdue && allowDueToday) {
     return dueAndOverdue;
   }
@@ -803,40 +849,51 @@ exports.sendDailyReminders = functions.pubsub
       );
 
       try {
-        // Get all email preferences
+        // enabled users; dailyReminder defaults on unless explicitly false
         const prefsSnapshot = await admin.firestore()
             .collection("emailPreferences")
             .where("enabled", "==", true)
-            .where("dailyReminder", "==", true)
             .get();
 
         if (prefsSnapshot.empty) {
-          console.log("No users with daily reminders enabled");
+          console.log("No users with push notifications enabled");
           return null;
         }
 
         // Process each user
         for (const prefDoc of prefsSnapshot.docs) {
           const prefs = prefDoc.data();
+          if (!isDailyReminderEnabled(prefs)) {
+            continue;
+          }
+
           const userId = prefs.userId;
           const tz = getReminderIanaTimeZone(prefs);
           const userNow = dayjs.tz(new Date(), tz);
 
+          console.log(`\n👤 Checking daily reminder: ${prefs.userEmail}`);
           const dailyTime = effectiveDailyReminderTime(prefs);
+          console.log(
+              `   Settings: dailyReminderTime=${dailyTime}, ` +
+              `dueToday=${prefs.dueTodayReminders !== false}, ` +
+              `overdue=${prefs.overdueReminders !== false}`,
+          );
 
           if (!isInReminderSendWindow(userNow, dailyTime)) {
+            console.log(`   ⏰ Not in daily reminder send window`);
             continue;
           }
 
+          console.log(`   ✅ In daily reminder send window`);
+
           // Check if we already sent today
-          const lastSent = prefs.lastAutoReminderSent ?
-            dayjs.tz(
-                prefs.lastAutoReminderSent.toDate(),
-                tz,
-            ) : null;
+          const lastSent = prefSentInstantToDayjs(
+              prefs.lastAutoReminderSent,
+              tz,
+          );
           if (lastSent && lastSent.isSame(userNow, "day")) {
             console.log(
-                `Already sent daily reminder to ${prefs.userEmail} today ` +
+                `   ⚠️  Already sent daily reminder today ` +
                 `(last sent: ${lastSent.format("YYYY-MM-DD HH:mm")})`,
             );
             continue;
@@ -979,11 +1036,10 @@ exports.sendAdvanceReminders = functions.pubsub
           console.log(`   ✅ In advance reminder send window`);
 
           // Check if we already sent today
-          const lastSent = prefs.lastAutoAdvanceReminderSent ?
-            dayjs.tz(
-                prefs.lastAutoAdvanceReminderSent.toDate(),
-                tz,
-            ) : null;
+          const lastSent = prefSentInstantToDayjs(
+              prefs.lastAutoAdvanceReminderSent,
+              tz,
+          );
           if (lastSent && lastSent.isSame(userNow, "day")) {
             console.log(
                 `   ⚠️  Already sent advance reminder today ` +
@@ -1168,11 +1224,10 @@ exports.sendWeeklySummary = functions.pubsub
             continue;
           }
 
-          const lastSent = prefs.lastWeeklySummarySent ?
-            dayjs.tz(
-                prefs.lastWeeklySummarySent.toDate(),
-                tz,
-            ) : null;
+          const lastSent = prefSentInstantToDayjs(
+              prefs.lastWeeklySummarySent,
+              tz,
+          );
           if (lastSent && lastSent.isSame(userNow, "isoWeek")) {
             console.log(
                 `Already sent weekly summary to ${prefs.userEmail} ` +
