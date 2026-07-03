@@ -5,6 +5,12 @@ import { EVENT_ACTIONS, PLANT_ACTIONS, TODO_ACTIONS } from '../constants';
 import { createWrapper } from '../test-utils/test-wrapper';
 
 // Mock dependencies
+jest.mock('../context/AuthContext', () => ({
+  __esModule: true,
+  useAuth: () => ({ currentUser: { uid: 'test-user-id' } }),
+  AuthProvider: ({ children }) => children,
+}));
+
 jest.mock('../utils/recurringActions', () => ({
   generateRecurringToDos: jest.fn(() => []),
   shouldGenerateRecurringTodos: jest.fn(() => false),
@@ -69,7 +75,7 @@ describe('useRecurringActions', () => {
       shouldGenerateRecurringTodos.mockReturnValue(true);
       generateRecurringToDos.mockReturnValue(recurringTodos);
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
 
       await act(async () => {
         await result.current.createActionWithRecurringTodos(actionEvent);
@@ -99,7 +105,7 @@ describe('useRecurringActions', () => {
       const { shouldGenerateRecurringTodos } = require('../utils/recurringActions');
       shouldGenerateRecurringTodos.mockReturnValue(true);
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
 
       await act(async () => {
         await result.current.createActionWithRecurringTodos(actionEvent);
@@ -120,7 +126,7 @@ describe('useRecurringActions', () => {
         completed: false
       };
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
 
       await act(async () => {
         await result.current.completeTodo(todoEvent);
@@ -148,7 +154,7 @@ describe('useRecurringActions', () => {
         completed: false
       };
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
 
       await act(async () => {
         await result.current.completeTodo(todoEvent);
@@ -177,7 +183,7 @@ describe('useRecurringActions', () => {
         userRecurringConfig: { enabled: true, interval: 7 },
       };
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
 
       await act(async () => {
         await result.current.uncompleteTodo(completedEvent);
@@ -208,7 +214,7 @@ describe('useRecurringActions', () => {
         completed: false
       };
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
 
       await act(async () => {
         await result.current.markTodoCompleted(todoEvent);
@@ -228,35 +234,35 @@ describe('useRecurringActions', () => {
   describe('getPendingTodosForDay', () => {
     test('should return pending todos for specific day', () => {
       const today = dayjs();
-      const React = require('react');
-      React.useContext.mockReturnValue({
-        dispatchCallEvent: mockDispatch,
-        filteredEvents: [
-          {
-            id: '1',
-            title: 'TO DO: Water plants',
-            day: today.toISOString(),
-            isRecurringTodo: true,
-            completed: false
-          },
-          {
-            id: '2',
-            title: 'TO DO: Fertilize',
-            day: today.add(1, 'day').toISOString(),
-            isRecurringTodo: true,
-            completed: false
-          },
-          {
-            id: '3',
-            title: 'TO DO: Prune',
-            day: today.toISOString(),
-            isRecurringTodo: true,
-            completed: true
-          }
-        ]
-      });
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: [
+            {
+              id: '1',
+              title: 'TO DO: Water plants',
+              day: today.toISOString(),
+              isRecurringTodo: true,
+              completed: false,
+            },
+            {
+              id: '2',
+              title: 'TO DO: Fertilize',
+              day: today.add(1, 'day').toISOString(),
+              isRecurringTodo: true,
+              completed: false,
+            },
+            {
+              id: '3',
+              title: 'TO DO: Prune',
+              day: today.toISOString(),
+              isRecurringTodo: true,
+              completed: true,
+            },
+          ],
+        }),
+      });
       const todos = result.current.getPendingTodosForDay(today);
 
       expect(todos).toHaveLength(1);
@@ -265,21 +271,21 @@ describe('useRecurringActions', () => {
 
     test('should handle manually created todos', () => {
       const today = dayjs();
-      const React = require('react');
-      React.useContext.mockReturnValue({
-        dispatchCallEvent: mockDispatch,
-        filteredEvents: [
-          {
-            id: '1',
-            title: 'TO DO: Water plants',
-            day: today.toISOString(),
-            isRecurringTodo: false,
-            completed: false
-          }
-        ]
-      });
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: [
+            {
+              id: '1',
+              title: 'TO DO: Water plants',
+              day: today.toISOString(),
+              isRecurringTodo: false,
+              completed: false,
+            },
+          ],
+        }),
+      });
       const todos = result.current.getPendingTodosForDay(today);
 
       expect(todos).toHaveLength(1);
@@ -289,28 +295,28 @@ describe('useRecurringActions', () => {
   describe('getCompletedActionsForDay', () => {
     test('should return completed actions for specific day', () => {
       const today = dayjs();
-      const React = require('react');
-      React.useContext.mockReturnValue({
-        dispatchCallEvent: mockDispatch,
-        filteredEvents: [
-          {
-            id: '1',
-            title: 'Water plants',
-            day: today.toISOString(),
-            createdFromAction: true,
-            completed: true
-          },
-          {
-            id: '2',
-            title: 'Fertilize',
-            day: today.add(1, 'day').toISOString(),
-            createdFromAction: true,
-            completed: true
-          }
-        ]
-      });
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: [
+            {
+              id: '1',
+              title: 'Water plants',
+              day: today.toISOString(),
+              createdFromAction: true,
+              completed: true,
+            },
+            {
+              id: '2',
+              title: 'Fertilize',
+              day: today.add(1, 'day').toISOString(),
+              createdFromAction: true,
+              completed: true,
+            },
+          ],
+        }),
+      });
       const actions = result.current.getCompletedActionsForDay(today);
 
       expect(actions).toHaveLength(1);
@@ -327,7 +333,7 @@ describe('useRecurringActions', () => {
         completed: false
       };
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
       expect(result.current.isTodoEvent(event)).toBe(true);
     });
 
@@ -338,7 +344,7 @@ describe('useRecurringActions', () => {
         completed: false
       };
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
       expect(result.current.isTodoEvent(event)).toBe(true);
     });
 
@@ -349,7 +355,7 @@ describe('useRecurringActions', () => {
         completed: false
       };
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
       expect(result.current.isTodoEvent(event)).toBe(true);
     });
 
@@ -361,7 +367,7 @@ describe('useRecurringActions', () => {
         completed: true
       };
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
       expect(result.current.isTodoEvent(event)).toBe(false);
     });
   });
@@ -375,7 +381,7 @@ describe('useRecurringActions', () => {
         completed: true
       };
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
       expect(result.current.isCompletedTodoAction(event)).toBe(true);
     });
 
@@ -386,7 +392,7 @@ describe('useRecurringActions', () => {
         completed: true
       };
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
       expect(result.current.isCompletedTodoAction(event)).toBe(true);
     });
 
@@ -398,7 +404,7 @@ describe('useRecurringActions', () => {
         completed: false
       };
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper({ dispatchCallEvent: mockDispatch }) });
       expect(result.current.isCompletedTodoAction(event)).toBe(false);
     });
   });
@@ -406,32 +412,32 @@ describe('useRecurringActions', () => {
   describe('getUpcomingTodos', () => {
     test('should return upcoming todos for action and labels', () => {
       const today = dayjs();
-      const React = require('react');
-      React.useContext.mockReturnValue({
-        dispatchCallEvent: mockDispatch,
-        filteredEvents: [
-          {
-            id: '1',
-            title: 'TO DO: Fertilize',
-            day: today.add(7, 'days').toISOString(),
-            actions: ['Fertilize'],
-            labels: ['Tomatoes'],
-            isRecurringTodo: true,
-            completed: false
-          },
-          {
-            id: '2',
-            title: 'TO DO: Fertilize',
-            day: today.add(14, 'days').toISOString(),
-            actions: ['Fertilize'],
-            labels: ['Tomatoes'],
-            isRecurringTodo: true,
-            completed: false
-          }
-        ]
-      });
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: [
+            {
+              id: '1',
+              title: 'TO DO: Fertilize',
+              day: today.add(7, 'days').toISOString(),
+              actions: ['Fertilize'],
+              labels: ['Tomatoes'],
+              isRecurringTodo: true,
+              completed: false,
+            },
+            {
+              id: '2',
+              title: 'TO DO: Fertilize',
+              day: today.add(14, 'days').toISOString(),
+              actions: ['Fertilize'],
+              labels: ['Tomatoes'],
+              isRecurringTodo: true,
+              completed: false,
+            },
+          ],
+        }),
+      });
       const todos = result.current.getUpcomingTodos('Fertilize', ['Tomatoes'], 30);
 
       expect(todos).toHaveLength(2);
@@ -441,35 +447,35 @@ describe('useRecurringActions', () => {
   describe('getAllPendingTodos', () => {
     test('should return all pending todos', () => {
       const today = dayjs();
-      const React = require('react');
-      React.useContext.mockReturnValue({
-        dispatchCallEvent: mockDispatch,
-        filteredEvents: [
-          {
-            id: '1',
-            title: 'TO DO: Water plants',
-            day: today.toISOString(),
-            isRecurringTodo: true,
-            completed: false
-          },
-          {
-            id: '2',
-            title: 'TO DO: Fertilize',
-            day: today.add(1, 'day').toISOString(),
-            isRecurringTodo: true,
-            completed: false
-          },
-          {
-            id: '3',
-            title: 'TO DO: Prune',
-            day: today.toISOString(),
-            isRecurringTodo: true,
-            completed: true
-          }
-        ]
-      });
 
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: [
+            {
+              id: '1',
+              title: 'TO DO: Water plants',
+              day: today.toISOString(),
+              isRecurringTodo: true,
+              completed: false,
+            },
+            {
+              id: '2',
+              title: 'TO DO: Fertilize',
+              day: today.add(1, 'day').toISOString(),
+              isRecurringTodo: true,
+              completed: false,
+            },
+            {
+              id: '3',
+              title: 'TO DO: Prune',
+              day: today.toISOString(),
+              isRecurringTodo: true,
+              completed: true,
+            },
+          ],
+        }),
+      });
       const todos = result.current.getAllPendingTodos();
 
       expect(todos).toHaveLength(2);
@@ -480,7 +486,6 @@ describe('useRecurringActions', () => {
   describe('deleteAllRecurringTodos', () => {
     test('should delete all recurring todos', async () => {
       const today = dayjs();
-      const React = require('react');
       const mockFilteredEvents = [
         {
           id: '1',
@@ -489,7 +494,7 @@ describe('useRecurringActions', () => {
           isRecurringTodo: true,
           completed: false,
           actions: ['Water plants'],
-          labels: ['Tomatoes']
+          labels: ['Tomatoes'],
         },
         {
           id: '2',
@@ -498,16 +503,16 @@ describe('useRecurringActions', () => {
           isRecurringTodo: true,
           completed: false,
           actions: ['Fertilize'],
-          labels: ['Tomatoes']
-        }
+          labels: ['Tomatoes'],
+        },
       ];
 
-      React.useContext.mockReturnValue({
-        dispatchCallEvent: mockDispatch,
-        filteredEvents: mockFilteredEvents
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: mockFilteredEvents,
+        }),
       });
-
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.deleteAllRecurringTodos();
@@ -526,7 +531,6 @@ describe('useRecurringActions', () => {
 
     test('should filter by action when provided', async () => {
       const today = dayjs();
-      const React = require('react');
       const mockFilteredEvents = [
         {
           id: '1',
@@ -535,7 +539,7 @@ describe('useRecurringActions', () => {
           isRecurringTodo: true,
           completed: false,
           actions: ['Water plants'],
-          labels: ['Tomatoes']
+          labels: ['Tomatoes'],
         },
         {
           id: '2',
@@ -544,30 +548,33 @@ describe('useRecurringActions', () => {
           isRecurringTodo: true,
           completed: false,
           actions: ['Fertilize'],
-          labels: ['Tomatoes']
-        }
+          labels: ['Tomatoes'],
+        },
       ];
 
-      React.useContext.mockReturnValue({
-        dispatchCallEvent: mockDispatch,
-        filteredEvents: mockFilteredEvents
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: mockFilteredEvents,
+        }),
       });
-
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.deleteAllRecurringTodos('Fertilize');
       });
 
-      // Should only delete the Fertilize todo
-      expect(mockDispatch).toHaveBeenCalledTimes(2); // 1 DELETE + 1 UPDATE for cancel
+      // Should only delete the Fertilize todo (no original action to cancel in this fixture)
+      expect(mockDispatch).toHaveBeenCalledTimes(1);
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.DELETE,
+        payload: mockFilteredEvents[1],
+      });
     });
   });
 
   describe('cancelRecurringSeries', () => {
     test('should mark original actions as cancelled', async () => {
       const today = dayjs();
-      const React = require('react');
       const originalAction = {
         id: '1',
         title: 'Fertilize',
@@ -575,15 +582,15 @@ describe('useRecurringActions', () => {
         actions: ['Fertilize'],
         labels: ['Tomatoes'],
         isRecurringTodo: false,
-        completed: false
+        completed: false,
       };
 
-      React.useContext.mockReturnValue({
-        dispatchCallEvent: mockDispatch,
-        filteredEvents: [originalAction]
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: [originalAction],
+        }),
       });
-
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.cancelRecurringSeries('Fertilize', ['Tomatoes']);
@@ -613,16 +620,15 @@ describe('useRecurringActions', () => {
 
       const updatedEvent = {
         ...originalEvent,
-        description: 'Updated description'
+        description: 'Updated description',
       };
 
-      const React = require('react');
-      React.useContext.mockReturnValue({
-        dispatchCallEvent: mockDispatch,
-        filteredEvents: []
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: [],
+        }),
       });
-
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.updateEventWithRecurringRecalculation(updatedEvent, originalEvent);
@@ -662,13 +668,12 @@ describe('useRecurringActions', () => {
       shouldGenerateRecurringTodos.mockReturnValue(true);
       generateRecurringToDos.mockReturnValue(recurringTodos);
 
-      const React = require('react');
-      React.useContext.mockReturnValue({
-        dispatchCallEvent: mockDispatch,
-        filteredEvents: []
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: [],
+        }),
       });
-
-      const { result } = renderHook(() => useRecurringActions(), { wrapper: createWrapper() });
 
       await act(async () => {
         await result.current.updateEventWithRecurringRecalculation(updatedEvent, originalEvent);

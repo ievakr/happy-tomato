@@ -1,5 +1,5 @@
-import React, { memo, useContext } from 'react';
-import CalendarContext from '../../context/CalendarContext';
+import React, { memo } from 'react';
+import { useCalendarContext } from '../../context/CalendarContext';
 import { useResponsive } from '../../hooks';
 import { getDayHeaders, calendarDateFromMonthIndex } from '../../utils';
 
@@ -8,7 +8,7 @@ import { getDayHeaders, calendarDateFromMonthIndex } from '../../utils';
  */
 const CalendarHeader = memo(() => {
   const dayHeaders = getDayHeaders('short');
-  const { monthIndex, setMonthIndex } = useContext(CalendarContext);
+  const { monthIndex, setMonthIndex } = useCalendarContext();
   const { isMobile } = useResponsive();
 
   const monthAnchor = calendarDateFromMonthIndex(monthIndex);

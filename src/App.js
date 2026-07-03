@@ -6,7 +6,7 @@ import { useCalendar } from './hooks/useCalendar';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
 import { useCalendarContext } from './context/CalendarContext';
-import { useResponsive } from './hooks/useResponsive';
+import { useResponsive, useResponsiveCalendarView } from './hooks';
 import { useEventContext } from './context/EventContext';
 import { useLayoutContext } from './context/LayoutContext';
 import { getLoadingMessage } from './utils';
@@ -52,14 +52,9 @@ function App() {
     loadingOperation,
   } = useEventContext();
   const { showSidebar } = useLayoutContext();
-  const { currentView, setCurrentView } = useCalendarContext();
+  const { currentView } = useCalendarContext();
   const { isMobile } = useResponsive();
-
-  useEffect(() => {
-    if (currentView === 'garden') {
-      setCurrentView(isMobile ? 'daily' : 'month');
-    }
-  }, [currentView, isMobile, setCurrentView]);
+  useResponsiveCalendarView();
 
   const pushNotifications = usePushNotifications();
   const isOnline = useOnlineStatus();

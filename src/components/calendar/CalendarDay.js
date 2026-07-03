@@ -1,49 +1,38 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import CalendarContext from '../../context/CalendarContext';
+import { useCalendarContext } from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
-import { useResponsive, useRecurringActions } from '../../hooks';
+import { useResponsive, useCalendarEventActions } from '../../hooks';
+import { filterEventsForDay, isToday } from '../../utils/eventDates';
+import { isTodoEvent, isCompletedTodoAction } from '../../utils/recurringTodos';
 import CalendarEventChip from './CalendarEventChip';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
-    const { setDaySelected, setCurrentView, monthIndex } = useContext(CalendarContext);
-    const { setShowEventModal, filteredEvents, setSelectedEvent, plantsById } = useEventContext();
+    const { setDaySelected, setCurrentView, monthIndex } = useCalendarContext();
+    const { filteredEvents, plantsById } = useEventContext();
     const { isMobile } = useResponsive();
-    const { isTodoEvent, isCompletedTodoAction } = useRecurringActions();
+    const { handleEventClick, openEventForDay } = useCalendarEventActions();
     const [dayEvents, setDayEvents] = useState([]);
     
     const monthAnchor = dayjs(new Date(dayjs().year(), monthIndex, 1));
     const isCurrentMonth = day.isSame(monthAnchor, 'month');
 
     useEffect(() => {
-        const events = filteredEvents.filter(evt => dayjs(evt.day).format("DD-MM-YY") === day.format("DD-MM-YY"));
-        setDayEvents(events);
+        setDayEvents(filterEventsForDay(filteredEvents, day));
     }, [filteredEvents, day]);
 
     function getCurrentDayClass() {
-        return day.format("DD-MM-YY") === dayjs().format("DD-MM-YY")
-            ? 'day-number-current'
-            : "";
+        return isToday(day) ? 'day-number-current' : "";
     }
 
-    const handleEventClick = (evt, e) => {
-        e.stopPropagation();
-        setSelectedEvent(evt);
-        setDaySelected(day);
-        setShowEventModal(true);
-    };
-
     const handleDayClick = () => {
-        // Set the selected day for both mobile and desktop
         setDaySelected(day);
-        
+
         if (isMobile) {
-            // On mobile: switch to daily view instead of opening modal
             setCurrentView('daily');
         } else {
-            // On desktop: open modal for creating/viewing events
-            setShowEventModal(true);
+            openEventForDay(day);
         }
     };
 
@@ -103,7 +92,7 @@ export default function CalendarDay({ day, rowIndex }) {
                         key={evt.id || idx}
                         event={evt}
                         plantsById={plantsById}
-                        onClick={(e) => handleEventClick(evt, e)}
+                        onClick={(e) => handleEventClick(evt, e, day)}
                     />
                 ))}
             </>

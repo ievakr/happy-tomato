@@ -1,10 +1,10 @@
 import dayjs from 'dayjs';
-import React, { useContext, useEffect, useCallback } from 'react';
+import React, { useContext, useCallback } from 'react';
 import logo from '../../assets/logo.png';
-import CalendarContext from '../../context/CalendarContext';
+import { useCalendarContext } from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
-import { getCurrentWeekIndex, calendarDateFromMonthIndex } from '../../utils';
-import { useResponsive } from '../../hooks/useResponsive';
+import { calendarDateFromMonthIndex } from '../../utils';
+import { useResponsive, useResponsiveCalendarView } from '../../hooks';
 import UserMenu from '../auth/UserMenu';
 
 export default function Header() {
@@ -17,42 +17,10 @@ export default function Header() {
         setWeekIndex,
         daySelected,
         setDaySelected
-    } = useContext(CalendarContext);
+    } = useCalendarContext();
     const { showSidebar, setShowSidebar } = useContext(LayoutContext);
     const { isMobile } = useResponsive();
-    
-    const switchToWeekView = useCallback(() => {
-        setCurrentView('week');
-        // Set current week when switching to week view
-        const currentWeekIdx = getCurrentWeekIndex(monthIndex, dayjs());
-        setWeekIndex(currentWeekIdx);
-    }, [monthIndex, setCurrentView, setWeekIndex]);
-    
-    const switchToDailyView = useCallback(() => {
-        setCurrentView('daily');
-        // Set current day when switching to daily view
-        if (!daySelected) {
-            setDaySelected(dayjs());
-        }
-    }, [daySelected, setCurrentView, setDaySelected]);
-    
-    // Auto-switch views based on screen size
-    useEffect(() => {
-        if (currentView === 'guide') {
-            return;
-        }
-        if (!isMobile && currentView === 'year') {
-            setCurrentView('month');
-            return;
-        }
-        if (!isMobile && currentView === 'daily') {
-            // Switch to week view when going from mobile to desktop
-            switchToWeekView();
-        } else if (isMobile && currentView === 'week' && currentView !== 'month') {
-            // Switch to daily view when going from desktop to mobile (unless in month view)
-            switchToDailyView();
-        }
-    }, [isMobile, currentView, setCurrentView, switchToDailyView, switchToWeekView]);
+    const { switchToWeekView, switchToDailyView } = useResponsiveCalendarView();
     
     function applyMonthChange(newMonth) {
         setMonthIndex(newMonth);

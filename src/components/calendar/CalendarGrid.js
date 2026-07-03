@@ -1,7 +1,7 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import CalendarDay from './CalendarDay';
 import { CalendarDaySkeleton } from '../common';
-import CalendarContext from '../../context/CalendarContext';
+import { useCalendarContext } from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
 import { useSwipeGestures, useResponsive } from '../../hooks';
 
@@ -11,7 +11,7 @@ import { useSwipeGestures, useResponsive } from '../../hooks';
  */
 const CalendarGrid = ({ month }) => {
   const { isInitialLoading } = useEventContext();
-  const { monthIndex, setMonthIndex } = useContext(CalendarContext);
+  const { monthIndex, setMonthIndex } = useCalendarContext();
   const { isMobile } = useResponsive();
   
   // Swipe handlers for mobile navigation

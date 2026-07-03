@@ -11,6 +11,20 @@ export {
   sortCalendarEventsAlphabeticallyMobile,
 } from './eventSorting';
 
+export {
+  formatCalendarDay,
+  isSameCalendarDay,
+  isToday,
+  filterEventsForDay,
+} from './eventDates';
+
+export {
+  eventHasTodoContent,
+  isTodoEvent,
+  isCompletedTodoAction,
+  supportsDayViewCompleteToggle,
+} from './recurringTodos';
+
 /**
  * Get the calendar month grid for a given month
  * @param {number} month - Month index ( offset from January of the current calendar year; any integer )

@@ -1,0 +1,113 @@
+/* EventItem component styles (co-located with calendar event chips) */
+
+.event-item {
+  gap: 2px;
+  margin-bottom: 2px;
+  padding: 2px;
+  cursor: pointer;
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  font-size: 0.65rem;
+}
+
+.event-item-compact {
+  gap: 1px;
+  margin-bottom: 1px;
+  padding: 1px 2px;
+  font-size: 0.55rem;
+}
+
+.event-item-completed {
+  background-color: transparent;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.event-item.event-item-completed {
+  background-color: transparent;
+}
+
+.event-item-time {
+  font-size: 0.5rem;
+  min-width: fit-content;
+}
+
+.event-item-todo {
+  cursor: pointer;
+  padding: 1px 3px;
+  border-radius: 3px;
+  color: #fff;
+  font-size: 0.6rem;
+  margin-bottom: 1px;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+.event-item-todo-compact {
+  padding: 1px 2px;
+  font-size: 0.5rem;
+}
+
+.event-item-todo-pending {
+  background-color: #dc3545;
+}
+
+.event-item-todo.event-item-todo-completed {
+  background-color: rgba(25, 135, 84, 0.28);
+  color: #0f5132;
+  border: 1px solid rgba(25, 135, 84, 0.55);
+  font-weight: 600;
+}
+
+.event-item-completed-main-row {
+  background-color: rgba(25, 135, 84, 0.2);
+  border: 1px solid rgba(25, 135, 84, 0.45);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+
+.event-item-completed-main-row .event-item-todo.event-item-todo-completed {
+  background-color: transparent;
+  border: none;
+  color: #0f5132;
+  font-weight: 600;
+}
+
+.event-item-title {
+  cursor: pointer;
+  font-size: 0.65rem;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+.event-item-title-compact {
+  font-size: 0.55rem;
+}
+
+.event-icons-row {
+  margin-top: 1px;
+}
+
+.event-icons-compact {
+  font-size: 8px;
+  min-width: 8px;
+  margin-right: 0.5px;
+  line-height: 1;
+}
+
+.event-icons {
+  font-size: 12px;
+  min-width: 12px;
+  margin-right: 1px;
+  line-height: 1;
+}
+
+.event-icons-more {
+  font-size: 0.5rem;
+  margin-left: 1px;
+}
+
+.event-icons-more-compact {
+  font-size: 0.45rem;
+  margin-left: 1px;
+}

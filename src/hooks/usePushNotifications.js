@@ -7,99 +7,18 @@ import dayjs from 'dayjs';
 import { db } from '../firebase';
 import { doc, setDoc, getDoc, arrayUnion } from 'firebase/firestore';
 import { coerceReminderTimeHm, reminderWallParts } from '../utils/reminderTime';
+import {
+  PUSH_PREFS_STORAGE_KEY as STORAGE_KEY,
+  PUSH_PREFS_LEGACY_STORAGE_KEY as LEGACY_STORAGE_KEY,
+  DEFAULT_PUSH_PREFS,
+  REMINDER_SEND_WINDOW_MINUTES,
+  normalizePushPreferences,
+  loadInitialPushPreferences,
+  effectiveDailyReminderTime as effectiveDailyTime,
+  effectiveAdvanceReminderTime as effectiveAdvanceTime,
+} from '../utils/pushPreferences';
 
-const STORAGE_KEY = 'push-notification-preferences';
-const LEGACY_STORAGE_KEY = 'email-preferences';
-
-/** Match Cloud Function cron step (minutes) for client-side shouldSend* windows */
-const REMINDER_SEND_WINDOW_MINUTES = 5;
-
-const DEFAULT_PUSH_PREFS = {
-  enabled: true,
-  userEmail: '',
-  userName: '',
-  userId: '',
-  dailyReminder: true,
-  reminderTime: '09:00',
-  dailyReminderTime: '09:00',
-  advanceReminderTime: '09:00',
-  overdueReminders: true,
-  dueTodayReminders: true,
-  advanceReminders: true,
-  advanceDays: 3,
-  weeklySummary: false,
-  weeklySummaryDay: 1,
-  weeklySummaryTime: '08:00',
-  lastReminderSent: null,
-  lastAdvanceReminderSent: null,
-  lastAutoReminderSent: null,
-  lastAutoAdvanceReminderSent: null,
-  lastWeeklySummarySent: null,
-};
-
-/**
- * Merge legacy `reminderTime` into per-type times and coerce day-of-week.
- * @param {Record<string, unknown>} raw
- * @return {typeof DEFAULT_PUSH_PREFS & Record<string, unknown>}
- */
-export function normalizePushPreferences(raw) {
-  const merged = { ...DEFAULT_PUSH_PREFS, ...raw };
-  const reminderTime = coerceReminderTimeHm(
-    typeof merged.reminderTime === 'string' && merged.reminderTime.trim()
-      ? merged.reminderTime.trim()
-      : merged.reminderTime,
-    '09:00'
-  );
-  let dailyReminderTime =
-    typeof merged.dailyReminderTime === 'string' && merged.dailyReminderTime.trim()
-      ? coerceReminderTimeHm(merged.dailyReminderTime.trim(), reminderTime)
-      : reminderTime;
-  let advanceReminderTime =
-    typeof merged.advanceReminderTime === 'string' && merged.advanceReminderTime.trim()
-      ? coerceReminderTimeHm(merged.advanceReminderTime.trim(), reminderTime)
-      : reminderTime;
-
-  /** Drift cleanup: stale advance stayed at default-like 15:00 while singleton reminder matched daily */
-  if (
-    advanceReminderTime === '15:00' &&
-    dailyReminderTime !== '15:00' &&
-    reminderTime === dailyReminderTime
-  ) {
-    advanceReminderTime = dailyReminderTime;
-  }
-  let weeklySummaryDay = parseInt(merged.weeklySummaryDay, 10);
-  if (Number.isNaN(weeklySummaryDay) || weeklySummaryDay < 0 || weeklySummaryDay > 6) {
-    weeklySummaryDay = 1;
-  }
-  const weeklySummaryTime = coerceReminderTimeHm(
-    typeof merged.weeklySummaryTime === 'string' && merged.weeklySummaryTime.trim()
-      ? merged.weeklySummaryTime.trim()
-      : merged.weeklySummaryTime,
-    '08:00'
-  );
-
-  return {
-    ...merged,
-    reminderTime,
-    dailyReminderTime,
-    advanceReminderTime,
-    weeklySummaryDay,
-    weeklySummaryTime,
-  };
-}
-
-function loadInitialPreferences() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    return normalizePushPreferences(JSON.parse(saved));
-  }
-  const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-  if (legacy) {
-    localStorage.setItem(STORAGE_KEY, legacy);
-    return normalizePushPreferences(JSON.parse(legacy));
-  }
-  return normalizePushPreferences({ ...DEFAULT_PUSH_PREFS });
-}
+export { normalizePushPreferences } from '../utils/pushPreferences';
 
 function dailyTodoBucketsForPrefs(prefs, getDueTodos, getOverdueTodos) {
   const allowDueToday = prefs.dueTodayReminders !== false;
@@ -108,14 +27,6 @@ function dailyTodoBucketsForPrefs(prefs, getDueTodos, getOverdueTodos) {
   const dueTodos = allowDueToday || bothOff ? getDueTodos() : [];
   const overdueTodos = allowOverdue || bothOff ? getOverdueTodos() : [];
   return { dueTodos, overdueTodos };
-}
-
-function effectiveDailyTime(prefs) {
-  return prefs.dailyReminderTime || prefs.reminderTime || '09:00';
-}
-
-function effectiveAdvanceTime(prefs) {
-  return prefs.advanceReminderTime || prefs.reminderTime || '09:00';
 }
 
 function isWithinReminderWindow(now, timeStr, windowMinutes = REMINDER_SEND_WINDOW_MINUTES) {
@@ -136,7 +47,7 @@ export const usePushNotifications = () => {
 
   // Match calendar visibility (sidebar plant filters), not raw Firestore list
   const allEvents = Array.isArray(filteredEvents) ? filteredEvents : [];
-  const [pushPreferences, setPushPreferences] = useState(loadInitialPreferences);
+  const [pushPreferences, setPushPreferences] = useState(loadInitialPushPreferences);
 
   const nativeSyncEmailRef = useRef('');
   const nativeSyncUidRef = useRef('');

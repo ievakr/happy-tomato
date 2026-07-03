@@ -84,9 +84,9 @@ export const useSwipeGestures = (onSwipeLeft, onSwipeRight, threshold = 50, velo
     element.addEventListener('touchend', handleTouchEnd, options);
 
     return () => {
-      element.removeEventListener('touchstart', handleTouchStart);
-      element.removeEventListener('touchmove', handleTouchMove);
-      element.removeEventListener('touchend', handleTouchEnd);
+      element.removeEventListener('touchstart', handleTouchStart, options);
+      element.removeEventListener('touchmove', handleTouchMove, options);
+      element.removeEventListener('touchend', handleTouchEnd, options);
     };
   }, [onSwipeLeft, onSwipeRight, threshold, velocityThreshold]);
 

@@ -1,6 +1,6 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import dayjs from 'dayjs';
-import CalendarContext from '../../context/CalendarContext';
+import { useCalendarContext } from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
 import {
   getWeekByIndex,
@@ -9,11 +9,12 @@ import {
   getCurrentWeekIndex,
   monthIndexFromCalendarDate,
   calendarDateFromMonthIndex,
-  sortCalendarEventsAlphabeticallyMobile,
+  filterEventsForDay,
+  isToday,
 } from '../../utils';
-import { useResponsive, useSwipeGestures } from '../../hooks';
-import { ConfirmModal } from '../common';
-import EventItem, { eventTodoOrTitleText } from './EventItem';
+import { useResponsive, useSwipeGestures, useEventDeleteConfirm, useCalendarEventActions } from '../../hooks';
+import EventDeleteConfirmModal from './EventDeleteConfirmModal';
+import EventItem from './EventItem';
 import '../../index.css';
 
 const WeeklyView = () => {
@@ -22,8 +23,7 @@ const WeeklyView = () => {
     weekIndex, 
     setMonthIndex,
     setWeekIndex,
-    setDaySelected,
-  } = useContext(CalendarContext);
+  } = useCalendarContext();
 
   const handlePrevWeek = () => {
     if (weekIndex > 0) {
@@ -52,42 +52,32 @@ const WeeklyView = () => {
 
   const {
     filteredEvents,
-    setShowEventModal,
-    setSelectedEvent,
     isInitialLoading,
-    dispatchCallEvent,
-    isLoading,
-    loadingOperation,
     plantsById
   } = useEventContext();
   
   const { isMobile } = useResponsive();
+  const { handleEventClick, openEventForDay } = useCalendarEventActions();
   const [currentWeek, setCurrentWeek] = useState([]);
-  const [eventToDelete, setEventToDelete] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Swipe handlers for week navigation
+  const {
+    eventToDelete,
+    showDeleteConfirm,
+    cancelDelete,
+    confirmDelete,
+    handleQuickDelete,
+    isDeleting,
+  } = useEventDeleteConfirm();
+
   const handleSwipeLeft = () => {
     if (isMobile) {
-      if (weekIndex < 4) {
-        setWeekIndex(weekIndex + 1);
-      } else {
-        // Go to next month, first week
-        setMonthIndex(monthIndex + 1);
-        setWeekIndex(0);
-      }
+      handleNextWeek();
     }
   };
   
   const handleSwipeRight = () => {
     if (isMobile) {
-      if (weekIndex > 0) {
-        setWeekIndex(weekIndex - 1);
-      } else {
-        // Go to previous month, last week
-        setMonthIndex(monthIndex - 1);
-        setWeekIndex(4);
-      }
+      handlePrevWeek();
     }
   };
   
@@ -98,47 +88,15 @@ const WeeklyView = () => {
     setCurrentWeek(week);
   }, [monthIndex, weekIndex]);
 
-  const handleDayClick = (day) => {
-    setDaySelected(day);
-    setShowEventModal(true);
-  };
+  const handleDayClick = (day) => openEventForDay(day);
 
-  const handleEventClick = (evt, e) => {
-    e.stopPropagation();
-    setSelectedEvent(evt);
-    setShowEventModal(true);
-  };
+  const getEventsForDay = (day) =>
+    filterEventsForDay(filteredEvents, day, {
+      sortMobile: isMobile,
+      plantsById: plantsById || {},
+    });
 
-  const handleQuickDelete = (evt, e) => {
-    e.stopPropagation();
-    setEventToDelete(evt);
-    setShowDeleteConfirm(true);
-  };
-
-  const confirmDelete = async () => {
-    if (eventToDelete) {
-      try {
-        await dispatchCallEvent({ type: "delete", payload: eventToDelete });
-        setShowDeleteConfirm(false);
-        setEventToDelete(null);
-      } catch {
-        // Toast already shown by dispatchCallEvent
-      }
-    }
-  };
-
-  const getEventsForDay = (day) => {
-    const forDay = filteredEvents.filter(evt =>
-      dayjs(evt.day).format("DD-MM-YY") === day.format("DD-MM-YY")
-    );
-    return isMobile ? sortCalendarEventsAlphabeticallyMobile(forDay, plantsById || {}) : forDay;
-  };
-
-  const getCurrentDayClass = (day) => {
-    return day.format("DD-MM-YY") === dayjs().format("DD-MM-YY")
-      ? 'current-day'
-      : '';
-  };
+  const getCurrentDayClass = (day) => (isToday(day) ? 'current-day' : '');
 
   const weekMonthAnchor = calendarDateFromMonthIndex(monthIndex);
   const isCurrentMonth = (day) => day.isSame(weekMonthAnchor, 'month');
@@ -152,10 +110,9 @@ const WeeklyView = () => {
       ref={isMobile ? swipeRef : null}
       className="weekly-view flex-grow-1 d-flex flex-column"
       style={{ 
-        touchAction: isMobile ? 'pan-y' : 'auto' // Allow vertical scrolling but handle horizontal swipes
+        touchAction: isMobile ? 'pan-y' : 'auto'
       }}
     >
-      {/* Week date range header with navigation */}
       <div className="week-header d-flex align-items-center justify-content-center gap-1 py-2 border-bottom bg-light">
         <button
           type="button"
@@ -193,22 +150,9 @@ const WeeklyView = () => {
         </button>
       </div>
 
-      {/* Weekly planner grid container with horizontal scroll */}
       <div 
         className={`week-grid-container flex-grow-1 ${isMobile ? 'week-grid-scroll' : ''}`}
       >
-        {/* Hide scrollbar for webkit browsers */}
-        {isMobile && (
-          <style dangerouslySetInnerHTML={{
-            __html: `
-              .week-grid-container::-webkit-scrollbar {
-                display: none;
-              }
-            `
-          }} />
-        )}
-        
-        {/* Weekly planner grid */}
         <div 
           className={`week-grid ${isMobile ? 'week-grid-mobile' : ''}`}
         >
@@ -222,7 +166,6 @@ const WeeklyView = () => {
                 className={`week-day ${getCurrentDayClass(day)} ${!isCurrentMonth(day) ? 'other-month' : ''}`}
                 onClick={() => handleDayClick(day)}
               >
-                {/* Day header */}
                 <div className="day-header">
                   <div className="day-name text-muted small">
                     {dayHeaders[dayIndex]}
@@ -232,7 +175,6 @@ const WeeklyView = () => {
                   </div>
                 </div>
 
-                {/* Events list */}
                 <div className="day-events">
                   {dayEvents.length > 0 ? (
                     <div className="events-list">
@@ -265,8 +207,6 @@ const WeeklyView = () => {
                       {isMobile ? '' : 'No events'}
                     </div>
                   )}
-
-
                 </div>
               </div>
             );
@@ -274,27 +214,15 @@ const WeeklyView = () => {
         </div>
       </div>
       
-      {showDeleteConfirm && eventToDelete && (
-        <ConfirmModal
-          title="Delete Event"
-          message={
-            <>
-              <p className="mb-2">Delete "{eventTodoOrTitleText(eventToDelete)}"?</p>
-              <p className="mb-0 small">This action can't be undone.</p>
-            </>
-          }
-          confirmLabel="Delete"
-          variant="danger"
-          onConfirm={confirmDelete}
-          onCancel={() => {
-            setShowDeleteConfirm(false);
-            setEventToDelete(null);
-          }}
-          isLoading={isLoading && loadingOperation === 'delete'}
-        />
-      )}
+      <EventDeleteConfirmModal
+        show={showDeleteConfirm}
+        event={eventToDelete}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        isLoading={isDeleting}
+      />
     </div>
   );
 };
 
-export default WeeklyView; 
+export default WeeklyView;

@@ -12,6 +12,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './styles/variables.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './index.css';
+import './styles/event-items.css';
+import './styles/calendar-views.css';
 import './styles/legacy.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';

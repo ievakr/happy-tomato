@@ -1,8 +1,7 @@
-import { useContext } from 'react';
-import dayjs from 'dayjs';
-import CalendarContext from '../context/CalendarContext';
+import { useCalendarContext } from '../context/CalendarContext';
 import { useEventContext } from '../context/EventContext';
-import { DATE_FORMATS, EVENT_ACTIONS } from '../constants';
+import { EVENT_ACTIONS } from '../constants';
+import { filterEventsForDay } from '../utils/eventDates';
 
 /**
  * Custom hook for event management
@@ -15,16 +14,12 @@ export const useEvents = () => {
     setSelectedEvent,
     setShowEventModal
   } = useEventContext();
-  const { setDaySelected } = useContext(CalendarContext);
+  const { setDaySelected } = useCalendarContext();
 
   /**
    * Get events for a specific day
    */
-  const getEventsForDay = (day) => {
-    return filteredEvents.filter(evt => 
-      dayjs(evt.day).format(DATE_FORMATS.DAY_MONTH_YEAR) === day.format(DATE_FORMATS.DAY_MONTH_YEAR)
-    );
-  };
+  const getEventsForDay = (day) => filterEventsForDay(filteredEvents, day);
 
   /**
    * Create a new event

@@ -1,13 +1,13 @@
 import React, { useContext, useState } from 'react';
 import CreateEventButton from '../forms/CreateEventButton';
 import Labels from '../calendar/Labels';
-import CalendarContext from '../../context/CalendarContext';
+import { useCalendarContext } from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
 import { useEventContext } from '../../context/EventContext';
 
 export default function Sidebar() {
     const { showSidebar, setShowSidebar } = useContext(LayoutContext);
-    const { setCurrentView, currentView } = useContext(CalendarContext);
+    const { setCurrentView, currentView } = useCalendarContext();
     const { setShowManagePlantsModal, setShowManageTodoModal } = useEventContext();
     const [isPlantManagementExpanded, setIsPlantManagementExpanded] = useState(false);
     const [isActionManagementExpanded, setIsActionManagementExpanded] = useState(false);

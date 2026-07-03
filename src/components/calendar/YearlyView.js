@@ -1,6 +1,6 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import dayjs from 'dayjs';
-import CalendarContext from '../../context/CalendarContext';
+import { useCalendarContext } from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
 import { useResponsive } from '../../hooks';
 import { calendarDateFromMonthIndex, calendarNavRefYear } from '../../utils';
@@ -11,7 +11,7 @@ const MONTHS_0_11 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
  * Mobile year picker (iOS Calendar–style): 12-month grid; pick a month to return to month view.
  */
 export default function YearlyView() {
-  const { monthIndex, setMonthIndex, setCurrentView } = useContext(CalendarContext);
+  const { monthIndex, setMonthIndex, setCurrentView } = useCalendarContext();
   const { isInitialLoading } = useEventContext();
   const { isMobile } = useResponsive();
 

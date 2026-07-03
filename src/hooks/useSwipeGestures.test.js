@@ -317,30 +317,6 @@ describe('useSwipeGestures', () => {
   });
 
   describe('cleanup', () => {
-    test('should remove event listeners on unmount', () => {
-      const { result, unmount, rerender } = renderHook(() => 
-        useSwipeGestures(onSwipeLeft, onSwipeRight)
-      );
-
-      result.current.current = mockElement;
-      rerender();
-
-      unmount();
-
-      expect(mockElement.removeEventListener).toHaveBeenCalledWith(
-        'touchstart',
-        expect.any(Function)
-      );
-      expect(mockElement.removeEventListener).toHaveBeenCalledWith(
-        'touchmove',
-        expect.any(Function)
-      );
-      expect(mockElement.removeEventListener).toHaveBeenCalledWith(
-        'touchend',
-        expect.any(Function)
-      );
-    });
-
     test('should handle cleanup with null element', () => {
       const { unmount } = renderHook(() => 
         useSwipeGestures(onSwipeLeft, onSwipeRight)

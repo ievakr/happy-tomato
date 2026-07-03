@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
 import dayjs from 'dayjs';
@@ -15,6 +15,7 @@ import dayjs from 'dayjs';
 import EventModal from '../components/forms/EventModal';
 import CalendarContext from '../context/CalendarContext';
 import EventContext from '../context/EventContext';
+import { ToastProvider } from '../context/ToastContext';
 import { TODO_ITEMS } from '../constants';
 
 // Mock Firebase
@@ -53,6 +54,10 @@ const mockIsTodoEvent = jest.fn((event) => {
   return event.isRecurringTodo || (event.title && event.title.startsWith('TO DO:'));
 });
 
+const mockApplyFromEvent = jest.fn();
+const mockResetForNewEvent = jest.fn();
+const mockSavedTodoItems = [];
+
 jest.mock('../hooks', () => ({
   useRecurringActions: () => ({
     createActionWithRecurringTodos: mockCreateActionWithRecurringTodos,
@@ -61,11 +66,27 @@ jest.mock('../hooks', () => ({
     deleteRecurringTodosForEvent: mockDeleteRecurringTodosForEvent,
   }),
   useSavedTodos: () => ({
-    savedItems: [],
+    savedItems: mockSavedTodoItems,
     addItem: jest.fn(),
     removeItem: jest.fn(),
     setItems: jest.fn(),
     isLoading: false,
+  }),
+  useEventRecurringConfig: () => ({
+    isRecurring: false,
+    setIsRecurring: jest.fn(),
+    recurringInterval: 7,
+    setRecurringInterval: jest.fn(),
+    recurringMaxOccurrences: 2,
+    setRecurringMaxOccurrences: jest.fn(),
+    recurringEndType: 'count',
+    setRecurringEndType: jest.fn(),
+    recurringUntilDate: new Date('2024-06-15'),
+    setRecurringUntilDate: jest.fn(),
+    applyFromEvent: mockApplyFromEvent,
+    resetForNewEvent: mockResetForNewEvent,
+    buildUserRecurringConfig: () => null,
+    validateRecurringConfig: () => true,
   }),
 }));
 
@@ -73,7 +94,7 @@ jest.mock('../hooks', () => ({
 const createEventContextValue = (overrides = {}) => ({
   setShowEventModal: jest.fn(),
   setShowPlantModal: jest.fn(),
-  dispatchCallEvent: jest.fn(),
+  dispatchCallEvent: jest.fn(() => Promise.resolve()),
   selectedEvent: null,
   dosage: '',
   setDosage: jest.fn(),
@@ -93,8 +114,10 @@ const createEventContextValue = (overrides = {}) => ({
   ...overrides,
 });
 
+const defaultTestDay = dayjs('2024-06-15');
+
 const createCalendarContextValue = (overrides = {}) => ({
-  daySelected: dayjs(),
+  daySelected: defaultTestDay,
   setDaySelected: jest.fn(),
   ...overrides,
 });
@@ -106,11 +129,13 @@ const renderEventModal = (contextValue = {}) => {
   
   return {
     ...render(
-      <CalendarContext.Provider value={calendarValue}>
-        <EventContext.Provider value={eventValue}>
-          <EventModal />
-        </EventContext.Provider>
-      </CalendarContext.Provider>
+      <ToastProvider>
+        <CalendarContext.Provider value={calendarValue}>
+          <EventContext.Provider value={eventValue}>
+            <EventModal />
+          </EventContext.Provider>
+        </CalendarContext.Provider>
+      </ToastProvider>
     ),
     contextValue: eventValue,
   };
@@ -119,30 +144,29 @@ const renderEventModal = (contextValue = {}) => {
 describe('E2E: Critical User Flows', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSavedTodoItems.length = 0;
+    mockCreateActionWithRecurringTodos.mockResolvedValue(undefined);
+    mockUpdateEventWithRecurringRecalculation.mockResolvedValue(undefined);
   });
 
   describe('Flow: Create New Event', () => {
     test('should create a simple event with description only', async () => {
       const { contextValue } = renderEventModal();
 
-      // Fill in description
       const descInput = screen.getByPlaceholderText(/add a description/i);
-      userEvent.type(descInput, 'Check soil moisture levels');
+      await userEvent.type(descInput, 'Check soil moisture levels');
 
-      // Click save
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      userEvent.click(saveButton);
+      await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
-      // Wait for the event to be dispatched
       await waitFor(() => {
-        expect(mockCreateActionWithRecurringTodos).toHaveBeenCalledWith(
-          expect.objectContaining({
+        expect(contextValue.dispatchCallEvent).toHaveBeenCalledWith({
+          type: 'push',
+          payload: expect.objectContaining({
             description: 'Check soil moisture levels',
-          })
-        );
+          }),
+        });
       });
 
-      // Modal should close
       await waitFor(() => {
         expect(contextValue.setShowEventModal).toHaveBeenCalledWith(false);
       });
@@ -151,53 +175,37 @@ describe('E2E: Critical User Flows', () => {
     test('should create event with plant labels', async () => {
       const { contextValue } = renderEventModal();
 
-      // Fill in description
-      const descInput = screen.getByPlaceholderText(/add a description/i);
-      userEvent.type(descInput, 'Harvest tomatoes');
-
-      // Select plant - click dropdown
-      const plantDropdown = screen.getByText(/select plants/i);
-      userEvent.click(plantDropdown);
-
-      // Select a plant (this would need the actual dropdown implementation)
-      // For now, we'll just test that the save works
-
-      // Click save
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      userEvent.click(saveButton);
+      await userEvent.type(screen.getByPlaceholderText(/add a description/i), 'Harvest tomatoes');
+      await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
-        expect(mockCreateActionWithRecurringTodos).toHaveBeenCalled();
+        expect(contextValue.dispatchCallEvent).toHaveBeenCalledWith(
+          expect.objectContaining({ type: 'push' })
+        );
       });
     });
 
-    test('should create event with action that has dosage', async () => {
-      const { contextValue } = renderEventModal();
-
-      const descInput = screen.getByPlaceholderText(/add a description/i);
-      userEvent.type(descInput, 'Apply fertilizer to roses');
-
-      // Select action - the dropdown interaction would select "Fertilized"
-      // which has dosage "Use every 7 days"
-      
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      userEvent.click(saveButton);
-
-      await waitFor(() => {
-        expect(mockCreateActionWithRecurringTodos).toHaveBeenCalled();
-      });
-    });
-
-    test('should validate required fields', async () => {
+    test('should create a to-do with recurring series', async () => {
+      mockSavedTodoItems.push('Water plants');
       renderEventModal();
 
-      // Try to save without filling description
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      userEvent.click(saveButton);
+      await userEvent.click(screen.getByRole('button', { name: /select a to-do/i }));
+      await userEvent.click(await screen.findByRole('option', { name: /water plants/i }));
 
-      // The description field has 'required' attribute
-      const descInput = screen.getByPlaceholderText(/add a description/i);
-      expect(descInput).toBeRequired();
+      await userEvent.type(screen.getByPlaceholderText(/add a description/i), 'Weekly watering');
+      await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+      await waitFor(() => {
+        expect(mockCreateActionWithRecurringTodos).toHaveBeenCalledWith(
+          expect.objectContaining({ description: 'Weekly watering' })
+        );
+      });
+    });
+
+    test('should validate required fields', () => {
+      renderEventModal();
+
+      expect(screen.getByPlaceholderText(/add a description/i)).toBeRequired();
     });
   });
 
@@ -242,12 +250,10 @@ describe('E2E: Critical User Flows', () => {
 
       // Change description
       const descInput = screen.getByPlaceholderText(/add a description/i);
-      userEvent.clear(descInput);
-      userEvent.type(descInput, 'Evening watering');
+      await userEvent.clear(descInput);
+      await userEvent.type(descInput, 'Evening watering');
 
-      // Click update
-      const updateButton = screen.getByRole('button', { name: /update/i });
-      userEvent.click(updateButton);
+      await userEvent.click(screen.getByRole('button', { name: /update/i }));
 
       // Update function should be called
       await waitFor(() => {
@@ -281,11 +287,10 @@ describe('E2E: Critical User Flows', () => {
       });
 
       const descInput = screen.getByPlaceholderText(/add a description/i);
-      userEvent.clear(descInput);
-      userEvent.type(descInput, 'Updated');
+      await userEvent.clear(descInput);
+      await userEvent.type(descInput, 'Updated');
 
-      const updateButton = screen.getByRole('button', { name: /update/i });
-      userEvent.click(updateButton);
+      await userEvent.click(screen.getByRole('button', { name: /update/i }));
 
       await waitFor(() => {
         expect(mockUpdateEventWithRecurringRecalculation).toHaveBeenCalledWith(
@@ -313,18 +318,16 @@ describe('E2E: Critical User Flows', () => {
         selectedEvent: regularEvent,
       });
 
-      // Click delete button
-      const deleteButton = screen.getByRole('button', { name: /delete event/i });
-      userEvent.click(deleteButton);
+      await userEvent.click(screen.getByTitle('Delete event'));
 
-      // Confirmation should appear
       await waitFor(() => {
-        expect(screen.getByText(/are you sure you want to delete this event/i)).toBeInTheDocument();
+        expect(screen.getByText(/delete "old event"/i)).toBeInTheDocument();
       });
 
-      // Confirm deletion
-      const confirmButton = screen.getByRole('button', { name: /^delete$/i });
-      userEvent.click(confirmButton);
+      const confirmDialog = screen
+        .getByText('Delete Event', { selector: '.modal-title' })
+        .closest('[role="dialog"]');
+      await userEvent.click(within(confirmDialog).getByRole('button', { name: /^delete$/i }));
 
       // dispatchCallEvent with delete should be called
       await waitFor(() => {
@@ -354,31 +357,26 @@ describe('E2E: Critical User Flows', () => {
         selectedEvent: eventToKeep,
       });
 
-      // Click delete
-      const deleteButton = screen.getByRole('button', { name: /delete event/i });
-      userEvent.click(deleteButton);
+      await userEvent.click(screen.getByTitle('Delete event'));
 
-      // Wait for confirmation
       await waitFor(() => {
-        expect(screen.getByText(/are you sure you want to delete this event/i)).toBeInTheDocument();
+        expect(screen.getByText(/delete "important event"/i)).toBeInTheDocument();
       });
 
-      // Click cancel
-      const cancelButton = screen.getByRole('button', { name: /cancel/i });
-      userEvent.click(cancelButton);
+      const confirmDialog = screen
+        .getByText('Delete Event', { selector: '.modal-title' })
+        .closest('[role="dialog"]');
+      await userEvent.click(within(confirmDialog).getByRole('button', { name: /cancel/i }));
 
-      // Confirmation modal should close
       await waitFor(() => {
-        expect(screen.queryByText(/are you sure you want to delete this event/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/delete "important event"/i)).not.toBeInTheDocument();
       });
 
-      // Delete should NOT be called
       expect(contextValue.dispatchCallEvent).not.toHaveBeenCalledWith(
         expect.objectContaining({ type: 'delete' })
       );
 
-      // Main modal should still be open
-      expect(screen.getByRole('form')).toBeInTheDocument();
+      expect(screen.getByText('Edit Event')).toBeInTheDocument();
     });
 
     test('should delete a TODO event', async () => {
@@ -396,17 +394,17 @@ describe('E2E: Critical User Flows', () => {
         selectedEvent: todoToDelete,
       });
 
-      // Click delete (should show "Delete TO DO" label)
-      const deleteButton = screen.getByRole('button', { name: /delete to do/i });
-      userEvent.click(deleteButton);
+      const deleteBtn = document.querySelector('.event-modal .btn-outline-danger');
+      await userEvent.click(deleteBtn);
 
-      // Confirm
       await waitFor(() => {
-        expect(screen.getByText(/are you sure you want to delete this event/i)).toBeInTheDocument();
+        expect(screen.getByText(/delete "to do: water"/i)).toBeInTheDocument();
       });
 
-      const confirmButton = screen.getByRole('button', { name: /^delete$/i });
-      userEvent.click(confirmButton);
+      const confirmDialog = screen
+        .getByText('Delete Event', { selector: '.modal-title' })
+        .closest('[role="dialog"]');
+      await userEvent.click(within(confirmDialog).getByRole('button', { name: /^delete$/i }));
 
       // Delete should be dispatched
       await waitFor(() => {
@@ -419,36 +417,21 @@ describe('E2E: Critical User Flows', () => {
   });
 
   describe('Flow: Recurring Actions', () => {
-    test('should show dosage information for recurring actions', () => {
-      renderEventModal({
-        dosage: 'Use every 7 days',
-        selectedEvent: {
-          id: 'test',
-          title: 'Fertilized',
-          description: 'Test',
-          day: dayjs().valueOf(),
-          actions: ['Fertilized'],
-          toDo: '',
-        },
-      });
+    test('should show recurring config section for new events', () => {
+      renderEventModal();
 
-      // Check if dosage text is displayed (when toDo is empty, dosage won't show)
-      // But we can verify the form renders correctly
-      expect(screen.getByRole('form')).toBeInTheDocument();
+      expect(screen.getByText('New Event')).toBeInTheDocument();
+      expect(screen.getByText('To-do')).toBeInTheDocument();
     });
 
-    test('should call createActionWithRecurringTodos for actions with recurring patterns', async () => {
-      const { contextValue } = renderEventModal();
+    test('should call createActionWithRecurringTodos when saving a to-do', async () => {
+      mockSavedTodoItems.push('Fertilize roses');
+      renderEventModal();
 
-      // Create event with action that has recurring pattern
-      const descInput = screen.getByPlaceholderText(/add a description/i);
-      userEvent.type(descInput, 'First fertilizer application');
-
-      // The form would set actions: ['Fertilized']
-      // which should trigger recurring todo generation
-
-      const saveButton = screen.getByRole('button', { name: /save/i });
-      userEvent.click(saveButton);
+      await userEvent.click(screen.getByRole('button', { name: /select a to-do/i }));
+      await userEvent.click(await screen.findByRole('option', { name: /fertilize roses/i }));
+      await userEvent.type(screen.getByPlaceholderText(/add a description/i), 'First fertilizer application');
+      await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
         expect(mockCreateActionWithRecurringTodos).toHaveBeenCalled();
@@ -468,11 +451,10 @@ describe('E2E: Critical User Flows', () => {
     test('should have all expected form fields', () => {
       renderEventModal();
 
-      // Check for key form elements
       expect(screen.getByPlaceholderText(/add a description/i)).toBeInTheDocument();
-      expect(screen.getByText(/select actions/i)).toBeInTheDocument();
-      expect(screen.getByText(/select to-do/i)).toBeInTheDocument();
-      expect(screen.getByText(/select plants/i)).toBeInTheDocument();
+      expect(screen.getByText('To-do')).toBeInTheDocument();
+      expect(screen.getByText('Plants')).toBeInTheDocument();
+      expect(screen.getByText('Date')).toBeInTheDocument();
     });
 
     test('should show save button for new events', () => {
@@ -498,12 +480,12 @@ describe('E2E: Critical User Flows', () => {
   });
 
   describe('Flow: Close Modal', () => {
-    test('should close modal without saving', () => {
+    test('should close modal without saving', async () => {
       const { contextValue } = renderEventModal();
 
       // Find close button (X icon)
       const closeButton = screen.getByRole('button', { name: /close/i });
-      userEvent.click(closeButton);
+      await userEvent.click(closeButton);
 
       // Modal close function should be called
       expect(contextValue.setShowEventModal).toHaveBeenCalledWith(false);
