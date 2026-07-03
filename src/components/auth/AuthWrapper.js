@@ -5,15 +5,16 @@ import Signup from './Signup';
 import ForgotPassword from './ForgotPassword';
 
 function AuthWrapper({ children }) {
-  const { currentUser } = useAuth();
+  const { currentUser, bootLoading } = useAuth();
   const [authView, setAuthView] = useState('login'); // 'login', 'signup', or 'forgot'
 
-  // If user is authenticated, show the app
-  if (currentUser) {
+  // While auth is still resolving, render the app shell (boot splash lives there).
+  // Avoid flashing the login screen for users who already have a session.
+  if (bootLoading || currentUser) {
     return children;
   }
 
-  // Otherwise, show authentication screens
+  // Confirmed signed out — show authentication screens
   return (
     <>
       {authView === 'login' && (

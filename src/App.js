@@ -12,12 +12,13 @@ import { useLayoutContext } from './context/LayoutContext';
 import { getLoadingMessage } from './utils';
 import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay, LoadingSpinner, IntroSplash, OfflineBanner, ServiceWorkerUpdateBanner } from './components/common';
 import errorLogger from './utils/errorLogger';
+import { useAuth } from './context/AuthContext';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import notificationService from './services/notificationService';
 import { getFirebaseMessaging } from './firebase';
 import 'react-tooltip/dist/react-tooltip.css';
 
-const AuthWrapper = lazy(() => import('./components/auth/AuthWrapper'));
+import AuthWrapper from './components/auth/AuthWrapper';
 const Header = lazy(() => import('./components/layout/Header'));
 const Sidebar = lazy(() => import('./components/layout/Sidebar'));
 const CalendarHeader = lazy(() => import('./components/calendar/CalendarHeader'));
@@ -36,6 +37,7 @@ const VegetableGuideView = lazy(() => import('./components/guide/VegetableGuideV
  * Main application component with responsive layout
  */
 function App() {
+  const { bootLoading, currentUser } = useAuth();
   const { currentMonth } = useCalendar();
   const {
     showEventModal,
@@ -171,18 +173,19 @@ function App() {
     </div>
   );
 
+  const showBootSplash =
+    bootLoading || (!!currentUser && isInitialLoading);
+
   return (
     <ErrorBoundary
       title="Application Error"
       message="The calendar application encountered an unexpected error."
       onError={handleError}
     >
-      <Suspense fallback={<IntroSplash />}>
-        <AuthWrapper>
+      <AuthWrapper>
           {/* Single column wrapper so .app-shell is a flex child and fills the screen on iOS WKWebView */}
           <div className="app-viewport-root">
-          {/* Initial loading overlay — branded intro while the calendar data loads */}
-          {isInitialLoading && (
+          {showBootSplash && (
             <IntroSplash label={getLoadingMessage(loadingOperation || 'load')} />
           )}
 
@@ -381,7 +384,6 @@ function App() {
           </div>
           </div>
         </AuthWrapper>
-      </Suspense>
     </ErrorBoundary>
   );
 }

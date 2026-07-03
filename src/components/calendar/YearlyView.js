@@ -33,13 +33,7 @@ export default function YearlyView() {
   }
 
   if (isInitialLoading) {
-    return (
-      <div className="yearly-view-loading d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <div className="spinner-border text-danger" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (

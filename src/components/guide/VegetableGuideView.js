@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useResponsive } from '../../hooks/useResponsive';
 import { vegetableGuide } from '../../data/vegetableGuide';
 import Icon from '../common/Icon';
@@ -76,8 +76,14 @@ function VegetableDetail({ veg }) {
 
 export default function VegetableGuideView() {
   const { isMobile } = useResponsive();
+  const searchInputRef = useRef(null);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(vegetableGuide[0]?.id ?? null);
+
+  const selectVegetable = (id) => {
+    searchInputRef.current?.blur();
+    setSelectedId(id);
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -92,11 +98,12 @@ export default function VegetableGuideView() {
 
   const searchBox = (
     <div className="p-3 border-bottom bg-white">
-      <div className="input-group input-group-sm">
+      <div className="input-group">
         <span className="input-group-text bg-white">
           <Icon name="search" className="text-secondary" style={{ fontSize: '1rem' }} />
         </span>
         <input
+          ref={searchInputRef}
           type="search"
           className="form-control"
           placeholder="Search vegetables…"
@@ -122,7 +129,7 @@ export default function VegetableGuideView() {
                 className={`btn w-100 text-start d-flex align-items-center gap-3 py-2 px-3 rounded-0 ${
                   active ? 'bg-light fw-semibold' : ''
                 }`}
-                onClick={() => setSelectedId(veg.id)}
+                onClick={() => selectVegetable(veg.id)}
                 aria-pressed={active}
               >
                 <Icon plantIcon={veg.icon} style={{ fontSize: '1.35rem' }} />
@@ -152,7 +159,7 @@ export default function VegetableGuideView() {
   if (isMobile) {
     if (selected) {
       return (
-        <div className="d-flex flex-column h-100 w-100 bg-white">
+        <div className="d-flex flex-column h-100 w-100 bg-white vegetable-guide">
           <div className="d-flex align-items-center gap-2 p-2 border-bottom flex-shrink-0">
             <button
               type="button"
@@ -170,7 +177,7 @@ export default function VegetableGuideView() {
       );
     }
     return (
-      <div className="d-flex flex-column h-100 w-100 bg-white">
+      <div className="d-flex flex-column h-100 w-100 bg-white vegetable-guide">
         {searchBox}
         <div className="flex-grow-1 overflow-auto" style={{ minHeight: 0 }}>
           {intro}
@@ -181,7 +188,7 @@ export default function VegetableGuideView() {
   }
 
   return (
-    <div className="d-flex h-100 w-100 bg-white">
+    <div className="d-flex h-100 w-100 bg-white vegetable-guide">
       <div
         className="d-flex flex-column border-end h-100"
         style={{ width: '320px', flexShrink: 0 }}

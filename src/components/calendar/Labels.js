@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { useEventContext } from "../../context/EventContext";
 import { EventListSkeleton, CustomDropdown } from "../common";
 
-export default function Labels() {
+export default function Labels({ headerClassName = 'mt-4 mb-2', contentClassName = 'mb-3' }) {
     const { labels, setLabels, isInitialLoading } = useEventContext();
     
     // Get display names for dropdown options
@@ -54,7 +54,7 @@ export default function Labels() {
 
     return (
         <React.Fragment>
-            <div className="mt-4 mb-2">
+            <div className={headerClassName}>
                 <div className="d-flex align-items-center min-w-0 text-secondary fw-bold">
                     <span className="material-icons-outlined me-2 flex-shrink-0" style={{ fontSize: '1.25rem' }}>
                         filter_list
@@ -92,7 +92,7 @@ export default function Labels() {
             {isInitialLoading ? (
                 <EventListSkeleton count={1} />
             ) : (
-                <div className="mb-3">
+                <div className={contentClassName || undefined}>
                     <CustomDropdown
                         title="Select categories to filter"
                         options={labelOptions}

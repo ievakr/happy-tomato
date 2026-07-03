@@ -39,103 +39,103 @@ export default function Sidebar() {
                     </button>
                 </div>
                 
-                <div className="mb-4">
-                    <button
-                        type="button"
-                        className="btn btn-link btn-collapse-toggle p-0 text-secondary fw-bold text-decoration-none d-flex w-100"
-                        onClick={() => setIsPlantManagementExpanded(!isPlantManagementExpanded)}
-                        aria-expanded={isPlantManagementExpanded}
-                    >
-                        <span
-                            className="material-icons-outlined me-1"
-                            style={{
-                                fontSize: '1.25rem',
-                                transition: 'transform 0.2s ease',
-                                transform: isPlantManagementExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-                            }}
+                <div className="sidebar-menu">
+                    <div className="sidebar-section">
+                        <button
+                            type="button"
+                            className="btn btn-link btn-collapse-toggle p-0 text-secondary fw-bold text-decoration-none d-flex w-100"
+                            onClick={() => setIsPlantManagementExpanded(!isPlantManagementExpanded)}
+                            aria-expanded={isPlantManagementExpanded}
                         >
-                            expand_more
-                        </span>
-                        Plant Management
-                    </button>
-                    {isPlantManagementExpanded && (
-                        <div className="mt-3">
-                            <div className="mb-3">
+                            <span
+                                className="material-icons-outlined me-1"
+                                style={{
+                                    fontSize: '1.25rem',
+                                    transition: 'transform 0.2s ease',
+                                    transform: isPlantManagementExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                                }}
+                            >
+                                expand_more
+                            </span>
+                            Plant Management
+                        </button>
+                        {isPlantManagementExpanded && (
+                            <div className="sidebar-section-body">
                                 <CreateEventButton />
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary w-100"
+                                    onClick={() => {
+                                        setShowSidebar(false);
+                                        setShowManagePlantsModal(true);
+                                    }}
+                                >
+                                    <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
+                                        eco
+                                    </span>
+                                    Manage Plants
+                                </button>
                             </div>
-                            <button
-                                type="button"
-                                className="btn btn-outline-secondary w-100"
-                                onClick={() => {
-                                    setShowSidebar(false);
-                                    setShowManagePlantsModal(true);
+                        )}
+                    </div>
+
+                    <div className="sidebar-section">
+                        <button
+                            type="button"
+                            className="btn btn-link btn-collapse-toggle p-0 text-secondary fw-bold text-decoration-none d-flex w-100"
+                            onClick={() => setIsActionManagementExpanded(!isActionManagementExpanded)}
+                            aria-expanded={isActionManagementExpanded}
+                        >
+                            <span
+                                className="material-icons-outlined me-1"
+                                style={{
+                                    fontSize: '1.25rem',
+                                    transition: 'transform 0.2s ease',
+                                    transform: isActionManagementExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
                                 }}
                             >
-                                <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
-                                    eco
-                                </span>
-                                Manage Plants
-                            </button>
-                        </div>
-                    )}
-                </div>
+                                expand_more
+                            </span>
+                            To-do management
+                        </button>
+                        {isActionManagementExpanded && (
+                            <div className="sidebar-section-body">
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary w-100"
+                                    onClick={() => {
+                                        setShowSidebar(false);
+                                        setShowManageTodoModal(true);
+                                    }}
+                                >
+                                    <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
+                                        edit_note
+                                    </span>
+                                    Manage to-do
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
-                <div className="mb-4">
-                    <button
-                        type="button"
-                        className="btn btn-link btn-collapse-toggle p-0 text-secondary fw-bold text-decoration-none d-flex w-100"
-                        onClick={() => setIsActionManagementExpanded(!isActionManagementExpanded)}
-                        aria-expanded={isActionManagementExpanded}
-                    >
-                        <span
-                            className="material-icons-outlined me-1"
-                            style={{
-                                fontSize: '1.25rem',
-                                transition: 'transform 0.2s ease',
-                                transform: isActionManagementExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                    <div className="sidebar-section">
+                        <Labels headerClassName="mb-0" contentClassName="" />
+                    </div>
+
+                    <div className="sidebar-section">
+                        <button
+                            type="button"
+                            className={`btn w-100 ${currentView === 'guide' ? 'btn-danger' : 'btn-outline-secondary'}`}
+                            onClick={() => {
+                                setCurrentView('guide');
+                                setShowSidebar(false);
                             }}
                         >
-                            expand_more
-                        </span>
-                        To-do management
-                    </button>
-                    {isActionManagementExpanded && (
-                        <div className="mt-3">
-                            <button
-                                type="button"
-                                className="btn btn-outline-secondary w-100"
-                                onClick={() => {
-                                    setShowSidebar(false);
-                                    setShowManageTodoModal(true);
-                                }}
-                            >
-                                <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
-                                    edit_note
-                                </span>
-                                Manage to-do
-                            </button>
-                        </div>
-                    )}
-                </div>
-
-                <div className="mb-4">
-                    <button
-                        type="button"
-                        className={`btn w-100 ${currentView === 'guide' ? 'btn-danger' : 'btn-outline-secondary'}`}
-                        onClick={() => {
-                            setCurrentView('guide');
-                            setShowSidebar(false);
-                        }}
-                    >
-                        <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
-                            menu_book
-                        </span>
-                        Vegetable Guide
-                    </button>
-                </div>
-
-                <div className="mb-4">
-                    <Labels />
+                            <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
+                                menu_book
+                            </span>
+                            Vegetable Guide
+                        </button>
+                    </div>
                 </div>
             </aside>
         </>

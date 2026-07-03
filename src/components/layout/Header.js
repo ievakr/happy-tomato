@@ -88,6 +88,10 @@ export default function Header() {
         setCurrentView('month');
     }
 
+    const exitGuideView = useCallback(() => {
+        setCurrentView(isMobile ? 'daily' : 'month');
+    }, [isMobile, setCurrentView]);
+
     /** Mobile: one control for day → month → year (iPhone Calendar–style), replacing the icon toggle. */
     const mobileCalendarHierarchyYear = calendarDateFromMonthIndex(monthIndex).year();
     const mobileNavMonthName =
@@ -155,7 +159,20 @@ export default function Header() {
                         
                         {/* Right side: Month/year drill-down + settings (day view is default on mobile) */}
                         <div className="d-flex align-items-center gap-1">
-                            {currentView !== 'guide' && currentView !== 'year' && (
+                            {currentView === 'guide' ? (
+                                <button
+                                    type="button"
+                                    className="calendar-header-mobile-calendar-nav btn btn-sm flex-shrink-0 text-nowrap"
+                                    onClick={exitGuideView}
+                                    title="Back to calendar"
+                                    aria-label="Back to calendar"
+                                >
+                                    <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
+                                        chevron_left
+                                    </span>
+                                    Calendar
+                                </button>
+                            ) : currentView !== 'year' ? (
                                 <button
                                     type="button"
                                     className="calendar-header-mobile-calendar-nav btn btn-sm flex-shrink-0 text-nowrap"
@@ -165,7 +182,7 @@ export default function Header() {
                                 >
                                     {mobileCalendarNavLabel}
                                 </button>
-                            )}
+                            ) : null}
 
                             {/* User menu */}
                             <div className="flex-shrink-0">
@@ -187,9 +204,18 @@ export default function Header() {
                     {/* Center navigation - week or month */}
                     <div className="calendar-month-nav calendar-month-nav-centered d-flex align-items-center">
                         {currentView === 'guide' ? (
-                            <span className="calendar-month-label mx-2 text-secondary">
-                                Care guide for common crops
-                            </span>
+                            <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center"
+                                onClick={exitGuideView}
+                                title="Back to calendar"
+                                aria-label="Back to calendar"
+                            >
+                                <span className="material-icons-outlined me-1" style={{ fontSize: '1rem' }}>
+                                    chevron_left
+                                </span>
+                                Calendar
+                            </button>
                         ) : currentView === 'week' ? (
                             <>
                                 <button

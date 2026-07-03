@@ -14,11 +14,10 @@ import {
   reauthenticateWithPopup
 } from 'firebase/auth';
 import { auth } from '../firebase';
-import IntroSplash from '../components/common/IntroSplash';
 
 // Minimum time (ms) to show the intro splash on app open, so the brand is
 // always visible for a moment even when auth resolves instantly.
-const INTRO_MIN_DISPLAY_MS = 2000;
+const INTRO_MIN_DISPLAY_MS = 3000;
 
 const AuthContext = createContext();
 
@@ -192,12 +191,13 @@ export function AuthProvider({ children }) {
     reauthenticate,
     deleteAccount,
     error,
-    clearError: () => setError(null)
+    clearError: () => setError(null),
+    bootLoading: loading,
   };
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? <IntroSplash label="Loading session…" /> : children}
+      {children}
     </AuthContext.Provider>
   );
 }

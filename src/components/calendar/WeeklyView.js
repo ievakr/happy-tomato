@@ -144,13 +144,7 @@ const WeeklyView = () => {
   const isCurrentMonth = (day) => day.isSame(weekMonthAnchor, 'month');
 
   if (isInitialLoading) {
-    return (
-      <div className="weekly-view-loading d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <div className="spinner-border text-danger" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (

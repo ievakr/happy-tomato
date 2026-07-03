@@ -2,9 +2,8 @@ import React from 'react';
 import introImage from '../../assets/intro.png';
 
 /**
- * Branded full-screen intro shown while the app boots (auth, code chunks, and
- * the initial calendar data). Replaces the plain "Loading…" spinners with the
- * Happy Tomato mascot so the very first thing users see is the brand.
+ * Branded full-screen intro shown once during app boot (auth + initial calendar data).
+ * Mounted from App only — keep a single instance to avoid the tomato flashing in/out.
  *
  * `label` is used only for screen readers; the image already carries the name.
  */
@@ -17,26 +16,14 @@ export default function IntroSplash({ label = 'Loading Happy Tomato…' }) {
       aria-live="polite"
       aria-label={label}
     >
-      <style>{`
-        @keyframes happy-tomato-intro-pop {
-          0% { opacity: 0; transform: scale(0.92); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-        @keyframes happy-tomato-intro-breathe {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
-        }
-      `}</style>
-
       <img
         src={introImage}
         alt="Happy Tomato"
         style={{
+          display: 'block',
           width: 'min(72vw, 288px)',
           height: 'auto',
           maxHeight: '66vh',
-          animation:
-            'happy-tomato-intro-pop 0.45s ease-out both, happy-tomato-intro-breathe 2.6s ease-in-out 0.45s infinite',
         }}
       />
       <span className="visually-hidden">{label}</span>

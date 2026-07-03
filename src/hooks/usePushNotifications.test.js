@@ -22,7 +22,7 @@ let mockCurrentUser = {
 };
 
 jest.mock('../context/AuthContext', () => ({
-  useAuth: () => ({ currentUser: mockCurrentUser }),
+  useAuth: () => ({ currentUser: mockCurrentUser, bootLoading: false }),
 }));
 
 const localStorageMock = (() => {
