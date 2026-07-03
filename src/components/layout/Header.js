@@ -20,7 +20,7 @@ export default function Header() {
     } = useCalendarContext();
     const { showSidebar, setShowSidebar } = useContext(LayoutContext);
     const { isMobile } = useResponsive();
-    const { switchToWeekView, switchToDailyView } = useResponsiveCalendarView();
+    const { switchToWeekView } = useResponsiveCalendarView();
     
     function applyMonthChange(newMonth) {
         setMonthIndex(newMonth);

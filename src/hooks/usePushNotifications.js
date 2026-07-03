@@ -6,7 +6,7 @@ import pushService from '../services/pushService';
 import dayjs from 'dayjs';
 import { db } from '../firebase';
 import { doc, setDoc, getDoc, arrayUnion } from 'firebase/firestore';
-import { coerceReminderTimeHm, reminderWallParts } from '../utils/reminderTime';
+import { reminderWallParts } from '../utils/reminderTime';
 import {
   PUSH_PREFS_STORAGE_KEY as STORAGE_KEY,
   PUSH_PREFS_LEGACY_STORAGE_KEY as LEGACY_STORAGE_KEY,
