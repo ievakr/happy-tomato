@@ -4,8 +4,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { VEGETABLE_ICONS } from '../../constants';
 import { Modal, ConfirmModal, Icon } from '../common';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function ManagePlantsModal({ onClose }) {
+    const { t } = useTranslation();
     const { currentUser } = useAuth();
     const { plants, updatePlant, deletePlant, updatePlantMutation, deletePlantMutation } = usePlants(currentUser?.uid);
     const { showError, showSuccess } = useToast();
@@ -29,25 +31,25 @@ export default function ManagePlantsModal({ onClose }) {
     const handleSaveEdit = async (e) => {
         e.preventDefault();
         if (!editCategory.trim()) {
-            showError('Please enter a plant category.');
+            showError(t('forms.enterCategoryError'));
             return;
         }
         try {
             await updatePlant(editingId, editCategory.trim(), editVariety.trim(), editIcon);
-            showSuccess('Plant updated successfully!');
+            showSuccess(t('forms.plantUpdated'));
             setEditingId(null);
         } catch {
-            showError('Failed to update plant. Please try again.');
+            showError(t('forms.plantUpdateFailed'));
         }
     };
 
     const handleDelete = async (plantId) => {
         try {
             await deletePlant(plantId);
-            showSuccess('Plant deleted.');
+            showSuccess(t('forms.plantDeleted'));
             setDeleteConfirmId(null);
         } catch {
-            showError('Failed to delete plant. Please try again.');
+            showError(t('forms.plantDeleteFailed'));
         }
     };
 
@@ -56,18 +58,18 @@ export default function ManagePlantsModal({ onClose }) {
     return (
         <>
             <Modal
-                title="Manage Plants"
+                title={t('forms.managePlants')}
                 icon="eco"
                 onClose={onClose}
                 scrollable
                 footer={
                     <button type="button" className="btn btn-danger" onClick={onClose}>
-                        Close
+                        {t('common.close')}
                     </button>
                 }
             >
                 {plants.length === 0 ? (
-                    <p className="text-muted mb-0">No plants yet. Create plants using the "+ Create Plant" button.</p>
+                    <p className="text-muted mb-0">{t('forms.noPlantsYet')}</p>
                 ) : (
                     <div className="list-group list-group-flush">
                         {plants.map((plant) => (
@@ -77,14 +79,14 @@ export default function ManagePlantsModal({ onClose }) {
                                         <input
                                             type="text"
                                             className="form-control form-control-sm"
-                                            placeholder="Category"
+                                            placeholder={t('forms.category')}
                                             value={editCategory}
                                             onChange={(e) => setEditCategory(e.target.value)}
                                         />
                                         <input
                                             type="text"
                                             className="form-control form-control-sm"
-                                            placeholder="Variety (optional)"
+                                            placeholder={t('forms.varietyOptional')}
                                             value={editVariety}
                                             onChange={(e) => setEditVariety(e.target.value)}
                                         />
@@ -103,10 +105,10 @@ export default function ManagePlantsModal({ onClose }) {
                                         </div>
                                         <div className="d-flex gap-2 mt-2">
                                             <button type="submit" className="btn btn-sm btn-success" disabled={updatePlantMutation.isPending}>
-                                                Save
+                                                {t('common.save')}
                                             </button>
                                             <button type="button" className="btn btn-sm btn-outline-secondary" onClick={cancelEdit}>
-                                                Cancel
+                                                {t('common.cancel')}
                                             </button>
                                         </div>
                                     </form>
@@ -121,7 +123,7 @@ export default function ManagePlantsModal({ onClose }) {
                                                 type="button"
                                                 className="btn btn-sm btn-outline-primary p-1"
                                                 onClick={() => startEdit(plant)}
-                                                title="Edit plant"
+                                                title={t('forms.editPlant')}
                                             >
                                                 <Icon name="edit" style={{ fontSize: '1rem' }} />
                                             </button>
@@ -129,7 +131,7 @@ export default function ManagePlantsModal({ onClose }) {
                                                 type="button"
                                                 className="btn btn-sm btn-outline-danger p-1"
                                                 onClick={() => setDeleteConfirmId(plant.id)}
-                                                title="Delete plant"
+                                                title={t('forms.deletePlant')}
                                             >
                                                 <Icon name="delete" style={{ fontSize: '1rem' }} />
                                             </button>
@@ -144,9 +146,9 @@ export default function ManagePlantsModal({ onClose }) {
 
             {deleteConfirmId && (
                 <ConfirmModal
-                    title="Delete Plant"
-                    message="Are you sure? Events using this plant will keep the reference but the plant will no longer appear in lists."
-                    confirmLabel="Delete"
+                    title={t('forms.deletePlant')}
+                    message={t('forms.deletePlantConfirm')}
+                    confirmLabel={t('common.delete')}
                     variant="danger"
                     onConfirm={() => handleDelete(deleteConfirmId)}
                     onCancel={() => setDeleteConfirmId(null)}

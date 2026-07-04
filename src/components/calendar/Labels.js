@@ -1,8 +1,10 @@
 import React, { useMemo } from "react";
 import { useEventContext } from "../../context/EventContext";
 import { EventListSkeleton, CustomDropdown } from "../common";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 export default function Labels({ headerClassName = 'mt-4 mb-2', contentClassName = 'mb-3' }) {
+    const { t } = useTranslation();
     const { labels, setLabels, isInitialLoading } = useEventContext();
     
     // Get display names for dropdown options
@@ -41,13 +43,18 @@ export default function Labels({ headerClassName = 'mt-4 mb-2', contentClassName
     // Create a custom title that doesn't show all selected items
     const dropdownTitle = useMemo(() => {
         if (selectedLabels.length === 0) {
-            return "Select categories to filter";
+            return t('calendar.selectCategoriesToFilter');
         } else if (selectedLabels.length === labelOptions.length) {
-            return "All categories selected";
+            return t('calendar.allCategoriesSelected');
         } else {
-            return `${selectedLabels.length} categor${selectedLabels.length > 1 ? 'ies' : 'y'} selected`;
+            return t(
+                selectedLabels.length > 1
+                    ? 'calendar.categoriesSelectedPlural'
+                    : 'calendar.categoriesSelectedSingular',
+                { count: selectedLabels.length },
+            );
         }
-    }, [selectedLabels.length, labelOptions.length]);
+    }, [selectedLabels.length, labelOptions.length, t]);
 
     const bulkBtnClass =
         'btn btn-sm border-0 bg-transparent px-0 py-0 fw-normal text-decoration-none shadow-none labels-filter-category-bulk-btn';
@@ -59,7 +66,7 @@ export default function Labels({ headerClassName = 'mt-4 mb-2', contentClassName
                     <span className="material-icons-outlined me-2 flex-shrink-0" style={{ fontSize: '1.25rem' }}>
                         filter_list
                     </span>
-                    <span className="text-truncate">Filter by Category</span>
+                    <span className="text-truncate">{t('calendar.filterByCategory')}</span>
                 </div>
                 {labelOptions.length > 0 && (
                     <div className="d-flex align-items-center gap-2 mt-2">
@@ -68,10 +75,10 @@ export default function Labels({ headerClassName = 'mt-4 mb-2', contentClassName
                             className={bulkBtnClass}
                             onClick={handleSelectAllFilters}
                             disabled={allCategoriesSelected}
-                            title="Check all categories"
-                            aria-label="Select all filter categories"
+                            title={t('calendar.checkAllCategories')}
+                            aria-label={t('calendar.selectAllFilterCategories')}
                         >
-                            Select all
+                            {t('calendar.selectAllCategories')}
                         </button>
                         <span className="fw-normal" style={{ color: '#495057' }} aria-hidden>
                             ·
@@ -81,10 +88,10 @@ export default function Labels({ headerClassName = 'mt-4 mb-2', contentClassName
                             className={bulkBtnClass}
                             onClick={handleClearAllFilters}
                             disabled={noCategoriesSelected}
-                            title="Uncheck all categories"
-                            aria-label="Uncheck all filter categories"
+                            title={t('calendar.uncheckAllCategories')}
+                            aria-label={t('calendar.uncheckAllFilterCategories')}
                         >
-                            Clear all
+                            {t('calendar.clearAll')}
                         </button>
                     </div>
                 )}
@@ -94,7 +101,7 @@ export default function Labels({ headerClassName = 'mt-4 mb-2', contentClassName
             ) : (
                 <div className={contentClassName || undefined}>
                     <CustomDropdown
-                        title="Select categories to filter"
+                        title={t('calendar.selectCategoriesToFilter')}
                         options={labelOptions}
                         selectedOptions={selectedLabels}
                         onSelect={handleLabelSelect}

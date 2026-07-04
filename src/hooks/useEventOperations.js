@@ -10,6 +10,7 @@ import {
   getDoc,
   deleteField,
   FieldValue,
+  writeBatch,
 } from 'firebase/firestore';
 import errorLogger from '../utils/errorLogger';
 
@@ -116,6 +117,8 @@ async function retryOperation(operation, maxRetries = 2) {
     }
   }
 }
+
+const FIRESTORE_BATCH_LIMIT = 500;
 
 /**
  * Hook for Firebase event CRUD operations with retry, serialized writes, and cache updates.
@@ -247,8 +250,96 @@ export function useEventOperations({ currentUser, queryKey, showError }) {
     [currentUser, mutation, updateEventCache, queryClient, queryKey, showError]
   );
 
+  const dispatchBulkCallEvents = useCallback(
+    (operations) => {
+      const run = async () => {
+        if (!currentUser) {
+          showError?.('Please sign in to manage events.', 6000);
+          throw new Error('Not signed in');
+        }
+        if (!operations?.length) return [];
+
+        const primaryOp = operations[0]?.type || 'update';
+
+        dispatchInFlightRef.current += 1;
+        if (dispatchInFlightRef.current === 1) {
+          setIsLoading(true);
+        }
+        setLoadingOperation(primaryOp);
+
+        try {
+          const results = [];
+
+          for (let i = 0; i < operations.length; i += FIRESTORE_BATCH_LIMIT) {
+            const chunk = operations.slice(i, i + FIRESTORE_BATCH_LIMIT);
+            const chunkResults = [];
+
+            await retryOperation(async () => {
+              const batch = writeBatch(db);
+              for (const { type, payload } of chunk) {
+                if (type === 'update') {
+                  const updateId =
+                    payload.id != null && payload.id !== '' ? String(payload.id).trim() : '';
+                  if (!updateId) {
+                    throw new Error('Cannot update event: missing event ID');
+                  }
+                  const fields = eventPayloadToFirestoreUpdateFields(payload);
+                  batch.update(doc(db, 'events', updateId), fields);
+                  chunkResults.push({
+                    type,
+                    payload: clientPayloadFromEventPayload({ ...payload, id: updateId }),
+                  });
+                } else if (type === 'delete') {
+                  const deleteId =
+                    payload?.id != null && payload.id !== '' ? String(payload.id).trim() : '';
+                  if (!deleteId) {
+                    throw new Error('Cannot delete event: missing event ID');
+                  }
+                  batch.delete(doc(db, 'events', deleteId));
+                  chunkResults.push({ type, payload: { ...payload, id: deleteId } });
+                } else {
+                  throw new Error(`Bulk dispatch does not support operation type: ${type}`);
+                }
+              }
+              await batch.commit();
+            });
+
+            results.push(...chunkResults);
+          }
+
+          for (const { type, payload } of results) {
+            updateEventCache(type, payload);
+          }
+          queryClient.invalidateQueries({ queryKey });
+          return results;
+        } catch (error) {
+          errorLogger.logError(error, null, 'Bulk Event Operation', {
+            operationCount: operations.length,
+            timestamp: new Date().toISOString(),
+          });
+          const errorMessage = getErrorMessage(error, primaryOp);
+          showError?.(`${errorMessage}. If this problem persists, try refreshing the page.`, 8000);
+          throw error;
+        } finally {
+          dispatchInFlightRef.current -= 1;
+          if (dispatchInFlightRef.current <= 0) {
+            dispatchInFlightRef.current = 0;
+            setIsLoading(false);
+            setLoadingOperation(null);
+          }
+        }
+      };
+
+      const chained = dispatchChainRef.current.then(run, run);
+      dispatchChainRef.current = chained.catch(() => {});
+      return chained;
+    },
+    [currentUser, updateEventCache, queryClient, queryKey, showError]
+  );
+
   return {
     dispatchCallEvent,
+    dispatchBulkCallEvents,
     isLoading,
     loadingOperation,
     setIsLoading,

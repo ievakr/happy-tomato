@@ -5,8 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { VEGETABLE_ICONS } from '../../constants';
 import { Modal, Icon } from '../common';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function CreatePlantModal() {
+    const { t } = useTranslation();
     const { setShowPlantModal } = useEventContext();
     const { currentUser } = useAuth();
     const { addPlant, addPlantMutation } = usePlants(currentUser?.uid);
@@ -20,22 +22,22 @@ export default function CreatePlantModal() {
         const trimmedCategory = plantCategory.trim();
         const trimmedVariety = plantVariety.trim();
         if (!trimmedCategory) {
-            showError('Please enter a plant category.');
+            showError(t('forms.enterCategoryError'));
             return;
         }
         if (!currentUser) {
-            showError('Please sign in to create plants.');
+            showError(t('forms.signInToCreatePlants'));
             return;
         }
         try {
             await addPlant(trimmedCategory, trimmedVariety || '', selectedIcon);
-            showSuccess('Plant created successfully!');
+            showSuccess(t('forms.plantCreated'));
             setPlantCategory('');
             setPlantVariety('');
             setSelectedIcon('tomato');
             setShowPlantModal(false);
         } catch {
-            showError('Failed to create plant. Please try again.');
+            showError(t('forms.plantCreateFailed'));
         }
     };
 
@@ -56,7 +58,7 @@ export default function CreatePlantModal() {
                 onClick={handleClose}
                 disabled={isLoading}
             >
-                Cancel
+                {t('common.cancel')}
             </button>
             <button
                 type="submit"
@@ -66,12 +68,12 @@ export default function CreatePlantModal() {
                 {isLoading ? (
                     <>
                         <span className="spinner-border spinner-border-sm me-2" role="status">
-                            <span className="visually-hidden">Creating...</span>
+                            <span className="visually-hidden">{t('forms.creating')}</span>
                         </span>
-                        Creating...
+                        {t('forms.creating')}
                     </>
                 ) : (
-                    'Create Plant'
+                    t('forms.createPlant')
                 )}
             </button>
         </>
@@ -79,7 +81,7 @@ export default function CreatePlantModal() {
 
     return (
         <Modal
-            title="Create Plant"
+            title={t('forms.createPlant')}
             icon="yard"
             onClose={handleClose}
             form={{ onSubmit: handleSubmit }}
@@ -90,12 +92,12 @@ export default function CreatePlantModal() {
                 <div>
                     <label className="form-label d-flex align-items-center gap-2">
                         <Icon name="category" className="text-muted" style={{ fontSize: '1rem' }} />
-                        Plant Category
+                        {t('forms.plantCategory')}
                     </label>
                     <input
                         type="text"
                         className="form-control"
-                        placeholder="e.g. Tomatoes"
+                        placeholder={t('forms.plantCategoryPlaceholder')}
                         value={plantCategory}
                         onChange={(e) => setPlantCategory(e.target.value)}
                         autoFocus
@@ -104,12 +106,12 @@ export default function CreatePlantModal() {
                 <div>
                     <label className="form-label d-flex align-items-center gap-2">
                         <Icon name="label" className="text-muted" style={{ fontSize: '1rem' }} />
-                        Plant Variety
+                        {t('forms.plantVariety')}
                     </label>
                     <input
                         type="text"
                         className="form-control"
-                        placeholder="e.g. Cherry"
+                        placeholder={t('forms.plantVarietyPlaceholder')}
                         value={plantVariety}
                         onChange={(e) => setPlantVariety(e.target.value)}
                     />
@@ -117,7 +119,7 @@ export default function CreatePlantModal() {
                 <div className="min-w-0 overflow-hidden">
                     <label className="form-label d-flex align-items-center gap-2">
                         <Icon name="eco" className="text-muted" style={{ fontSize: '1rem' }} />
-                        Choose icon
+                        {t('forms.chooseIcon')}
                     </label>
                     <div
                         className="d-flex flex-wrap gap-2 p-2 border rounded bg-light overflow-y-auto"

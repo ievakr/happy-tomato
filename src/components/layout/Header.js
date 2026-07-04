@@ -5,9 +5,11 @@ import { useCalendarContext } from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
 import { calendarDateFromMonthIndex } from '../../utils';
 import { useResponsive, useResponsiveCalendarView } from '../../hooks';
+import { useTranslation } from '../../i18n/LanguageContext';
 import UserMenu from '../auth/UserMenu';
 
 export default function Header() {
+    const { t } = useTranslation();
     const {
         monthIndex, 
         setMonthIndex, 
@@ -80,10 +82,10 @@ export default function Header() {
             : `< ${mobileNavMonthName}`;
     const mobileCalendarNavTitle =
         currentView === 'daily'
-            ? `Month view — ${mobileNavMonthName}`
+            ? t('layout.monthViewNamed', { month: mobileNavMonthName })
             : currentView === 'month'
-              ? `Year ${mobileCalendarHierarchyYear}`
-              : 'Calendar';
+              ? t('layout.yearLabel', { year: mobileCalendarHierarchyYear })
+              : t('layout.calendar');
 
     const handlePrevWeek = () => {
         if (weekIndex > 0) {
@@ -132,13 +134,13 @@ export default function Header() {
                                     type="button"
                                     className="calendar-header-mobile-calendar-nav btn btn-sm flex-shrink-0 text-nowrap"
                                     onClick={exitGuideView}
-                                    title="Back to calendar"
-                                    aria-label="Back to calendar"
+                                    title={t('layout.backToCalendar')}
+                                    aria-label={t('layout.backToCalendar')}
                                 >
                                     <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
                                         chevron_left
                                     </span>
-                                    Calendar
+                                    {t('layout.calendar')}
                                 </button>
                             ) : currentView !== 'year' ? (
                                 <button
@@ -176,21 +178,21 @@ export default function Header() {
                                 type="button"
                                 className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center"
                                 onClick={exitGuideView}
-                                title="Back to calendar"
-                                aria-label="Back to calendar"
+                                title={t('layout.backToCalendar')}
+                                aria-label={t('layout.backToCalendar')}
                             >
                                 <span className="material-icons-outlined me-1" style={{ fontSize: '1rem' }}>
                                     chevron_left
                                 </span>
-                                Calendar
+                                {t('layout.calendar')}
                             </button>
                         ) : currentView === 'week' ? (
                             <>
                                 <button
                                     className="btn btn-sm btn-light"
                                     onClick={handlePrevWeek}
-                                    aria-label="Previous week"
-                                    title="Previous week"
+                                    aria-label={t('layout.previousWeek')}
+                                    title={t('layout.previousWeek')}
                                 >
                                     <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
                                         chevron_left
@@ -202,8 +204,8 @@ export default function Header() {
                                 <button
                                     className="btn btn-sm btn-light"
                                     onClick={handleNextWeek}
-                                    aria-label="Next week"
-                                    title="Next week"
+                                    aria-label={t('layout.nextWeek')}
+                                    title={t('layout.nextWeek')}
                                 >
                                     <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
                                         chevron_right
@@ -215,8 +217,8 @@ export default function Header() {
                                 <button
                                     className="btn btn-sm btn-light"
                                     onClick={handlePrevMonth}
-                                    aria-label="Previous month"
-                                    title="Previous month"
+                                    aria-label={t('layout.previousMonth')}
+                                    title={t('layout.previousMonth')}
                                 >
                                     <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
                                         chevron_left
@@ -228,8 +230,8 @@ export default function Header() {
                                 <button
                                     className="btn btn-sm btn-light"
                                     onClick={handleNextMonth}
-                                    aria-label="Next month"
-                                    title="Next month"
+                                    aria-label={t('layout.nextMonth')}
+                                    title={t('layout.nextMonth')}
                                 >
                                     <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
                                         chevron_right
@@ -245,29 +247,29 @@ export default function Header() {
             {!isMobile && (
                     <div className="d-flex align-items-center ms-auto gap-2">
                     {/* View switching buttons */}
-                    <div className="btn-group flex-shrink-0" role="group" aria-label="Calendar view">
+                    <div className="btn-group flex-shrink-0" role="group" aria-label={t('layout.calendar')}>
                         <button 
                             className={`btn btn-sm ${currentView === 'month' ? 'btn-danger' : 'btn-outline-danger'}`}
                             onClick={switchToMonthView}
-                            title="Month view"
-                            aria-label="Month view"
+                            title={t('layout.monthView')}
+                            aria-label={t('layout.monthView')}
                         >
                             <span className="material-icons-outlined" style={{ fontSize: '0.9rem', marginRight: '0.25rem' }}>
                                 calendar_view_month
                             </span>
-                            <span>Month</span>
+                            <span>{t('layout.month')}</span>
                         </button>
                         
                         <button 
                             className={`btn btn-sm ${currentView === 'week' ? 'btn-danger' : 'btn-outline-danger'}`}
                             onClick={switchToWeekView}
-                            title="Week view"
-                            aria-label="Week view"
+                            title={t('layout.weekView')}
+                            aria-label={t('layout.weekView')}
                         >
                             <span className="material-icons-outlined me-1" style={{ fontSize: '0.9rem' }}>
                                 calendar_view_week
                             </span>
-                            <span>Week</span>
+                            <span>{t('layout.week')}</span>
                         </button>
                     </div>
                     

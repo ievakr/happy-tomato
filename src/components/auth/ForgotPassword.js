@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../i18n/LanguageContext';
+import LanguageSwitcher from '../common/LanguageSwitcher';
 import TomatoBackground from './TomatoBackground';
 import './Auth.css';
 
 function ForgotPassword({ onBackToLogin }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -14,7 +17,7 @@ function ForgotPassword({ onBackToLogin }) {
     e.preventDefault();
 
     if (!email) {
-      setError('Please enter your email address');
+      setError(t('auth.enterEmail'));
       return;
     }
 
@@ -26,11 +29,11 @@ function ForgotPassword({ onBackToLogin }) {
       setSuccess(true);
     } catch (err) {
       if (err.code === 'auth/user-not-found') {
-        setError('No account found with this email');
+        setError(t('auth.noAccountFound'));
       } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address');
+        setError(t('auth.invalidEmail'));
       } else {
-        setError('Failed to send reset email. Please try again.');
+        setError(t('auth.resetFailed'));
       }
     } finally {
       setLoading(false);
@@ -42,31 +45,34 @@ function ForgotPassword({ onBackToLogin }) {
       <TomatoBackground />
       <div className="auth-card card shadow-lg border-0">
         <div className="card-body">
+          <div className="d-flex justify-content-center mb-3">
+            <LanguageSwitcher />
+          </div>
           <div className="text-center mb-4">
-            <h2 className="auth-title h3 fw-bold mb-1">Reset Password</h2>
+            <h2 className="auth-title h3 fw-bold mb-1">{t('auth.resetPassword')}</h2>
             <p className="auth-subtitle mb-0">
-              Enter your email and we'll send you a link to reset your password
+              {t('auth.resetInstructions')}
             </p>
           </div>
 
           {error && <div className="auth-error alert alert-danger">{error}</div>}
           {success && (
             <div className="auth-success alert alert-success">
-              Password reset email sent! Check your inbox.
+              {t('auth.resetEmailSent')}
             </div>
           )}
 
           {!success ? (
             <form onSubmit={handleSubmit} className="auth-form d-grid gap-3">
               <div>
-                <label htmlFor="email" className="form-label fw-semibold">Email</label>
+                <label htmlFor="email" className="form-label fw-semibold">{t('auth.email')}</label>
                 <input
                   id="email"
                   type="email"
                   className="form-control form-control-lg"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder={t('auth.emailPlaceholder')}
                   disabled={loading}
                   required
                 />
@@ -77,7 +83,7 @@ function ForgotPassword({ onBackToLogin }) {
                 className="btn btn-primary btn-lg w-100"
                 disabled={loading}
               >
-                {loading ? 'Sending...' : 'Send Reset Link'}
+                {loading ? t('auth.sending') : t('auth.sendResetLink')}
               </button>
             </form>
           ) : (
@@ -86,7 +92,7 @@ function ForgotPassword({ onBackToLogin }) {
               className="btn btn-primary btn-lg w-100"
               onClick={onBackToLogin}
             >
-              Back to Sign In
+              {t('auth.backToLogin')}
             </button>
           )}
 
@@ -98,7 +104,7 @@ function ForgotPassword({ onBackToLogin }) {
                 onClick={onBackToLogin}
                 disabled={loading}
               >
-                ← Back to Sign In
+                ← {t('auth.backToLogin')}
               </button>
             </div>
           )}

@@ -27,6 +27,7 @@ export const createWrapper = (contextValue = {}) => {
     filteredEvents: [],
     savedEvents: [],
     dispatchCallEvent: jest.fn(),
+    dispatchBulkCallEvents: jest.fn(() => Promise.resolve([])),
     selectedEvent: null,
     setSelectedEvent: jest.fn(),
     setShowEventModal: jest.fn(),

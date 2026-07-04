@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import EventItem, { eventTodoOrTitleText } from './EventItem';
 import MobileDailyEventRow from './MobileDailyEventRow';
 import { filterEventsForDay, isToday } from '../../utils/eventDates';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function DailyEventsPanel({
   currentDay,
@@ -23,6 +24,7 @@ export default function DailyEventsPanel({
   onOpenBulkMove,
   onOpenBulkDelete,
 }) {
+  const { t } = useTranslation();
   const selectAllCheckboxRef = useRef(null);
 
   const dayEvents = useMemo(() => {
@@ -62,7 +64,7 @@ export default function DailyEventsPanel({
     >
       <div className="mb-3">
         <h5 className="mb-1">{currentDay.format('dddd, MMMM D, YYYY')}</h5>
-        {isToday(currentDay) && <small className="text-muted">Today</small>}
+        {isToday(currentDay) && <small className="text-muted">{t('calendar.today')}</small>}
       </div>
 
       <div
@@ -79,12 +81,12 @@ export default function DailyEventsPanel({
                 event_available
               </span>
             </div>
-            <p className="text-muted">No to-dos scheduled for this day</p>
+            <p className="text-muted">{t('calendar.noTodosForDay')}</p>
           </div>
         ) : (
           <div className="events-list">
             <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-              <h6 className="mb-0">To-Do's ({dayEvents.length})</h6>
+              <h6 className="mb-0">{t('calendar.todosCount', { count: dayEvents.length })}</h6>
               <div className="d-flex align-items-center flex-wrap gap-2">
                 {bulkEditMode && (
                   <>
@@ -101,7 +103,7 @@ export default function DailyEventsPanel({
                         onChange={toggleSelectAllDay}
                       />
                       <label className="form-check-label small mb-0" htmlFor="daily-bulk-select-all">
-                        Select all
+                        {t('calendar.selectAll')}
                       </label>
                     </div>
                     <button
@@ -110,7 +112,7 @@ export default function DailyEventsPanel({
                       disabled={bulkSelectedEventIds.length === 0}
                       onClick={onOpenBulkMove}
                     >
-                      Move
+                      {t('calendar.move')}
                     </button>
                     <button
                       type="button"
@@ -118,7 +120,7 @@ export default function DailyEventsPanel({
                       disabled={bulkSelectedEventIds.length === 0}
                       onClick={onOpenBulkDelete}
                     >
-                      Delete
+                      {t('common.delete')}
                     </button>
                   </>
                 )}
@@ -127,7 +129,7 @@ export default function DailyEventsPanel({
                   className="btn btn-sm btn-outline-secondary"
                   onClick={() => setBulkEditMode(!bulkEditMode)}
                 >
-                  {bulkEditMode ? 'Cancel' : 'Bulk edit'}
+                  {bulkEditMode ? t('common.cancel') : t('calendar.bulkEdit')}
                 </button>
               </div>
             </div>
@@ -161,7 +163,7 @@ export default function DailyEventsPanel({
                       checked={evt.id ? bulkSelectedEventIds.includes(evt.id) : false}
                       onClick={(e) => e.stopPropagation()}
                       onChange={() => evt.id && toggleBulkEventSelection(evt.id)}
-                      aria-label={`Select ${eventTodoOrTitleText(evt) || 'event'}`}
+                      aria-label={t('calendar.selectEventAria', { name: eventTodoOrTitleText(evt) || t('calendar.eventFallback') })}
                     />
                   )}
                   {!bulkEditMode &&
@@ -184,7 +186,7 @@ export default function DailyEventsPanel({
                       <button
                         className="quick-delete-btn btn btn-sm btn-danger position-absolute"
                         onClick={(e) => handleQuickDelete(evt, e)}
-                        title="Delete event"
+                        title={t('calendar.deleteEvent')}
                       >
                         ×
                       </button>
@@ -202,7 +204,7 @@ export default function DailyEventsPanel({
           <span className="material-icons-outlined me-2" style={{ fontSize: '1rem' }}>
             add
           </span>
-          Add Event
+          {t('calendar.addEvent')}
         </button>
       </div>
     </div>

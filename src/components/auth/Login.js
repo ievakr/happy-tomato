@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../i18n/LanguageContext';
+import LanguageSwitcher from '../common/LanguageSwitcher';
 import TomatoBackground from './TomatoBackground';
 import './Auth.css';
 
 function Login({ onSwitchToSignup, onForgotPassword }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,7 +17,7 @@ function Login({ onSwitchToSignup, onForgotPassword }) {
     e.preventDefault();
     
     if (!email || !password) {
-      setError('Please fill in all fields');
+      setError(t('auth.fillAllFields'));
       return;
     }
 
@@ -23,7 +26,7 @@ function Login({ onSwitchToSignup, onForgotPassword }) {
       setLoading(true);
       await login(email, password);
     } catch {
-      setError('Failed to sign in. Please check your credentials.');
+      setError(t('auth.signInFailed'));
     } finally {
       setLoading(false);
     }
@@ -35,7 +38,7 @@ function Login({ onSwitchToSignup, onForgotPassword }) {
       setLoading(true);
       await loginWithGoogle();
     } catch {
-      setError('Failed to sign in with Google.');
+      setError(t('auth.googleFailed'));
     } finally {
       setLoading(false);
     }
@@ -46,37 +49,40 @@ function Login({ onSwitchToSignup, onForgotPassword }) {
       <TomatoBackground />
       <div className="auth-card card shadow-lg border-0">
         <div className="card-body">
+          <div className="d-flex justify-content-center mb-3">
+            <LanguageSwitcher />
+          </div>
           <div className="text-center mb-4">
-            <h2 className="auth-title h3 fw-bold mb-1">Welcome to <span style={{ color: '#2e7d32' }}>Happy Tomato</span></h2>
-            <p className="auth-subtitle mb-0">Sign in to your account</p>
+            <h2 className="auth-title h3 fw-bold mb-1">{t('auth.welcomeTo')} <span style={{ color: '#2e7d32' }}>Happy Tomato</span></h2>
+            <p className="auth-subtitle mb-0">{t('auth.signInToAccount')}</p>
           </div>
 
           {error && <div className="auth-error alert alert-danger">{error}</div>}
 
           <form onSubmit={handleSubmit} className="auth-form d-grid gap-3">
             <div>
-              <label htmlFor="email" className="form-label fw-semibold">Email</label>
+              <label htmlFor="email" className="form-label fw-semibold">{t('auth.email')}</label>
               <input
                 id="email"
                 type="email"
                 className="form-control form-control-lg"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                placeholder={t('auth.emailPlaceholder')}
                 disabled={loading}
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="form-label fw-semibold">Password</label>
+              <label htmlFor="password" className="form-label fw-semibold">{t('auth.password')}</label>
               <input
                 id="password"
                 type="password"
                 className="form-control form-control-lg"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={t('auth.passwordPlaceholder')}
                 disabled={loading}
                 required
               />
@@ -89,7 +95,7 @@ function Login({ onSwitchToSignup, onForgotPassword }) {
                 onClick={onForgotPassword}
                 disabled={loading}
               >
-                Forgot Password?
+                {t('auth.forgotPassword')}
               </button>
             </div>
 
@@ -98,12 +104,12 @@ function Login({ onSwitchToSignup, onForgotPassword }) {
               className="btn btn-primary btn-lg w-100"
               disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? t('auth.signingIn') : t('auth.signIn')}
             </button>
           </form>
 
           <div className="auth-divider">
-            <span>or</span>
+            <span>{t('common.or')}</span>
           </div>
 
           <button
@@ -130,18 +136,18 @@ function Login({ onSwitchToSignup, onForgotPassword }) {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            {t('auth.continueWithGoogle')}
           </button>
 
           <div className="auth-footer text-center mt-4">
-            <span>Don't have an account? </span>
+            <span>{t('auth.noAccount')} </span>
             <button
               type="button"
               className="btn btn-link p-0 fw-semibold text-decoration-none"
               onClick={onSwitchToSignup}
               disabled={loading}
             >
-              Sign Up
+              {t('auth.signUp')}
             </button>
           </div>
         </div>

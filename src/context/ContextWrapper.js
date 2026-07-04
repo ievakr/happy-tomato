@@ -33,7 +33,7 @@ export default function ContextWrapper(props) {
     showError,
   });
 
-  const { dispatchCallEvent, isLoading, loadingOperation } = useEventOperations({
+  const { dispatchCallEvent, dispatchBulkCallEvents, isLoading, loadingOperation } = useEventOperations({
     currentUser,
     queryKey,
     showError,
@@ -95,6 +95,7 @@ export default function ContextWrapper(props) {
         value={{
           ...modalState,
           dispatchCallEvent,
+          dispatchBulkCallEvents,
           savedEvents,
           labels,
           setLabels,

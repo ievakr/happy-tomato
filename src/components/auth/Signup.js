@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../i18n/LanguageContext';
+import LanguageSwitcher from '../common/LanguageSwitcher';
 import TomatoBackground from './TomatoBackground';
 import './Auth.css';
 
 function Signup({ onSwitchToLogin }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,17 +19,17 @@ function Signup({ onSwitchToLogin }) {
     e.preventDefault();
 
     if (!email || !password || !confirmPassword || !displayName) {
-      setError('Please fill in all fields');
+      setError(t('auth.fillAllFields'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth.passwordsNoMatch'));
       return;
     }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+      setError(t('auth.passwordTooShort'));
       return;
     }
 
@@ -36,13 +39,13 @@ function Signup({ onSwitchToLogin }) {
       await signup(email, password, displayName);
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
-        setError('Email is already in use');
+        setError(t('auth.emailInUse'));
       } else if (err.code === 'auth/invalid-email') {
-        setError('Invalid email address');
+        setError(t('auth.invalidEmail'));
       } else if (err.code === 'auth/weak-password') {
-        setError('Password is too weak');
+        setError(t('auth.weakPassword'));
       } else {
-        setError('Failed to create account. Please try again.');
+        setError(t('auth.createFailed'));
       }
     } finally {
       setLoading(false);
@@ -55,7 +58,7 @@ function Signup({ onSwitchToLogin }) {
       setLoading(true);
       await loginWithGoogle();
     } catch (err) {
-      setError('Failed to sign in with Google.');
+      setError(t('auth.googleFailed'));
     } finally {
       setLoading(false);
     }
@@ -67,64 +70,71 @@ function Signup({ onSwitchToLogin }) {
       <div className="auth-card card shadow-lg border-0">
         <div className="card-body">
           <div className="text-center mb-4">
-            <h2 className="auth-title h3 fw-bold mb-1">Create Account</h2>
-            <p className="auth-subtitle mb-0">Sign up to get started</p>
+            <h2 className="auth-title h3 fw-bold mb-1">{t('auth.createAccount')}</h2>
+            <p className="auth-subtitle mb-0">{t('auth.signUpToStart')}</p>
           </div>
 
           {error && <div className="auth-error alert alert-danger">{error}</div>}
 
           <form onSubmit={handleSubmit} className="auth-form d-grid gap-3">
             <div>
-              <label htmlFor="displayName" className="form-label fw-semibold">Full Name</label>
+              <label className="form-label fw-semibold">{t('auth.language')}</label>
+              <div>
+                <LanguageSwitcher />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="displayName" className="form-label fw-semibold">{t('auth.fullName')}</label>
               <input
                 id="displayName"
                 type="text"
                 className="form-control form-control-lg"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Enter your full name"
+                placeholder={t('auth.fullNamePlaceholder')}
                 disabled={loading}
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="email" className="form-label fw-semibold">Email</label>
+              <label htmlFor="email" className="form-label fw-semibold">{t('auth.email')}</label>
               <input
                 id="email"
                 type="email"
                 className="form-control form-control-lg"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                placeholder={t('auth.emailPlaceholder')}
                 disabled={loading}
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="form-label fw-semibold">Password</label>
+              <label htmlFor="password" className="form-label fw-semibold">{t('auth.password')}</label>
               <input
                 id="password"
                 type="password"
                 className="form-control form-control-lg"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Create a password"
+                placeholder={t('auth.createPasswordPlaceholder')}
                 disabled={loading}
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="form-label fw-semibold">Confirm Password</label>
+              <label htmlFor="confirmPassword" className="form-label fw-semibold">{t('auth.confirmPassword')}</label>
               <input
                 id="confirmPassword"
                 type="password"
                 className="form-control form-control-lg"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
+                placeholder={t('auth.confirmPasswordPlaceholder')}
                 disabled={loading}
                 required
               />
@@ -135,12 +145,12 @@ function Signup({ onSwitchToLogin }) {
               className="btn btn-primary btn-lg w-100"
               disabled={loading}
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
             </button>
           </form>
 
           <div className="auth-divider">
-            <span>or</span>
+            <span>{t('common.or')}</span>
           </div>
 
           <button
@@ -167,18 +177,18 @@ function Signup({ onSwitchToLogin }) {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            {t('auth.continueWithGoogle')}
           </button>
 
           <div className="auth-footer text-center mt-4">
-            <span>Already have an account? </span>
+            <span>{t('auth.haveAccount')} </span>
             <button
               type="button"
               className="btn btn-link p-0 fw-semibold text-decoration-none"
               onClick={onSwitchToLogin}
               disabled={loading}
             >
-              Sign In
+              {t('auth.signIn')}
             </button>
           </div>
         </div>

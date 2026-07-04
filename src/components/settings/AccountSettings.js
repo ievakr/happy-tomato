@@ -5,20 +5,22 @@ import { deleteAllUserData } from '../../utils/deleteUserData';
 import { Capacitor } from '@capacitor/core';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import pushService from '../../services/pushService';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /** Labels ordered Monday–Sunday; values match dayjs `.day()` (0 = Sunday … 6 = Saturday). */
 const NOTIFICATION_WEEKDAYS = [
-  { value: 1, label: 'Monday' },
-  { value: 2, label: 'Tuesday' },
-  { value: 3, label: 'Wednesday' },
-  { value: 4, label: 'Thursday' },
-  { value: 5, label: 'Friday' },
-  { value: 6, label: 'Saturday' },
-  { value: 0, label: 'Sunday' },
+  { value: 1, labelKey: 'settings.weekday.monday' },
+  { value: 2, labelKey: 'settings.weekday.tuesday' },
+  { value: 3, labelKey: 'settings.weekday.wednesday' },
+  { value: 4, labelKey: 'settings.weekday.thursday' },
+  { value: 5, labelKey: 'settings.weekday.friday' },
+  { value: 6, labelKey: 'settings.weekday.saturday' },
+  { value: 0, labelKey: 'settings.weekday.sunday' },
 ];
 
 function AccountSettings({ onClose }) {
   const { currentUser, deleteAccount, updateUserProfile } = useAuth();
+  const { t } = useTranslation();
   const { showSuccess, showError } = useToast();
   const pushNotifications = usePushNotifications();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -56,7 +58,7 @@ function AccountSettings({ onClose }) {
       userName: currentUser?.displayName || emailDraft.userName,
     };
     pushNotifications.updatePushPreferences(payload);
-    showSuccess('Notification settings saved.');
+    showSuccess(t('settings.notificationsSaved'));
   };
 
   useEffect(() => {
@@ -84,9 +86,9 @@ function AccountSettings({ onClose }) {
         userEmail: currentUser.email || pushNotifications.pushPreferences.userEmail,
         userName: newName || currentUser.displayName
       });
-      showSuccess('Profile updated.');
+      showSuccess(t('settings.profileUpdated'));
     } catch (err) {
-      showError(err.message || 'Failed to update profile');
+      showError(err.message || t('settings.profileUpdateFailed'));
     } finally {
       setSavingProfile(false);
     }
@@ -94,7 +96,7 @@ function AccountSettings({ onClose }) {
 
   const handleDeleteAccount = async () => {
     if (!isGoogleUser && !password) {
-      setError('Please enter your password to confirm deletion');
+      setError(t('settings.enterPasswordError'));
       return;
     }
 
@@ -117,13 +119,13 @@ function AccountSettings({ onClose }) {
     } catch (err) {
       
       if (err.code === 'auth/wrong-password') {
-        setError('Incorrect password. Please try again.');
+        setError(t('settings.incorrectPassword'));
       } else if (err.code === 'auth/requires-recent-login') {
-        setError('For security reasons, please log out and log back in before deleting your account.');
+        setError(t('settings.requiresRecentLogin'));
       } else if (err.message.includes('popup')) {
-        setError('Please allow popups to reauthenticate with Google.');
+        setError(t('settings.allowPopups'));
       } else {
-        setError('Failed to delete account: ' + err.message);
+        setError(t('settings.deleteFailed', { message: err.message }));
       }
       
       setDeleting(false);
@@ -136,13 +138,13 @@ function AccountSettings({ onClose }) {
         <div className="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
           <div className="modal-content">
             <div className="modal-header">
-              <h4 className="modal-title">Settings</h4>
+              <h4 className="modal-title">{t('settings.title')}</h4>
               <button
                 type="button"
                 className="btn-close"
                 onClick={onClose}
                 disabled={deleting}
-                aria-label="Close"
+                aria-label={t('common.close')}
               />
             </div>
             <div className="modal-body">
@@ -155,7 +157,7 @@ function AccountSettings({ onClose }) {
                     type="button"
                   >
                     <span className="material-icons-outlined me-1">person</span>
-                    Account
+                    {t('settings.tab.account')}
                   </button>
                 </li>
                 <li className="nav-item">
@@ -166,7 +168,7 @@ function AccountSettings({ onClose }) {
                     type="button"
                   >
                     <span className="material-icons-outlined me-1">notifications</span>
-                    Notifications
+                    {t('settings.tab.notifications')}
                   </button>
                 </li>
               </ul>
@@ -175,17 +177,17 @@ function AccountSettings({ onClose }) {
                 <div className="d-grid gap-3">
                   <div className="card">
                     <div className="card-body">
-                      <h5 className="card-title">Account Information</h5>
+                      <h5 className="card-title">{t('settings.accountInformation')}</h5>
                       <div className="row g-2">
                         <div className="col-12">
-                          <label className="form-label text-muted">Name</label>
+                          <label className="form-label text-muted">{t('settings.name')}</label>
                           <div className="d-flex gap-2">
                             <input
                               type="text"
                               className="form-control"
                               value={displayName}
                               onChange={(e) => setDisplayName(e.target.value)}
-                              placeholder="Your name"
+                              placeholder={t('settings.namePlaceholder')}
                             />
                             <button
                               type="button"
@@ -193,7 +195,7 @@ function AccountSettings({ onClose }) {
                               onClick={handleSaveProfile}
                               disabled={savingProfile || displayName === (currentUser?.displayName || '')}
                             >
-                              {savingProfile ? 'Saving...' : 'Save'}
+                              {savingProfile ? t('common.saving') : t('common.save')}
                             </button>
                           </div>
                         </div>
@@ -203,11 +205,11 @@ function AccountSettings({ onClose }) {
 
                   <div className="card border-danger">
                     <div className="card-body">
-                      <h5 className="card-title text-danger">Account Management</h5>
+                      <h5 className="card-title text-danger">{t('settings.accountManagement')}</h5>
                       {!showDeleteConfirm ? (
                         <div>
                           <p className="text-muted">
-                            Permanently delete your account and all associated data.
+                            {t('settings.deleteDescription')}
                           </p>
                           <button
                             className="btn btn-outline-danger"
@@ -215,17 +217,17 @@ function AccountSettings({ onClose }) {
                             disabled={deleting}
                             type="button"
                           >
-                            Delete Account
+                            {t('settings.deleteAccount')}
                           </button>
                         </div>
                       ) : (
                         <div className="d-grid gap-3">
                           <div className="alert alert-danger">
-                            <strong>Warning:</strong> This action can't be undone.
+                            <strong>{t('settings.warning')}</strong> {t('settings.cannotUndo')}
                             <ul className="mb-0 mt-2">
-                              <li>Permanently delete all your events and data</li>
-                              <li>Remove your account from the system</li>
-                              <li>Log you out immediately</li>
+                              <li>{t('settings.deleteBullet1')}</li>
+                              <li>{t('settings.deleteBullet2')}</li>
+                              <li>{t('settings.deleteBullet3')}</li>
                             </ul>
                           </div>
 
@@ -234,7 +236,7 @@ function AccountSettings({ onClose }) {
                           {!isGoogleUser && (
                             <div>
                               <label htmlFor="confirm-password" className="form-label">
-                                Enter your password to confirm
+                                {t('settings.enterPasswordConfirm')}
                               </label>
                               <input
                                 id="confirm-password"
@@ -242,7 +244,7 @@ function AccountSettings({ onClose }) {
                                 className="form-control"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Your password"
+                                placeholder={t('settings.passwordPlaceholder')}
                                 disabled={deleting}
                                 autoComplete="current-password"
                               />
@@ -251,7 +253,7 @@ function AccountSettings({ onClose }) {
 
                           {isGoogleUser && (
                             <div className="alert alert-info mb-0">
-                              You'll be asked to sign in with Google to confirm deletion.
+                              {t('settings.googleReauthNotice')}
                             </div>
                           )}
 
@@ -266,7 +268,7 @@ function AccountSettings({ onClose }) {
                               disabled={deleting}
                               type="button"
                             >
-                              Cancel
+                              {t('common.cancel')}
                             </button>
                             <button
                               className="btn btn-danger"
@@ -274,7 +276,7 @@ function AccountSettings({ onClose }) {
                               disabled={deleting || (!isGoogleUser && !password)}
                               type="button"
                             >
-                              {deleting ? 'Deleting...' : 'Delete My Account'}
+                              {deleting ? t('settings.deleting') : t('settings.deleteMyAccount')}
                             </button>
                           </div>
                         </div>
@@ -288,7 +290,7 @@ function AccountSettings({ onClose }) {
                 <div className="d-grid gap-3">
                   <div className="card">
                     <div className="card-body">
-                      <h5 className="card-title">Push notifications</h5>
+                      <h5 className="card-title">{t('settings.pushNotifications')}</h5>
                       <div className="form-check form-switch">
                         <input
                           className="form-check-input"
@@ -301,7 +303,7 @@ function AccountSettings({ onClose }) {
                           }))}
                         />
                         <label className="form-check-label" htmlFor="email-notifications">
-                          Enable push notifications
+                          {t('settings.enablePush')}
                         </label>
                       </div>
 
@@ -319,7 +321,7 @@ function AccountSettings({ onClose }) {
                               }))}
                             />
                             <label className="form-check-label" htmlFor="daily-reminder">
-                              Daily reminders (today + overdue)
+                              {t('settings.dailyRemindersOverdue')}
                             </label>
                           </div>
                           <div className="form-check">
@@ -334,7 +336,7 @@ function AccountSettings({ onClose }) {
                               }))}
                             />
                             <label className="form-check-label" htmlFor="advance-reminders">
-                              Advance reminders
+                              {t('settings.advanceReminders')}
                             </label>
                           </div>
                           <div className="form-check">
@@ -349,15 +351,15 @@ function AccountSettings({ onClose }) {
                               }))}
                             />
                             <label className="form-check-label" htmlFor="weekly-summary">
-                              Weekly summary
+                              {t('settings.weeklySummary')}
                             </label>
                           </div>
 
                           {emailDraft.dailyReminder && (
                             <div className="border rounded p-3 bg-light bg-opacity-50">
-                              <div className="fw-semibold mb-2">Today reminder</div>
+                              <div className="fw-semibold mb-2">{t('settings.todayReminder')}</div>
                               <label className="form-label small mb-1" htmlFor="daily-reminder-time">
-                                Time
+                                {t('settings.time')}
                               </label>
                               <input
                                 id="daily-reminder-time"
@@ -381,9 +383,9 @@ function AccountSettings({ onClose }) {
 
                           {emailDraft.advanceReminders && (
                             <div className="border rounded p-3 bg-light bg-opacity-50">
-                              <div className="fw-semibold mb-2">Advance reminder</div>
+                              <div className="fw-semibold mb-2">{t('settings.advanceReminder')}</div>
                               <label className="form-label small mb-1" htmlFor="advance-days">
-                                Days before due
+                                {t('settings.daysBeforeDue')}
                               </label>
                               <input
                                 id="advance-days"
@@ -400,7 +402,7 @@ function AccountSettings({ onClose }) {
                                 max="30"
                               />
                               <label className="form-label small mb-1" htmlFor="advance-reminder-time">
-                                Time
+                                {t('settings.time')}
                               </label>
                               <input
                                 id="advance-reminder-time"
@@ -423,9 +425,9 @@ function AccountSettings({ onClose }) {
 
                           {emailDraft.weeklySummary && (
                             <div className="border rounded p-3 bg-light bg-opacity-50">
-                              <div className="fw-semibold mb-2">Weekly summary</div>
+                              <div className="fw-semibold mb-2">{t('settings.weeklySummary')}</div>
                               <label className="form-label small mb-1" htmlFor="weekly-summary-day">
-                                Day of week
+                                {t('settings.dayOfWeek')}
                               </label>
                               <select
                                 id="weekly-summary-day"
@@ -440,12 +442,12 @@ function AccountSettings({ onClose }) {
                               >
                                 {NOTIFICATION_WEEKDAYS.map((d) => (
                                   <option key={d.value} value={d.value}>
-                                    {d.label}
+                                    {t(d.labelKey)}
                                   </option>
                                 ))}
                               </select>
                               <label className="form-label small mb-1" htmlFor="weekly-summary-time">
-                                Time
+                                {t('settings.time')}
                               </label>
                               <input
                                 id="weekly-summary-time"
@@ -469,7 +471,7 @@ function AccountSettings({ onClose }) {
                           type="button"
                           onClick={handleSaveEmailPreferences}
                         >
-                          Save
+                          {t('common.save')}
                         </button>
                       </div>
                     </div>

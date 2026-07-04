@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useTranslation } from '../../i18n/LanguageContext';
+import LanguageSwitcher from '../common/LanguageSwitcher';
 import AccountSettings from '../settings/AccountSettings';
 import './UserMenu.css';
 
 function UserMenu() {
   const { currentUser, logout } = useAuth();
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState(null);
@@ -99,7 +102,7 @@ function UserMenu() {
       <button
         className="btn p-0 border-0 bg-transparent"
         onClick={() => setIsOpen(!isOpen)}
-        aria-label="User menu"
+        aria-label={t('auth.userMenu')}
         aria-expanded={isOpen}
         type="button"
         ref={triggerRef}
@@ -122,8 +125,13 @@ function UserMenu() {
           style={dropdownStyle || undefined}
         >
           <div className="px-3 py-2">
-            <div className="fw-semibold">{currentUser?.displayName || 'User'}</div>
+            <div className="fw-semibold">{currentUser?.displayName || t('auth.user')}</div>
             <div className="text-muted small">{currentUser?.email}</div>
+          </div>
+          <div className="dropdown-divider" />
+          <div className="px-3 py-2">
+            <div className="text-muted small mb-1">{t('auth.language')}</div>
+            <LanguageSwitcher />
           </div>
           <div className="dropdown-divider" />
           <button 
@@ -135,11 +143,11 @@ function UserMenu() {
             type="button"
           >
             <span className="material-icons-outlined" style={{ fontSize: '18px' }}>settings</span>
-            Account Settings
+            {t('auth.accountSettings')}
           </button>
           <button className="dropdown-item d-flex align-items-center gap-2" onClick={handleLogout} type="button">
             <span className="material-icons-outlined" style={{ fontSize: '18px' }}>logout</span>
-            Sign Out
+            {t('auth.signOut')}
           </button>
         </div>
       )}

@@ -10,6 +10,7 @@ const EventContext = React.createContext({
     showManageTodoModal: false,
     setShowManageTodoModal: () => {},
     dispatchCallEvent: ({ type, payload }) => {},
+    dispatchBulkCallEvents: () => Promise.resolve([]),
     savedEvents: [],
     selectedEvent: null,
     setSelectedEvent: () => {},

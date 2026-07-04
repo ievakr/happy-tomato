@@ -3,12 +3,14 @@ import { Modal, Button, Form, Alert, Card, Row, Col, Badge } from 'react-bootstr
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { Capacitor } from '@capacitor/core';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * Push notification settings for TODO reminders (web push / FCM)
  */
 export default function PushNotificationSettings({ show, onHide, pushNotifications }) {
   const { currentUser } = useAuth();
+  const { t } = useTranslation();
   const {
     pushPreferences,
     updatePushPreferences,
@@ -24,13 +26,13 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
 
   /** Monday–Sunday order; values match dayjs `.day()` (0 = Sunday … 6 = Saturday). */
   const weekdayOptions = [
-    { value: 1, label: 'Monday' },
-    { value: 2, label: 'Tuesday' },
-    { value: 3, label: 'Wednesday' },
-    { value: 4, label: 'Thursday' },
-    { value: 5, label: 'Friday' },
-    { value: 6, label: 'Saturday' },
-    { value: 0, label: 'Sunday' },
+    { value: 1, labelKey: 'settings.weekday.monday' },
+    { value: 2, labelKey: 'settings.weekday.tuesday' },
+    { value: 3, labelKey: 'settings.weekday.wednesday' },
+    { value: 4, labelKey: 'settings.weekday.thursday' },
+    { value: 5, labelKey: 'settings.weekday.friday' },
+    { value: 6, labelKey: 'settings.weekday.saturday' },
+    { value: 0, labelKey: 'settings.weekday.sunday' },
   ];
 
   const handleInputChange = (field, value) => {
@@ -39,7 +41,7 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
 
   const handleSaveAndClose = () => {
     if (pushPreferences.enabled && !currentUser?.email) {
-      showError('Sign in to enable push notifications');
+      showError(t('settings.signInToEnablePush'));
       return;
     }
     onHide();
@@ -48,7 +50,7 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
   return (
     <Modal show={show} onHide={onHide} size="lg" centered>
       <Modal.Header closeButton>
-        <Modal.Title>Push Notification Settings</Modal.Title>
+        <Modal.Title>{t('settings.pushSettingsTitle')}</Modal.Title>
       </Modal.Header>
       
       <Modal.Body>
@@ -57,13 +59,13 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
           <Card.Header>
             <Row className="align-items-center">
               <Col>
-                <h6 className="mb-0">Push service status</h6>
+                <h6 className="mb-0">{t('settings.pushServiceStatus')}</h6>
               </Col>
               <Col xs="auto">
                 {isPushServiceReady() ? (
-                  <Badge bg="success">Ready</Badge>
+                  <Badge bg="success">{t('settings.ready')}</Badge>
                 ) : (
-                  <Badge bg="warning">Configuration required</Badge>
+                  <Badge bg="warning">{t('settings.configRequired')}</Badge>
                 )}
               </Col>
             </Row>
@@ -71,7 +73,7 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
           <Card.Body>
             {isNativeApp && (
               <Alert variant="info" className="mb-3">
-                <h6 className="mb-2">iOS / Android app</h6>
+                <h6 className="mb-2">{t('settings.iosAndroidApp')}</h6>
                 <p className="mb-2 small mb-0">
                   Use <code>GoogleService-Info.plist</code> (iOS) and <code>google-services.json</code>{' '}
                   (Android) from Firebase, enable <strong>Push Notifications</strong> in Xcode, and
@@ -83,7 +85,7 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
 
             {!isNativeApp && !isPushServiceReady() && (
               <Alert variant="warning">
-                <h6>Web push not fully configured</h6>
+                <h6>{t('settings.webPushNotConfigured')}</h6>
                 <p className="mb-2">
                   Add your Web Push certificate key pair to the app environment as{' '}
                   <code>REACT_APP_FIREBASE_VAPID_KEY</code> (Firebase Console → Project settings →
@@ -98,7 +100,9 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
 
             {(isNativeApp || isPushServiceReady()) && (
               <div className="text-success">
-                ✅ Push is enabled for this {isNativeApp ? 'native' : 'web'} build (FCM).
+                ✅ {t('settings.pushEnabledFor', {
+                  buildType: isNativeApp ? t('settings.buildNative') : t('settings.buildWeb'),
+                })}
               </div>
             )}
           </Card.Body>
@@ -107,32 +111,32 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
         {/* TODO Summary */}
         <Card className="mb-4">
           <Card.Header>
-            <h6 className="mb-0">Current TODOs</h6>
+            <h6 className="mb-0">{t('settings.currentTodos')}</h6>
           </Card.Header>
           <Card.Body>
             <Row>
               <Col md={3}>
                 <div className="text-center">
                   <div className="h4 text-danger">{todoSummary.overdue}</div>
-                  <small className="text-muted">Overdue</small>
+                  <small className="text-muted">{t('settings.overdue')}</small>
                 </div>
               </Col>
               <Col md={3}>
                 <div className="text-center">
                   <div className="h4 text-warning">{todoSummary.dueToday}</div>
-                  <small className="text-muted">Due Today</small>
+                  <small className="text-muted">{t('settings.dueToday')}</small>
                 </div>
               </Col>
               <Col md={3}>
                 <div className="text-center">
                   <div className="h4 text-primary">{todoSummary.advance}</div>
-                  <small className="text-muted">In {pushPreferences.advanceDays} Days</small>
+                  <small className="text-muted">{t('settings.inDays', { days: pushPreferences.advanceDays })}</small>
                 </div>
               </Col>
               <Col md={3}>
                 <div className="text-center">
                   <div className="h4 text-info">{todoSummary.upcoming}</div>
-                  <small className="text-muted">Upcoming</small>
+                  <small className="text-muted">{t('settings.upcoming')}</small>
                 </div>
               </Col>
             </Row>
@@ -146,26 +150,26 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
             <Form.Check
               type="switch"
               id="enable-notifications"
-              label="Enable push notifications"
+              label={t('settings.enablePush')}
               checked={pushPreferences.enabled}
               onChange={(e) => handleInputChange('enabled', e.target.checked)}
               disabled={!isPushServiceReady()}
             />
             <Form.Text className="text-muted">
-              Browser reminders for your garden TODOs (allow notifications when prompted)
+              {t('settings.enablePushHelp')}
             </Form.Text>
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Label>Account</Form.Label>
+            <Form.Label>{t('settings.account')}</Form.Label>
             <Form.Control
               type="text"
               readOnly
-              value={currentUser?.email || 'Sign in to sync reminders'}
+              value={currentUser?.email || t('settings.signInToSync')}
               className="bg-light"
             />
             <Form.Text className="text-muted">
-              Preferences sync to Firestore using your account email
+              {t('settings.accountSyncHelp')}
             </Form.Text>
           </Form.Group>
 
@@ -174,20 +178,20 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
             <Form.Check
               type="checkbox"
               id="daily-reminder"
-              label="Daily reminder"
+              label={t('settings.dailyReminder')}
               checked={pushPreferences.dailyReminder}
               onChange={(e) => handleInputChange('dailyReminder', e.target.checked)}
               disabled={!pushPreferences.enabled}
             />
             <Form.Text className="text-muted">
-              Push at your chosen time with pending TODOs (today and overdue)
+              {t('settings.dailyReminderHelp')}
             </Form.Text>
           </Form.Group>
 
           {/* Reminder Time */}
           {pushPreferences.dailyReminder && (
             <Form.Group className="mb-3">
-              <Form.Label>Today reminder time</Form.Label>
+              <Form.Label>{t('settings.todayReminderTime')}</Form.Label>
               <Form.Control
                 type="time"
                 value={pushPreferences.dailyReminderTime || pushPreferences.reminderTime}
@@ -195,9 +199,9 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
                 disabled={!pushPreferences.enabled}
               />
               <Form.Text className="text-muted">
-                When to send today&apos;s and overdue tasks reminder (uses your device timezone, saved
-                with your account). This is separate from <strong>Advance reminder time</strong> below — if
-                you only changed one, the other can still fire at a different hour.
+                {t('settings.todayReminderTimeHelp1')}{' '}
+                <strong>{t('settings.advanceReminderTime')}</strong>{' '}
+                {t('settings.todayReminderTimeHelp2')}
               </Form.Text>
             </Form.Group>
           )}
@@ -208,7 +212,7 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
             className="p-0 mb-3"
             onClick={() => setShowAdvanced(!showAdvanced)}
           >
-            {showAdvanced ? '▼' : '▶'} Advanced Settings
+            {showAdvanced ? '▼' : '▶'} {t('settings.advancedSettings')}
           </Button>
 
           {/* Advance Reminders */}
@@ -216,13 +220,13 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
             <Form.Check
               type="checkbox"
               id="advance-reminders"
-              label="Advance reminders"
+              label={t('settings.advanceReminders')}
               checked={pushPreferences.advanceReminders}
               onChange={(e) => handleInputChange('advanceReminders', e.target.checked)}
               disabled={!pushPreferences.enabled}
             />
             <Form.Text className="text-muted">
-              Push a few days before TODOs are due
+              {t('settings.advanceRemindersHelp')}
             </Form.Text>
           </Form.Group>
 
@@ -230,7 +234,7 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
           {pushPreferences.advanceReminders && (
             <>
               <Form.Group className="mb-3">
-                <Form.Label>How many days in advance?</Form.Label>
+                <Form.Label>{t('settings.howManyDaysAdvance')}</Form.Label>
                 <Form.Control
                   type="number"
                   min="1"
@@ -241,11 +245,11 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
                   style={{ width: '120px' }}
                 />
                 <Form.Text className="text-muted">
-                  Send reminders {pushPreferences.advanceDays} day(s) before TODOs are due
+                  {t('settings.advanceDaysHelp', { days: pushPreferences.advanceDays })}
                 </Form.Text>
               </Form.Group>
               <Form.Group className="mb-3">
-                <Form.Label>Advance reminder time</Form.Label>
+                <Form.Label>{t('settings.advanceReminderTime')}</Form.Label>
                 <Form.Control
                   type="time"
                   value={pushPreferences.advanceReminderTime || pushPreferences.reminderTime}
@@ -253,7 +257,7 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
                   disabled={!pushPreferences.enabled}
                 />
                 <Form.Text className="text-muted">
-                  Time of day for the advance notice (independent from today reminder)
+                  {t('settings.advanceReminderTimeHelp')}
                 </Form.Text>
               </Form.Group>
             </>
@@ -264,20 +268,20 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
             <Form.Check
               type="checkbox"
               id="weekly-summary"
-              label="Weekly summary"
+              label={t('settings.weeklySummary')}
               checked={pushPreferences.weeklySummary ?? false}
               onChange={(e) => handleInputChange('weeklySummary', e.target.checked)}
               disabled={!pushPreferences.enabled}
             />
             <Form.Text className="text-muted">
-              A &quot;week ahead&quot; push on a weekday you choose
+              {t('settings.weeklySummaryHelp')}
             </Form.Text>
           </Form.Group>
 
           {pushPreferences.weeklySummary && (
             <>
               <Form.Group className="mb-3 ms-3">
-                <Form.Label>Day of week</Form.Label>
+                <Form.Label>{t('settings.dayOfWeek')}</Form.Label>
                 <Form.Select
                   value={pushPreferences.weeklySummaryDay ?? 1}
                   onChange={(e) =>
@@ -287,13 +291,13 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
                 >
                   {weekdayOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </option>
                   ))}
                 </Form.Select>
               </Form.Group>
               <Form.Group className="mb-3 ms-3">
-                <Form.Label>Weekly summary time</Form.Label>
+                <Form.Label>{t('settings.weeklySummaryTime')}</Form.Label>
                 <Form.Control
                   type="time"
                   value={pushPreferences.weeklySummaryTime || '08:00'}
@@ -301,7 +305,7 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
                   disabled={!pushPreferences.enabled}
                 />
                 <Form.Text className="text-muted">
-                  When to send your week-ahead summary
+                  {t('settings.weeklySummaryTimeHelp')}
                 </Form.Text>
               </Form.Group>
             </>
@@ -315,7 +319,7 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
                   <Form.Check
                     type="checkbox"
                     id="due-today-reminders"
-                    label="Remind me of TODOs due today"
+                    label={t('settings.remindDueToday')}
                     checked={pushPreferences.dueTodayReminders}
                     onChange={(e) => handleInputChange('dueTodayReminders', e.target.checked)}
                     disabled={!pushPreferences.enabled}
@@ -326,7 +330,7 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
                   <Form.Check
                     type="checkbox"
                     id="overdue-reminders"
-                    label="Remind me of overdue TODOs"
+                    label={t('settings.remindOverdue')}
                     checked={pushPreferences.overdueReminders}
                     onChange={(e) => handleInputChange('overdueReminders', e.target.checked)}
                     disabled={!pushPreferences.enabled}
@@ -338,11 +342,10 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
 
           {/* Sync Info */}
           <Alert variant="info" className="mb-3">
-            <strong>📡 Auto-Sync Active</strong>
+            <strong>📡 {t('settings.autoSyncActive')}</strong>
             <br />
             <small>
-              Settings automatically sync across all devices every 30 seconds.
-              No manual action needed!
+              {t('settings.autoSyncHelp')}
             </small>
           </Alert>
         </Form>
@@ -350,10 +353,10 @@ export default function PushNotificationSettings({ show, onHide, pushNotificatio
 
       <Modal.Footer>
         <Button variant="secondary" onClick={onHide}>
-          Cancel
+          {t('common.cancel')}
         </Button>
         <Button variant="success" onClick={handleSaveAndClose}>
-          Save Settings
+          {t('settings.saveSettings')}
         </Button>
       </Modal.Footer>
     </Modal>

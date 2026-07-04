@@ -6,7 +6,7 @@ import BaseErrorBoundary from './BaseErrorBoundary';
  * Uses compact layout with component name.
  */
 function ComponentErrorBoundary({
-  componentName = 'Component',
+  componentName,
   fallback,
   onError,
   children,

@@ -13,11 +13,13 @@ import {
   isToday,
 } from '../../utils';
 import { useResponsive, useSwipeGestures, useEventDeleteConfirm, useCalendarEventActions } from '../../hooks';
+import { useTranslation } from '../../i18n/LanguageContext';
 import EventDeleteConfirmModal from './EventDeleteConfirmModal';
 import EventItem from './EventItem';
 import '../../index.css';
 
 const WeeklyView = () => {
+  const { t } = useTranslation();
   const { 
     monthIndex, 
     weekIndex, 
@@ -118,8 +120,8 @@ const WeeklyView = () => {
           type="button"
           className="btn btn-sm btn-light p-1"
           onClick={handlePrevWeek}
-          aria-label="Previous week"
-          title="Previous week"
+          aria-label={t('calendar.prevWeek')}
+          title={t('calendar.prevWeek')}
         >
           <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
             chevron_left
@@ -132,8 +134,8 @@ const WeeklyView = () => {
           type="button"
           className="btn btn-sm btn-light p-1"
           onClick={handleNextWeek}
-          aria-label="Next week"
-          title="Next week"
+          aria-label={t('calendar.nextWeek')}
+          title={t('calendar.nextWeek')}
         >
           <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
             chevron_right
@@ -143,10 +145,10 @@ const WeeklyView = () => {
           type="button"
           className="btn btn-sm btn-outline-secondary ms-2"
           onClick={handleToday}
-          aria-label="Go to today"
-          title="Go to today"
+          aria-label={t('calendar.goToToday')}
+          title={t('calendar.goToToday')}
         >
-          Today
+          {t('calendar.today')}
         </button>
       </div>
 
@@ -194,7 +196,7 @@ const WeeklyView = () => {
                             <button
                               className="quick-delete-btn btn btn-sm btn-danger position-absolute"
                               onClick={(e) => handleQuickDelete(evt, e)}
-                              title="Delete event"
+                              title={t('calendar.deleteEvent')}
                             >
                               ×
                             </button>
@@ -204,7 +206,7 @@ const WeeklyView = () => {
                     </div>
                   ) : (
                     <div className="no-events text-muted small text-center py-2">
-                      {isMobile ? '' : 'No events'}
+                      {isMobile ? '' : t('calendar.noEvents')}
                     </div>
                   )}
                 </div>

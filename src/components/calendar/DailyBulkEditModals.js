@@ -9,6 +9,7 @@ import { EVENT_ACTIONS } from '../../constants';
 import { useToast } from '../../context/ToastContext';
 import { useEventContext } from '../../context/EventContext';
 import { useRecurringActions } from '../../hooks';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function DailyBulkEditModals({
   showBulkMoveModal,
@@ -20,23 +21,28 @@ export default function DailyBulkEditModals({
   bulkSelectedEventIds,
   setBulkEditMode,
 }) {
+  const { t } = useTranslation();
   const { showError } = useToast();
-  const { filteredEvents, dispatchCallEvent, isLoading, loadingOperation } = useEventContext();
-  const { updateEventWithRecurringRecalculation, deleteRecurringTodosForEvent } =
-    useRecurringActions();
+  const { filteredEvents, dispatchCallEvent, dispatchBulkCallEvents, isLoading, loadingOperation } =
+    useEventContext();
+  const { deleteRecurringTodosForEvent } = useRecurringActions();
 
   const confirmBulkMove = async () => {
     const dayMs = dayjs(bulkMoveDate).startOf('day').valueOf();
     try {
-      for (const id of bulkSelectedEventIds) {
-        const evt = filteredEvents.find((e) => e.id === id);
-        if (!evt) continue;
-        await updateEventWithRecurringRecalculation({ ...evt, day: dayMs }, evt);
-      }
+      const operations = bulkSelectedEventIds
+        .map((id) => filteredEvents.find((e) => e.id === id))
+        .filter(Boolean)
+        .map((evt) => ({
+          type: EVENT_ACTIONS.UPDATE,
+          payload: { ...evt, day: dayMs },
+        }));
+
+      await dispatchBulkCallEvents(operations);
       setShowBulkMoveModal(false);
       setBulkEditMode(false);
     } catch {
-      showError('Failed to move events. Please try again.');
+      showError(t('calendar.moveFailed'));
     }
   };
 
@@ -61,7 +67,7 @@ export default function DailyBulkEditModals({
       setShowBulkDeleteConfirm(false);
       setBulkEditMode(false);
     } catch {
-      showError('Failed to delete some events. Please try again.');
+      showError(t('calendar.deleteFailed'));
     }
   };
 
@@ -69,7 +75,12 @@ export default function DailyBulkEditModals({
     <>
       {showBulkMoveModal && (
         <Modal
-          title={`Move ${bulkSelectedEventIds.length} event${bulkSelectedEventIds.length !== 1 ? 's' : ''}`}
+          title={t(
+            bulkSelectedEventIds.length !== 1
+              ? 'calendar.moveEventsTitlePlural'
+              : 'calendar.moveEventsTitleSingular',
+            { count: bulkSelectedEventIds.length },
+          )}
           icon="event"
           onClose={() => setShowBulkMoveModal(false)}
           size="sm"
@@ -81,7 +92,7 @@ export default function DailyBulkEditModals({
                 onClick={() => setShowBulkMoveModal(false)}
                 disabled={isLoading}
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="button"
@@ -92,10 +103,10 @@ export default function DailyBulkEditModals({
                 {isLoading && loadingOperation === 'update' ? (
                   <>
                     <span className="spinner-border spinner-border-sm me-2" role="status" />
-                    Moving…
+                    {t('calendar.moving')}
                   </>
                 ) : (
-                  'Move'
+                  t('calendar.move')
                 )}
               </button>
             </div>
@@ -106,7 +117,7 @@ export default function DailyBulkEditModals({
               <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
                 schedule
               </span>
-              New date
+              {t('calendar.newDate')}
             </label>
             <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
               <DatePicker
@@ -124,14 +135,18 @@ export default function DailyBulkEditModals({
 
       {showBulkDeleteConfirm && (
         <ConfirmModal
-          title="Delete events"
+          title={t('calendar.deleteEventsTitle')}
           message={
             <p className="mb-0">
-              Delete {bulkSelectedEventIds.length} event
-              {bulkSelectedEventIds.length !== 1 ? 's' : ''}? This can't be undone.
+              {t(
+                bulkSelectedEventIds.length !== 1
+                  ? 'calendar.deleteEventsConfirmPlural'
+                  : 'calendar.deleteEventsConfirmSingular',
+                { count: bulkSelectedEventIds.length },
+              )}
             </p>
           }
-          confirmLabel="Delete all"
+          confirmLabel={t('calendar.deleteAll')}
           variant="danger"
           onConfirm={confirmBulkDelete}
           onCancel={() => setShowBulkDeleteConfirm(false)}

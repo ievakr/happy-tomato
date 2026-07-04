@@ -4,8 +4,10 @@ import Labels from '../calendar/Labels';
 import { useCalendarContext } from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
 import { useEventContext } from '../../context/EventContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function Sidebar() {
+    const { t } = useTranslation();
     const { showSidebar, setShowSidebar } = useContext(LayoutContext);
     const { setCurrentView, currentView } = useCalendarContext();
     const { setShowManagePlantsModal, setShowManageTodoModal } = useEventContext();
@@ -30,10 +32,11 @@ export default function Sidebar() {
             >
                 {/* Mobile close button */}
                 <div className="d-flex justify-content-between align-items-center mb-3 d-md-none">
-                    <h5 className="mb-0">Menu</h5>
+                    <h5 className="mb-0">{t('layout.menu')}</h5>
                     <button 
                         className="btn btn-sm btn-outline-secondary"
                         onClick={() => setShowSidebar(false)}
+                        aria-label={t('common.close')}
                     >
                         <span className="material-icons-outlined">close</span>
                     </button>
@@ -57,7 +60,7 @@ export default function Sidebar() {
                             >
                                 expand_more
                             </span>
-                            Plant Management
+                            {t('layout.plantManagement')}
                         </button>
                         {isPlantManagementExpanded && (
                             <div className="sidebar-section-body">
@@ -73,7 +76,7 @@ export default function Sidebar() {
                                     <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
                                         eco
                                     </span>
-                                    Manage Plants
+                                    {t('layout.managePlants')}
                                 </button>
                             </div>
                         )}
@@ -96,7 +99,7 @@ export default function Sidebar() {
                             >
                                 expand_more
                             </span>
-                            To-do management
+                            {t('layout.todoManagement')}
                         </button>
                         {isActionManagementExpanded && (
                             <div className="sidebar-section-body">
@@ -111,7 +114,7 @@ export default function Sidebar() {
                                     <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
                                         edit_note
                                     </span>
-                                    Manage to-do
+                                    {t('layout.manageTodo')}
                                 </button>
                             </div>
                         )}
@@ -133,7 +136,7 @@ export default function Sidebar() {
                             <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
                                 menu_book
                             </span>
-                            Vegetable Guide
+                            {t('layout.vegetableGuide')}
                         </button>
                     </div>
                 </div>

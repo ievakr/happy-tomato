@@ -640,6 +640,71 @@ describe('useRecurringActions', () => {
       });
     });
 
+    test('should convert a completed event into a recurring series', async () => {
+      const pastDay = dayjs().subtract(10, 'day').startOf('day');
+      const originalEvent = {
+        id: 'done-1',
+        title: 'Watered',
+        toDo: 'TO DO: Water',
+        day: pastDay.valueOf(),
+        completed: true,
+        completedAt: pastDay.valueOf(),
+        createdFromAction: true,
+        labels: ['Tomatoes'],
+      };
+
+      const updatedEvent = {
+        ...originalEvent,
+        userRecurringConfig: {
+          enabled: true,
+          interval: 7,
+          unit: 'days',
+          endType: 'count',
+          maxOccurrences: 3,
+        },
+        isRecurringTodo: true,
+      };
+
+      const recurringTodos = [
+        { title: 'TO DO: Water', day: pastDay.add(7, 'day').valueOf(), isRecurringTodo: true },
+      ];
+
+      const { generateRecurringToDos } = require('../utils/recurringActions');
+      generateRecurringToDos.mockReturnValue(recurringTodos);
+
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: [],
+        }),
+      });
+
+      await act(async () => {
+        await result.current.updateEventWithRecurringRecalculation(updatedEvent, originalEvent);
+      });
+
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.UPDATE,
+        payload: expect.objectContaining({
+          id: 'done-1',
+          isRecurringTodo: true,
+          userRecurringConfig: expect.objectContaining({ enabled: true }),
+        }),
+      });
+      expect(generateRecurringToDos).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'done-1', isRecurringTodo: true }),
+        '',
+        6,
+        [],
+        false,
+        { ignoreSeriesCancellation: true }
+      );
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.PUSH,
+        payload: recurringTodos[0],
+      });
+    });
+
     test('should recalculate recurring todos when date changes', async () => {
       const today = dayjs();
       const originalEvent = {

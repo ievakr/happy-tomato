@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * To-do picker: same look/behavior as plant CustomDropdown (form-select + portaled list).
@@ -8,8 +9,10 @@ export default function TodoCombobox({
   value,
   onChange,
   savedItems = [],
-  emptyLabel = 'Select a to-do',
+  emptyLabel,
 }) {
+  const { t } = useTranslation();
+  const resolvedEmptyLabel = emptyLabel ?? t('common.selectTodo');
   const listboxId = useId();
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -79,7 +82,7 @@ export default function TodoCombobox({
     setHighlightedIndex(-1);
   };
 
-  const getDisplayText = () => (hasValue ? value.trim() : emptyLabel);
+  const getDisplayText = () => (hasValue ? value.trim() : resolvedEmptyLabel);
 
   const openDropdown = () => {
     setIsOpen(true);
@@ -169,11 +172,11 @@ export default function TodoCombobox({
             className={`list-group-item list-group-item-action text-muted small ${highlightedIndex === 0 ? 'focus' : ''}`}
             style={highlightedIndex === 0 ? { backgroundColor: 'var(--bs-secondary-bg)' } : undefined}
           >
-            Clear to-do
+            {t('common.clearTodo')}
           </li>
         )}
         {savedItems.length === 0 ? (
-          <li className="list-group-item text-muted small py-2">No saved to-dos. Add some in Manage to-do.</li>
+          <li className="list-group-item text-muted small py-2">{t('common.noSavedTodos')}</li>
         ) : (
           savedItems.map((item, index) => {
             const rowIdx = offset + index;

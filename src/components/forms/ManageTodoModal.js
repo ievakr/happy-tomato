@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useEventContext } from '../../context/EventContext';
 import { useSavedTodos } from '../../hooks';
 import { Modal } from '../common';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function ManageTodoModal() {
+    const { t } = useTranslation();
     const { setShowManageTodoModal } = useEventContext();
     const { savedItems, addItem, removeItem } = useSavedTodos();
     const [draft, setDraft] = useState('');
@@ -16,13 +18,13 @@ export default function ManageTodoModal() {
 
     return (
         <Modal
-            title="Manage to-do"
+            title={t('forms.manageTodo')}
             icon="edit_note"
             size="sm"
             onClose={() => setShowManageTodoModal(false)}
             footer={
                 <button type="button" className="btn btn-danger w-100" onClick={() => setShowManageTodoModal(false)}>
-                    Close
+                    {t('common.close')}
                 </button>
             }
         >
@@ -32,21 +34,21 @@ export default function ManageTodoModal() {
                     className="form-control form-control-sm"
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
-                    placeholder="New to-do"
+                    placeholder={t('forms.newTodo')}
                     autoComplete="off"
-                    aria-label="New to-do"
+                    aria-label={t('forms.newTodo')}
                 />
                 <button
                     type="submit"
                     className="btn btn-sm btn-primary flex-shrink-0 px-3"
                     disabled={!draft.trim()}
                 >
-                    Add
+                    {t('common.add')}
                 </button>
             </form>
             <ul className="list-group list-group-flush small border rounded">
                 {savedItems.length === 0 ? (
-                    <li className="list-group-item text-muted py-2">No saved to-dos yet.</li>
+                    <li className="list-group-item text-muted py-2">{t('forms.noSavedTodos')}</li>
                 ) : (
                     savedItems.map((item) => (
                         <li
@@ -59,7 +61,7 @@ export default function ManageTodoModal() {
                                 className="btn btn-sm btn-outline-danger flex-shrink-0"
                                 onClick={() => removeItem(item)}
                             >
-                                Delete
+                                {t('common.delete')}
                             </button>
                         </li>
                     ))

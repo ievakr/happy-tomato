@@ -1,8 +1,10 @@
 import React from 'react';
 import { useEventContext } from '../../context/EventContext';
 import { useLayoutContext } from '../../context/LayoutContext';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function CreateEventButton() {
+    const { t } = useTranslation();
     const { setShowPlantModal } = useEventContext();
     const { setShowSidebar } = useLayoutContext();
 
@@ -16,7 +18,7 @@ export default function CreateEventButton() {
             onClick={handleClick}
             className="btn btn-danger d-flex align-items-center justify-content-center w-100"
         >
-            <span>+ Create Plant</span>
+            <span>+ {t('forms.createPlant')}</span>
         </button>
     );
 }

@@ -9,10 +9,10 @@ import { useCalendarContext } from './context/CalendarContext';
 import { useResponsive, useResponsiveCalendarView } from './hooks';
 import { useEventContext } from './context/EventContext';
 import { useLayoutContext } from './context/LayoutContext';
-import { getLoadingMessage } from './utils';
 import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay, LoadingSpinner, IntroSplash, OfflineBanner, ServiceWorkerUpdateBanner } from './components/common';
 import errorLogger from './utils/errorLogger';
 import { useAuth } from './context/AuthContext';
+import { useTranslation } from './i18n/LanguageContext';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import notificationService from './services/notificationService';
 import { getFirebaseMessaging } from './firebase';
@@ -37,6 +37,7 @@ const VegetableGuideView = lazy(() => import('./components/guide/VegetableGuideV
  * Main application component with responsive layout
  */
 function App() {
+  const { t } = useTranslation();
   const { bootLoading, currentUser } = useAuth();
   const { currentMonth } = useCalendar();
   const {
@@ -49,7 +50,6 @@ function App() {
     setShowWeeklySummaryModal,
     filteredEvents,
     isInitialLoading,
-    loadingOperation,
   } = useEventContext();
   const { showSidebar } = useLayoutContext();
   const { currentView } = useCalendarContext();
@@ -164,7 +164,7 @@ function App() {
 
   const inlineFallback = (
     <div className="d-flex justify-content-center p-3">
-      <LoadingSpinner size="md" text="Loading..." />
+      <LoadingSpinner size="md" text={t('messages.loadingData')} />
     </div>
   );
 
@@ -173,20 +173,20 @@ function App() {
 
   return (
     <ErrorBoundary
-      title="Application Error"
-      message="The calendar application encountered an unexpected error."
+      title={t('messages.appErrorTitle')}
+      message={t('messages.appErrorBody')}
       onError={handleError}
     >
       <AuthWrapper>
           {/* Single column wrapper so .app-shell is a flex child and fills the screen on iOS WKWebView */}
           <div className="app-viewport-root">
           {showBootSplash && (
-            <IntroSplash label={getLoadingMessage(loadingOperation || 'load')} />
+            <IntroSplash label={t('messages.loadingApp')} />
           )}
 
           {/* Event modal overlay - render in portal to escape overflow constraints */}
           {showEventModal && createPortal(
-            <Suspense fallback={<LoadingOverlay text="Loading event details..." backdrop={true} />}>
+            <Suspense fallback={<LoadingOverlay text={t('messages.loadingEventDetails')} backdrop={true} />}>
               <ComponentErrorBoundary
                 componentName="EventModal"
                 onError={handleError}
@@ -199,7 +199,7 @@ function App() {
           
           {/* Create Plant modal overlay */}
           {showPlantModal && (
-            <Suspense fallback={<LoadingOverlay text="Loading..." backdrop={true} />}>
+            <Suspense fallback={<LoadingOverlay text={t('messages.loadingData')} backdrop={true} />}>
               <ComponentErrorBoundary
                 componentName="CreatePlantModal"
                 onError={handleError}
@@ -211,7 +211,7 @@ function App() {
           
           {/* Manage Plants modal overlay */}
           {showManagePlantsModal && (
-            <Suspense fallback={<LoadingOverlay text="Loading..." backdrop={true} />}>
+            <Suspense fallback={<LoadingOverlay text={t('messages.loadingData')} backdrop={true} />}>
               <ComponentErrorBoundary
                 componentName="ManagePlantsModal"
                 onError={handleError}
@@ -222,7 +222,7 @@ function App() {
           )}
 
           {showManageTodoModal && createPortal(
-            <Suspense fallback={<LoadingOverlay text="Loading..." backdrop={true} />}>
+            <Suspense fallback={<LoadingOverlay text={t('messages.loadingData')} backdrop={true} />}>
               <ComponentErrorBoundary componentName="ManageTodoModal" onError={handleError}>
                 <ManageTodoModal />
               </ComponentErrorBoundary>
@@ -231,7 +231,7 @@ function App() {
           )}
 
           {showWeeklySummaryModal && createPortal(
-            <Suspense fallback={<LoadingOverlay text="Loading..." backdrop={true} />}>
+            <Suspense fallback={<LoadingOverlay text={t('messages.loadingData')} backdrop={true} />}>
               <ComponentErrorBoundary componentName="WeeklySummaryTodoModal" onError={handleError}>
                 <WeeklySummaryTodoModal
                   events={filteredEvents}
@@ -306,8 +306,8 @@ function App() {
                 }}
                 aria-label={
                   currentView === 'guide'
-                    ? 'Vegetable Guide'
-                    : 'Calendar view'
+                    ? t('layout.vegetableGuide')
+                    : t('layout.calendarView')
                 }
               >
                 {currentView === 'guide' ? (

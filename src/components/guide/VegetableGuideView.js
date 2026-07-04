@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useResponsive } from '../../hooks/useResponsive';
+import { useTranslation } from '../../i18n/LanguageContext';
 import { vegetableGuide } from '../../data/vegetableGuide';
 import Icon from '../common/Icon';
 
@@ -27,6 +28,7 @@ function CareRow({ icon, label, children }) {
 }
 
 function VegetableDetail({ veg }) {
+  const { t } = useTranslation();
   return (
     <article>
       <div className="d-flex align-items-center gap-3 mb-2">
@@ -39,7 +41,7 @@ function VegetableDetail({ veg }) {
         <div>
           <h2 className="h4 mb-1">{veg.name}</h2>
           <span className={`small fw-semibold ${DIFFICULTY_CLASS[veg.difficulty] || 'text-secondary'}`}>
-            {veg.difficulty}
+            {t(`guide.difficulty.${veg.difficulty}`)}
           </span>
         </div>
       </div>
@@ -47,21 +49,21 @@ function VegetableDetail({ veg }) {
       <p className="text-muted">{veg.summary}</p>
 
       <div className="mt-3">
-        <CareRow icon="wb_sunny" label="Sunlight">{veg.sun}</CareRow>
-        <CareRow icon="grass" label="Sowing">{veg.sow}</CareRow>
-        <CareRow icon="park" label="Transplanting">{veg.transplant}</CareRow>
-        <CareRow icon="straighten" label="Spacing">{veg.spacing}</CareRow>
-        <CareRow icon="south" label="Sowing depth">{veg.depth}</CareRow>
-        <CareRow icon="water_drop" label="Watering">{veg.water}</CareRow>
-        <CareRow icon="eco" label="Feeding">{veg.feed}</CareRow>
-        <CareRow icon="agriculture" label="Harvest">{veg.harvest}</CareRow>
+        <CareRow icon="wb_sunny" label={t('guide.sunlight')}>{veg.sun}</CareRow>
+        <CareRow icon="grass" label={t('guide.sowing')}>{veg.sow}</CareRow>
+        <CareRow icon="park" label={t('guide.transplanting')}>{veg.transplant}</CareRow>
+        <CareRow icon="straighten" label={t('guide.spacing')}>{veg.spacing}</CareRow>
+        <CareRow icon="south" label={t('guide.sowingDepth')}>{veg.depth}</CareRow>
+        <CareRow icon="water_drop" label={t('guide.watering')}>{veg.water}</CareRow>
+        <CareRow icon="eco" label={t('guide.feeding')}>{veg.feed}</CareRow>
+        <CareRow icon="agriculture" label={t('guide.harvest')}>{veg.harvest}</CareRow>
       </div>
 
       {veg.tips?.length ? (
         <div className="mt-4 p-3 rounded-3 bg-light border">
           <div className="d-flex align-items-center gap-2 mb-2">
             <Icon name="tips_and_updates" className="text-secondary" style={{ fontSize: '1.15rem' }} />
-            <span className="small text-uppercase text-secondary fw-semibold">Good to know</span>
+            <span className="small text-uppercase text-secondary fw-semibold">{t('guide.goodToKnow')}</span>
           </div>
           <ul className="mb-0 ps-3">
             {veg.tips.map((tip, i) => (
@@ -75,10 +77,11 @@ function VegetableDetail({ veg }) {
 }
 
 export default function VegetableGuideView() {
+  const { t } = useTranslation();
   const { isMobile } = useResponsive();
   const searchInputRef = useRef(null);
   const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState(vegetableGuide[0]?.id ?? null);
+  const [selectedId, setSelectedId] = useState(null);
 
   const selectVegetable = (id) => {
     searchInputRef.current?.blur();
@@ -106,10 +109,10 @@ export default function VegetableGuideView() {
           ref={searchInputRef}
           type="search"
           className="form-control"
-          placeholder="Search vegetables…"
+          placeholder={t('guide.searchPlaceholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          aria-label="Search the vegetable guide"
+          aria-label={t('guide.searchPlaceholder')}
         />
       </div>
     </div>
@@ -118,7 +121,7 @@ export default function VegetableGuideView() {
   const list = (
     <ul className="list-group list-group-flush">
       {filtered.length === 0 ? (
-        <li className="list-group-item text-muted small">No vegetables match “{query}”.</li>
+        <li className="list-group-item text-muted small">{t('guide.noMatch', { query })}</li>
       ) : (
         filtered.map((veg) => {
           const active = !isMobile && veg.id === selectedId;
@@ -135,7 +138,7 @@ export default function VegetableGuideView() {
                 <Icon plantIcon={veg.icon} style={{ fontSize: '1.35rem' }} />
                 <span className="flex-grow-1">{veg.name}</span>
                 <span className={`small ${DIFFICULTY_CLASS[veg.difficulty] || 'text-secondary'}`}>
-                  {veg.difficulty}
+                  {t(`guide.difficulty.${veg.difficulty}`)}
                 </span>
                 {isMobile ? (
                   <Icon name="chevron_right" className="text-secondary" style={{ fontSize: '1.25rem' }} />
@@ -151,7 +154,7 @@ export default function VegetableGuideView() {
   const intro = (
     <div className="px-3 pt-3 pb-2">
       <p className="small text-muted mb-0">
-        Simple, offline care notes for common crops.
+        {t('guide.intro')}
       </p>
     </div>
   );
@@ -167,7 +170,7 @@ export default function VegetableGuideView() {
               onClick={() => setSelectedId(null)}
             >
               <Icon name="chevron_left" style={{ fontSize: '1.15rem', verticalAlign: 'middle' }} />
-              All vegetables
+              {t('guide.allVegetables')}
             </button>
           </div>
           <div className="flex-grow-1 overflow-auto p-3" style={{ minHeight: 0 }}>
@@ -205,7 +208,7 @@ export default function VegetableGuideView() {
             <VegetableDetail veg={selected} />
           </div>
         ) : (
-          <p className="text-muted">Select a vegetable to see its care guide.</p>
+          <p className="text-muted">{t('guide.selectPrompt')}</p>
         )}
       </div>
     </div>

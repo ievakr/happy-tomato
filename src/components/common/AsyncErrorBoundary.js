@@ -1,19 +1,21 @@
 import React from 'react';
 import BaseErrorBoundary from './BaseErrorBoundary';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * Error boundary for async operations (Firebase, network).
  * Shows connection-focused messaging and retry.
  */
 function AsyncErrorBoundary({ onError, children }) {
+  const { t } = useTranslation();
   return (
     <BaseErrorBoundary
-      title="Connection Issue"
+      title={t('common.connectionIssue')}
       icon="wifi"
       alertVariant="warning"
-      retryLabel="Retry"
+      retryLabel={t('common.tryAgain')}
       retryVariant="warning"
-      reloadLabel="Refresh"
+      reloadLabel={t('common.refresh')}
       showDetails={false}
       onError={onError}
     >

@@ -18,6 +18,7 @@ import './styles/legacy.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import ContextWrapper from './context/ContextWrapper';
+import { LanguageProvider } from './i18n/LanguageContext';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { ErrorBoundary, ContextErrorBoundary, AsyncErrorBoundary } from './components/common';
@@ -132,19 +133,21 @@ root.render(
       message="The calendar application has encountered a critical error."
       onError={handleGlobalError}
     >
-      <QueryClientProvider client={queryClient}>
-        <ToastProvider>
-          <AuthProvider>
-            <ContextErrorBoundary onError={handleContextError}>
-              <AsyncErrorBoundary onError={handleAsyncError}>
-                <ContextWrapper>
-                  <App />
-                </ContextWrapper>
-              </AsyncErrorBoundary>
-            </ContextErrorBoundary>
-          </AuthProvider>
-        </ToastProvider>
-      </QueryClientProvider>
+      <LanguageProvider>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            <AuthProvider>
+              <ContextErrorBoundary onError={handleContextError}>
+                <AsyncErrorBoundary onError={handleAsyncError}>
+                  <ContextWrapper>
+                    <App />
+                  </ContextWrapper>
+                </AsyncErrorBoundary>
+              </ContextErrorBoundary>
+            </AuthProvider>
+          </ToastProvider>
+        </QueryClientProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

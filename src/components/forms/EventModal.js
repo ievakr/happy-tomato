@@ -15,8 +15,10 @@ import RecurringConfigSection from './RecurringConfigSection';
 import { RW_DATE_PICKER_INPUT_PROPS } from '../../constants/datePicker';
 import { EVENT_ACTIONS } from '../../constants';
 import { parseTodoFieldsFromEvent, buildCalendarEventPayload } from '../../utils/eventForm';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function EventModal() {
+  const { t } = useTranslation();
   const { daySelected } = useCalendarContext();
   const {
     setShowEventModal,
@@ -135,7 +137,7 @@ export default function EventModal() {
     try {
       if (selectedEvent) {
         if (!calendarEvent.id || !selectedEvent.id) {
-          showError('Cannot update event - missing ID. Please try refreshing the page.');
+          showError(t('forms.updateEventMissingId'));
           return;
         }
         await updateEventWithRecurringRecalculation(calendarEvent, selectedEvent);
@@ -153,7 +155,7 @@ export default function EventModal() {
       }
       setShowEventModal(false);
     } catch {
-      showError('Failed to save event. Please try again.');
+      showError(t('forms.saveEventFailed'));
     }
   }
 
@@ -163,7 +165,7 @@ export default function EventModal() {
       className="btn btn-sm btn-outline-danger"
       disabled={isLoading}
       onClick={() => setShowDeleteConfirm(true)}
-      title={isTodoEvent(selectedEvent) ? 'Delete TO DO' : 'Delete event'}
+      title={isTodoEvent(selectedEvent) ? t('forms.deleteTodo') : t('forms.deleteEvent')}
     >
       <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
         delete
@@ -174,7 +176,7 @@ export default function EventModal() {
   return (
     <>
       <Modal
-        title={selectedEvent ? 'Edit Event' : 'New Event'}
+        title={selectedEvent ? t('forms.editEvent') : t('forms.newEvent')}
         icon="event"
         onClose={() => setShowEventModal(false)}
         className="event-modal"
@@ -190,15 +192,15 @@ export default function EventModal() {
               <>
                 <span className="spinner-border spinner-border-sm me-2" role="status">
                   <span className="visually-hidden">
-                    {loadingOperation === 'update' ? 'Updating...' : 'Saving...'}
+                    {loadingOperation === 'update' ? t('forms.updating') : t('forms.saving')}
                   </span>
                 </span>
-                {loadingOperation === 'update' ? 'Updating...' : 'Saving...'}
+                {loadingOperation === 'update' ? t('forms.updating') : t('forms.saving')}
               </>
             ) : selectedEvent ? (
-              'Update'
+              t('forms.update')
             ) : (
-              'Save'
+              t('common.save')
             )}
           </button>
         }
@@ -209,13 +211,13 @@ export default function EventModal() {
               <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
                 checklist
               </span>
-              To-do
+              {t('forms.todo')}
             </label>
             <TodoCombobox
               value={todoText}
               onChange={handleTodoChange}
               savedItems={savedTodoItems}
-              emptyLabel="Select a to-do"
+              emptyLabel={t('forms.selectTodo')}
             />
           </div>
 
@@ -224,13 +226,13 @@ export default function EventModal() {
               <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
                 yard
               </span>
-              Plants
+              {t('forms.plants')}
             </label>
             <CustomDropdown
               title={
                 (plantNames || []).length
-                  ? 'Select plant'
-                  : "You don't have any plants - create a plant"
+                  ? t('forms.selectPlant')
+                  : t('forms.noPlantsCreate')
               }
               options={plantNames || []}
               selectedOptions={selectedLabels || []}
@@ -244,7 +246,7 @@ export default function EventModal() {
               <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
                 schedule
               </span>
-              Date
+              {t('forms.date')}
             </label>
             <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
               <DatePicker
@@ -265,12 +267,12 @@ export default function EventModal() {
               <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
                 segment
               </span>
-              Description
+              {t('forms.description')}
             </label>
             <input
               type="text"
               name="description"
-              placeholder="Add a description"
+              placeholder={t('forms.addDescription')}
               value={description}
               required
               className="form-control"

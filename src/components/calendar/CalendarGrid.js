@@ -4,12 +4,14 @@ import { CalendarDaySkeleton } from '../common';
 import { useCalendarContext } from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
 import { useSwipeGestures, useResponsive } from '../../hooks';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * Calendar grid component that renders the monthly calendar layout
  * @param {Array<Array<dayjs.Dayjs>>} month - 2D array of days representing the calendar month
  */
 const CalendarGrid = ({ month }) => {
+  const { t } = useTranslation();
   const { isInitialLoading } = useEventContext();
   const { monthIndex, setMonthIndex } = useCalendarContext();
   const { isMobile } = useResponsive();
@@ -30,7 +32,7 @@ const CalendarGrid = ({ month }) => {
   const swipeRef = useSwipeGestures(handleSwipeLeft, handleSwipeRight, 50, 0.3);
   
   if (!month || !Array.isArray(month)) {
-    return <div className="calendar-grid">No calendar data available</div>;
+    return <div className="calendar-grid">{t('calendar.noCalendarData')}</div>;
   }
 
   return (
@@ -39,7 +41,7 @@ const CalendarGrid = ({ month }) => {
       className="calendar-grid flex-grow-1"
       style={{ touchAction: isMobile ? 'pan-y' : 'auto' }}
       role="grid"
-      aria-label="Calendar month view"
+      aria-label={t('calendar.monthViewLabel')}
     >
       {month.map((week, weekIndex) => (
         <React.Fragment key={`week-${weekIndex}`}>

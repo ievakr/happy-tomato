@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import Icon from './Icon';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * Reusable modal component using Bootstrap styling.
@@ -33,6 +34,7 @@ export default function Modal({
   form,
   headerExtra,
 }) {
+  const { t } = useTranslation();
   const sizeClass = size === 'sm' ? 'modal-sm' : size === 'lg' ? 'modal-lg' : '';
   const scrollableClass = scrollable ? 'modal-dialog-scrollable' : '';
 
@@ -76,7 +78,7 @@ export default function Modal({
                           type="button"
                           className="btn-close"
                           onClick={onClose}
-                          aria-label="Close"
+                          aria-label={t('common.close')}
                           disabled={closeDisabled}
                         />
                       )}
@@ -103,7 +105,7 @@ export default function Modal({
                           type="button"
                           className="btn-close"
                           onClick={onClose}
-                          aria-label="Close"
+                          aria-label={t('common.close')}
                           disabled={closeDisabled}
                         />
                       )}

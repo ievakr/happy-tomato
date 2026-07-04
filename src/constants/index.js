@@ -64,34 +64,6 @@ export const PLANT_ACTIONS = {
   "Carial Star": "Use every 10 days, 3 times max",
 };
 
-// To-do list items - these are manual TO DOs that users can select
-export const TODO_ITEMS = [
-  "TO DO: Plant seeds", 
-  "TO DO: Transplant",
-  "TO DO: Water",
-  "TO DO: Fertilize", 
-  "TO DO: Kytos",
-  "TO DO: Copfort",
-  "TO DO: Altozan B/Zn",
-  "TO DO: TerraSorb Foliar",
-  "TO DO: NeemAzal",
-  "TO DO: Carial Star"
-];
-
-// TO DO action configurations - recurring patterns for todo items
-export const TODO_ACTIONS = {
-  "TO DO: Plant seeds": "",
-  "TO DO: Transplant": "",
-  "TO DO: Water": "",
-  // Fertilize should not be recurring by default when selected from the TO DO field
-  "TO DO: Fertilize": "",
-  "TO DO: Kytos": "Use every 14 days",
-  "TO DO: Copfort": "Use every 14 days",
-  "TO DO: Altozan B/Zn": "Use every 7 days",
-  "TO DO: TerraSorb Foliar": "Use every 7 days",
-  "TO DO: NeemAzal": "Use every 7 days, 3 times max",
-  "TO DO: Carial Star": "Use every 10 days, 3 times max"
-};
 
 // TO DO event statuses
 export const TODO_STATUS = {

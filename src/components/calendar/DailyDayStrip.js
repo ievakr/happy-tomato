@@ -1,5 +1,6 @@
 import React from 'react';
 import { getDayHeaders } from '../../utils';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function DailyDayStrip({
   visibleMonthLabel,
@@ -17,6 +18,7 @@ export default function DailyDayStrip({
   openNewEventForDay,
   registerDayElement,
 }) {
+  const { t } = useTranslation();
   const dayHeaders = getDayHeaders('short');
 
   return (
@@ -26,8 +28,8 @@ export default function DailyDayStrip({
           <button
             className="btn btn-sm btn-light"
             onClick={() => applyMonthChange(monthIndex - 1)}
-            aria-label="Previous month"
-            title="Previous month"
+            aria-label={t('calendar.prevMonth')}
+            title={t('calendar.prevMonth')}
             type="button"
           >
             <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
@@ -38,8 +40,8 @@ export default function DailyDayStrip({
           <button
             className="btn btn-sm btn-light"
             onClick={() => applyMonthChange(monthIndex + 1)}
-            aria-label="Next month"
-            title="Next month"
+            aria-label={t('calendar.nextMonth')}
+            title={t('calendar.nextMonth')}
             type="button"
           >
             <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
@@ -52,7 +54,7 @@ export default function DailyDayStrip({
           onClick={jumpToToday}
           type="button"
         >
-          Today
+          {t('calendar.today')}
         </button>
       </div>
 

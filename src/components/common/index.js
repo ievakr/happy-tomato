@@ -9,6 +9,7 @@ export { default as ServiceWorkerUpdateBanner } from './ServiceWorkerUpdateBanne
 // Loading components
 export { default as LoadingSpinner, LoadingOverlay, CalendarDaySkeleton, EventListSkeleton } from './LoadingSpinner';
 export { default as IntroSplash } from './IntroSplash';
+export { default as LanguageSwitcher } from './LanguageSwitcher';
 
 // Error boundary components
 export { default as BaseErrorBoundary } from './BaseErrorBoundary';

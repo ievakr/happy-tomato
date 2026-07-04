@@ -4,6 +4,7 @@ import { useCalendarContext } from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
 import { useResponsive } from '../../hooks';
 import { calendarDateFromMonthIndex, calendarNavRefYear } from '../../utils';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 const MONTHS_0_11 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
@@ -11,6 +12,7 @@ const MONTHS_0_11 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
  * Mobile year picker (iOS Calendar–style): 12-month grid; pick a month to return to month view.
  */
 export default function YearlyView() {
+  const { t } = useTranslation();
   const { monthIndex, setMonthIndex, setCurrentView } = useCalendarContext();
   const { isInitialLoading } = useEventContext();
   const { isMobile } = useResponsive();
@@ -37,15 +39,15 @@ export default function YearlyView() {
   }
 
   return (
-    <div className="yearly-view flex-grow-1 d-flex flex-column bg-white" role="navigation" aria-label="Year view">
+    <div className="yearly-view flex-grow-1 d-flex flex-column bg-white" role="navigation" aria-label={t('calendar.yearViewLabel')}>
       <div className="yearly-view-toolbar py-2 px-2 bg-light border-bottom">
         <div className="d-flex align-items-center justify-content-center gap-2">
           <button
             type="button"
             className="btn btn-sm btn-light"
             onClick={goPrevYear}
-            aria-label="Previous year"
-            title="Previous year"
+            aria-label={t('calendar.prevYear')}
+            title={t('calendar.prevYear')}
           >
             <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
               chevron_left
@@ -56,8 +58,8 @@ export default function YearlyView() {
             type="button"
             className="btn btn-sm btn-light"
             onClick={goNextYear}
-            aria-label="Next year"
-            title="Next year"
+            aria-label={t('calendar.nextYear')}
+            title={t('calendar.nextYear')}
           >
             <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
               chevron_right

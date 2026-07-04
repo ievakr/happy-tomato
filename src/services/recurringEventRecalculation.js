@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { EVENT_ACTIONS, PLANT_ACTIONS, TODO_ACTIONS } from '../constants';
+import { EVENT_ACTIONS, PLANT_ACTIONS } from '../constants';
 import {
   generateRecurringToDos,
   shouldGenerateRecurringTodos,
@@ -49,7 +49,9 @@ export async function updateEventWithRecurringRecalculation(
   if (isConvertingToRecurring) {
     const recurringEvent = { ...updatedEvent, isRecurringTodo: true };
     await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: recurringEvent });
-    const additionalTodos = generateRecurringToDos(recurringEvent, '', 6, filteredEvents, false);
+    const additionalTodos = generateRecurringToDos(recurringEvent, '', 6, filteredEvents, false, {
+      ignoreSeriesCancellation: true,
+    });
     for (const todo of additionalTodos) {
       await dispatchCallEvent({ type: EVENT_ACTIONS.PUSH, payload: todo });
     }
@@ -119,10 +121,9 @@ export async function updateEventWithRecurringRecalculation(
 
       await dispatchCallEvent({ type: EVENT_ACTIONS.UPDATE, payload: updatedEvent });
 
-      let dosageText = PLANT_ACTIONS[firstAction];
-      if (!dosageText && firstTodo) {
-        dosageText = TODO_ACTIONS[firstTodo];
-      }
+      // TODO_ACTIONS was removed from constants; todo-specific dosage lookup no
+      // longer applies. Fall back to plant-action dosage only.
+      const dosageText = PLANT_ACTIONS[firstAction];
 
       if (shouldGenerateRecurringTodos(sourceItem, dosageText, updatedEvent.userRecurringConfig)) {
         const existingEventsExcludingCurrent = filteredEvents.filter(

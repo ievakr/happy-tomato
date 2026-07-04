@@ -1,5 +1,6 @@
 import React from 'react';
 import Icon from './Icon';
+import LanguageContext from '../../i18n/LanguageContext';
 
 /**
  * Configurable base error boundary. All specialized error boundaries extend this.
@@ -23,6 +24,8 @@ import Icon from './Icon';
  * @param {boolean} [props.showDetails=true] - Show error details in development
  */
 class BaseErrorBoundary extends React.Component {
+  static contextType = LanguageContext;
+
   constructor(props) {
     super(props);
     this.state = {
@@ -36,6 +39,14 @@ class BaseErrorBoundary extends React.Component {
   static getDerivedStateFromError(error) {
     return { hasError: true };
   }
+
+  // May render outside a LanguageProvider (e.g. the root boundary wrapping the
+  // provider itself), so fall back to the given English string when there is no
+  // translation context available.
+  tr = (key, fallback, params) => {
+    const t = this.context?.t;
+    return t ? t(key, params) : fallback;
+  };
 
   componentDidCatch(error, errorInfo) {
     let errorType = null;
@@ -78,13 +89,22 @@ class BaseErrorBoundary extends React.Component {
 
     // Async variant: dynamic message by error type
     if (errorType === 'firebase') {
-      return 'Unable to sync with cloud storage. Please check your internet connection.';
+      return this.tr(
+        'common.errorFirebaseSync',
+        'Unable to sync with cloud storage. Please check your internet connection.',
+      );
     }
     if (errorType === 'network') {
-      return 'Network connection error. Please check your internet connection and try again.';
+      return this.tr(
+        'common.errorNetwork',
+        'Network connection error. Please check your internet connection and try again.',
+      );
     }
 
-    return error?.message || 'An unexpected error occurred. Please try again.';
+    return (
+      error?.message ||
+      this.tr('common.unexpectedError', 'An unexpected error occurred. Please try again.')
+    );
   };
 
   render() {
@@ -95,19 +115,23 @@ class BaseErrorBoundary extends React.Component {
     const { error, errorInfo } = this.state;
     const {
       fallback,
-      title = 'Something went wrong',
+      title: titleProp,
       icon = 'warning',
       alertVariant = 'danger',
       componentName,
       showRetry = true,
       showReload = true,
-      retryLabel = 'Try Again',
-      reloadLabel = 'Reload Page',
+      retryLabel: retryLabelProp,
+      reloadLabel: reloadLabelProp,
       retryVariant = 'danger',
       extraActions = [],
       compact = false,
       showDetails = true,
     } = this.props;
+
+    const title = titleProp ?? this.tr('common.somethingWentWrong', 'Something went wrong');
+    const retryLabel = retryLabelProp ?? this.tr('common.tryAgain', 'Try Again');
+    const reloadLabel = reloadLabelProp ?? this.tr('common.reloadPage', 'Reload Page');
 
     if (fallback) {
       return fallback(error, this.handleRetry);
@@ -121,14 +145,16 @@ class BaseErrorBoundary extends React.Component {
               <Icon name={icon} className="text-warning me-2" />
               <div className="flex-grow-1">
                 <small className="text-muted">
-                  {componentName || 'Component'} temporarily unavailable
+                  {this.tr('common.componentUnavailable', `${componentName || 'Component'} temporarily unavailable`, {
+                    name: componentName || this.tr('common.component', 'Component'),
+                  })}
                 </small>
               </div>
               {showRetry && (
                 <button
                   className="btn btn-sm btn-outline-secondary ms-2"
                   onClick={this.handleRetry}
-                  title="Retry"
+                  title={this.tr('common.tryAgain', 'Try Again')}
                 >
                   <Icon name="refresh" />
                 </button>
@@ -186,7 +212,7 @@ class BaseErrorBoundary extends React.Component {
 
           {showDetails && process.env.NODE_ENV === 'development' && error && (
             <details className="mt-3 text-start">
-              <summary className="mb-2">Error Details (Development Only)</summary>
+              <summary className="mb-2">{this.tr('common.errorDetailsDev', 'Error Details (Development Only)')}</summary>
               <pre className="bg-light p-2 rounded small text-wrap">
                 {error.toString()}
                 {errorInfo?.componentStack}

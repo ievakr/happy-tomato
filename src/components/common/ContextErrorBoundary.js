@@ -1,22 +1,24 @@
 import React from 'react';
 import BaseErrorBoundary from './BaseErrorBoundary';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * Error boundary for context-related errors.
  * Offers Restart and Reset App Data actions.
  */
 function ContextErrorBoundary({ onError, children }) {
+  const { t } = useTranslation();
   return (
     <BaseErrorBoundary
-      title="App Context Error"
+      title={t('common.appContextError')}
       icon="storage"
       message={
         <>
-          <p className="mb-2">There was an error with the application state. This might be due to:</p>
+          <p className="mb-2">{t('common.contextErrorIntro')}</p>
           <ul className="text-start mb-0">
-            <li>Data synchronization issues</li>
-            <li>Invalid data format</li>
-            <li>Context provider errors</li>
+            <li>{t('common.contextErrorReasonSync')}</li>
+            <li>{t('common.contextErrorReasonFormat')}</li>
+            <li>{t('common.contextErrorReasonProvider')}</li>
           </ul>
         </>
       }
@@ -24,13 +26,13 @@ function ContextErrorBoundary({ onError, children }) {
       showReload={false}
       extraActions={[
         {
-          label: 'Restart App',
+          label: t('common.restartApp'),
           onClick: () => window.location.reload(),
           variant: 'danger',
           icon: 'refresh',
         },
         {
-          label: 'Reset App Data',
+          label: t('common.resetAppData'),
           onClick: () => {
             localStorage.clear();
             window.location.reload();

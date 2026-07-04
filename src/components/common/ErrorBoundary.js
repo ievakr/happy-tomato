@@ -6,8 +6,8 @@ import BaseErrorBoundary from './BaseErrorBoundary';
  * Wraps BaseErrorBoundary with app-level defaults.
  */
 function ErrorBoundary({
-  title = 'Something went wrong',
-  message = 'An unexpected error occurred. Please try again.',
+  title,
+  message,
   showRetry = true,
   showReload = true,
   fallback,

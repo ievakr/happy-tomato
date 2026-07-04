@@ -2,11 +2,13 @@ import React, { memo } from 'react';
 import { useCalendarContext } from '../../context/CalendarContext';
 import { useResponsive } from '../../hooks';
 import { getDayHeaders, calendarDateFromMonthIndex } from '../../utils';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * Calendar header component that displays day names starting from Monday
  */
 const CalendarHeader = memo(() => {
+  const { t } = useTranslation();
   const dayHeaders = getDayHeaders('short');
   const { monthIndex, setMonthIndex } = useCalendarContext();
   const { isMobile } = useResponsive();
@@ -23,8 +25,8 @@ const CalendarHeader = memo(() => {
           <button
             className="btn btn-sm btn-light"
             onClick={handlePrevMonth}
-            aria-label="Previous month"
-            title="Previous month"
+            aria-label={t('calendar.prevMonth')}
+            title={t('calendar.prevMonth')}
             type="button"
           >
             <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
@@ -37,8 +39,8 @@ const CalendarHeader = memo(() => {
           <button
             className="btn btn-sm btn-light"
             onClick={handleNextMonth}
-            aria-label="Next month"
-            title="Next month"
+            aria-label={t('calendar.nextMonth')}
+            title={t('calendar.nextMonth')}
             type="button"
           >
             <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>

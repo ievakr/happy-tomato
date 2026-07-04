@@ -98,7 +98,14 @@ export const parseRecurringInterval = (dosageText, userRecurringConfig = null) =
  * @param {boolean} generateAllOccurrences - If true, generate all occurrences including the first one (for user-created TODOs). If false, generate maxOccurrences-1 (for actions that spawn TODOs)
  * @returns {Array} - Array of TO DO events to be created
  */
-export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6, existingEvents = [], generateAllOccurrences = false) => {
+export const generateRecurringToDos = (
+  actionEvent,
+  dosageText,
+  futureMonths = 6,
+  existingEvents = [],
+  generateAllOccurrences = false,
+  { ignoreSeriesCancellation = false } = {}
+) => {
   const recurringInfo = parseRecurringInterval(dosageText, actionEvent.userRecurringConfig);
   
   if (!recurringInfo || recurringInfo.interval === 0) {
@@ -139,7 +146,11 @@ export const generateRecurringToDos = (actionEvent, dosageText, futureMonths = 6
   // it means the user has cancelled this recurring series
   const actionDate = dayjs(actionEvent.day);
   const expectedNextDate = actionDate.add(recurringInfo.interval, recurringInfo.unit);
-  if (expectedNextDate.isBefore(today) && futureRecurringTodos.length === 0) {
+  if (
+    !ignoreSeriesCancellation &&
+    expectedNextDate.isBefore(today) &&
+    futureRecurringTodos.length === 0
+  ) {
     return []; // Don't regenerate cancelled series
   }
   

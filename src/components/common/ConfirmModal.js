@@ -1,5 +1,6 @@
 import React from 'react';
 import Modal from './Modal';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * Confirmation dialog for destructive or important actions.
@@ -18,8 +19,8 @@ import Modal from './Modal';
 export default function ConfirmModal({
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   variant = 'danger',
   onConfirm,
   onCancel,
@@ -27,6 +28,9 @@ export default function ConfirmModal({
   confirmDisabled = false,
   zIndex,
 }) {
+  const { t } = useTranslation();
+  const confirmText = confirmLabel ?? t('common.confirm');
+  const cancelText = cancelLabel ?? t('common.cancel');
   const variantClass = variant === 'danger' ? 'btn-danger' : variant === 'success' ? 'btn-success' : 'btn-primary';
   const disabled = isLoading || confirmDisabled;
 
@@ -38,7 +42,7 @@ export default function ConfirmModal({
         onClick={onCancel}
         disabled={disabled}
       >
-        {cancelLabel}
+        {cancelText}
       </button>
       <button
         type="button"
@@ -49,12 +53,12 @@ export default function ConfirmModal({
         {isLoading ? (
           <>
             <span className="spinner-border spinner-border-sm me-2" role="status">
-              <span className="visually-hidden">Loading...</span>
+              <span className="visually-hidden">{t('common.loading')}</span>
             </span>
-            {confirmLabel}...
+            {confirmText}...
           </>
         ) : (
-          confirmLabel
+          confirmText
         )}
       </button>
     </>

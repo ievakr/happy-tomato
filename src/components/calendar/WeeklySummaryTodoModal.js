@@ -4,11 +4,13 @@ import Modal from '../common/Modal';
 import TodoRowCalendarLike from '../common/TodoRowCalendarLike';
 import { useEventContext } from '../../context/EventContext';
 import { getTodosForWeekAhead } from '../../utils/weekAheadTodos';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * Lists week-ahead + overdue TODOs after opening a weekly summary push notification.
  */
 export default function WeeklySummaryTodoModal({ events, onClose }) {
+  const { t } = useTranslation();
   const { plantsById } = useEventContext();
   const { overdue, byDay, weekStart, weekEnd } = useMemo(
     () => getTodosForWeekAhead(events),
@@ -23,29 +25,36 @@ export default function WeeklySummaryTodoModal({ events, onClose }) {
 
   return (
     <Modal
-      title="Your week ahead"
+      title={t('calendar.weekAhead')}
       icon="calendar_view_week"
       size="lg"
       scrollable
       onClose={onClose}
       footer={
         <button type="button" className="btn btn-primary w-100" onClick={onClose}>
-          Close
+          {t('common.close')}
         </button>
       }
     >
       <p className="text-muted small mb-3">
         {weekStart.format('MMM D')} – {weekEnd.format('MMM D, YYYY')}
-        {totalInWeek > 0 ? ` · ${totalInWeek} task${totalInWeek !== 1 ? 's' : ''}` : ''}
+        {totalInWeek > 0
+          ? ` · ${t(
+              totalInWeek !== 1
+                ? 'calendar.weekTasksCountPlural'
+                : 'calendar.weekTasksCountSingular',
+              { count: totalInWeek },
+            )}`
+          : ''}
       </p>
 
       {totalInWeek === 0 ? (
-        <p className="text-muted mb-0">No tasks in this window.</p>
+        <p className="text-muted mb-0">{t('calendar.noTasksInWindow')}</p>
       ) : (
         <div className="d-flex flex-column gap-3">
           {overdue.length > 0 && (
             <div>
-              <div className="fw-semibold text-danger small mb-2">Overdue</div>
+              <div className="fw-semibold text-danger small mb-2">{t('calendar.overdue')}</div>
               <ul className="list-unstyled list-group list-group-flush border rounded small">
                 {overdue.map((evt, idx) => (
                   <li key={evt.id || `overdue-${idx}`} className="list-group-item py-2">

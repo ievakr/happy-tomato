@@ -5,10 +5,12 @@ import { useEventContext } from '../../context/EventContext';
 import { useResponsive, useCalendarEventActions } from '../../hooks';
 import { filterEventsForDay, isToday } from '../../utils/eventDates';
 import { isTodoEvent, isCompletedTodoAction } from '../../utils/recurringTodos';
+import { useTranslation } from '../../i18n/LanguageContext';
 import CalendarEventChip from './CalendarEventChip';
 import '../../index.css'
 
 export default function CalendarDay({ day, rowIndex }) {
+    const { t } = useTranslation();
     const { setDaySelected, setCurrentView, monthIndex } = useCalendarContext();
     const { filteredEvents, plantsById } = useEventContext();
     const { isMobile } = useResponsive();
@@ -66,7 +68,7 @@ export default function CalendarDay({ day, rowIndex }) {
                     <div
                         className="event-count-indicator d-flex align-items-center justify-content-center rounded-circle bg-danger text-white fw-bold"
                         style={circleStyle}
-                        title={`${pendingCount} not done — tap to view`}
+                        title={t('calendar.notDoneTapToView', { count: pendingCount })}
                     >
                         {pendingCount}
                     </div>
@@ -75,7 +77,7 @@ export default function CalendarDay({ day, rowIndex }) {
                     <div
                         className="event-count-indicator d-flex align-items-center justify-content-center rounded-circle bg-success text-white fw-bold"
                         style={circleStyle}
-                        title={`${doneCount} done — tap to view`}
+                        title={t('calendar.doneTapToView', { count: doneCount })}
                     >
                         {doneCount}
                     </div>

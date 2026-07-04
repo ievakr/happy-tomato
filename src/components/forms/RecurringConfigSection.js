@@ -3,6 +3,7 @@ import DatePicker from 'react-widgets/DatePicker';
 import { Localization } from 'react-widgets';
 import { DateLocalizer } from 'react-widgets/IntlLocalizer';
 import { RW_DATE_PICKER_INPUT_PROPS } from '../../constants/datePicker';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function RecurringConfigSection({
   isRecurring,
@@ -16,6 +17,7 @@ export default function RecurringConfigSection({
   recurringUntilDate,
   setRecurringUntilDate,
 }) {
+  const { t } = useTranslation();
   return (
     <>
       <div className="form-check">
@@ -33,7 +35,7 @@ export default function RecurringConfigSection({
           >
             repeat
           </span>
-          This is a recurring event
+          {t('forms.recurringEvent')}
         </label>
       </div>
 
@@ -41,7 +43,7 @@ export default function RecurringConfigSection({
         <div className="border rounded p-3 bg-light">
           <div className="mb-3">
             <label htmlFor="recurringInterval" className="form-label small text-muted">
-              Repeat every (days)
+              {t('forms.repeatEveryDays')}
             </label>
             <input
               type="number"
@@ -56,8 +58,8 @@ export default function RecurringConfigSection({
               }}
             />
           </div>
-          <div className="mb-2" role="group" aria-label="How recurring ends">
-            <div className="form-label small text-muted mb-2">Series ends</div>
+          <div className="mb-2" role="group" aria-label={t('forms.howRecurringEnds')}>
+            <div className="form-label small text-muted mb-2">{t('forms.seriesEnds')}</div>
             <div className="d-flex flex-column gap-2">
               <div className="form-check">
                 <input
@@ -69,7 +71,7 @@ export default function RecurringConfigSection({
                   onChange={() => setRecurringEndType('count')}
                 />
                 <label className="form-check-label" htmlFor="recurringEndCount">
-                  After a number of occurrences
+                  {t('forms.afterOccurrences')}
                 </label>
               </div>
               <div className="form-check">
@@ -82,7 +84,7 @@ export default function RecurringConfigSection({
                   onChange={() => setRecurringEndType('until')}
                 />
                 <label className="form-check-label" htmlFor="recurringEndUntil">
-                  On a date (inclusive)
+                  {t('forms.onDateInclusive')}
                 </label>
               </div>
             </div>
@@ -91,7 +93,7 @@ export default function RecurringConfigSection({
           {recurringEndType === 'count' && (
             <div className="mb-2">
               <label htmlFor="recurringMaxOccurrences" className="form-label small text-muted">
-                Number of occurrences
+                {t('forms.numberOfOccurrences')}
               </label>
               <input
                 type="number"
@@ -106,7 +108,7 @@ export default function RecurringConfigSection({
                 }}
               />
               <div className="form-text">
-                Total times this event occurs, including the first one
+                {t('forms.occurrencesHelp')}
               </div>
             </div>
           )}
@@ -120,7 +122,7 @@ export default function RecurringConfigSection({
                 <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
                   event_repeat
                 </span>
-                Repeat until
+                {t('forms.repeatUntil')}
               </label>
               <div>
                 <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
@@ -134,7 +136,7 @@ export default function RecurringConfigSection({
                   />
                 </Localization>
               </div>
-              <div className="form-text">Last occurrence falls on this date or earlier</div>
+              <div className="form-text">{t('forms.repeatUntilHelp')}</div>
             </div>
           )}
         </div>

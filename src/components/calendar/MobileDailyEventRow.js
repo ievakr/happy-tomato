@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import CalendarEventChip from './CalendarEventChip';
 import { eventTodoOrTitleText } from './EventItem';
+import { useTranslation } from '../../i18n/LanguageContext';
 
 /** Width of the delete hint strip revealed when swiping left (px). */
 const MOBILE_EVENT_DELETE_REVEAL_PX = 52;
@@ -19,6 +20,7 @@ export default function MobileDailyEventRow({
   onRequestDeleteConfirm,
   deleteDisabled,
 }) {
+  const { t } = useTranslation();
   const [openPx, setOpenPx] = useState(0);
   const openPxRef = useRef(0);
   const [isHorizontalPan, setIsHorizontalPan] = useState(false);
@@ -130,7 +132,7 @@ export default function MobileDailyEventRow({
           checked={evt.id ? bulkSelectedEventIds.includes(evt.id) : false}
           onClick={(e) => e.stopPropagation()}
           onChange={() => evt.id && toggleBulkEventSelection(evt.id)}
-          aria-label={`Select ${eventTodoOrTitleText(evt) || 'event'}`}
+          aria-label={t('calendar.selectEventAria', { name: eventTodoOrTitleText(evt) || t('calendar.eventFallback') })}
         />
       )}
       {!bulkEditMode && supportsDayViewCompleteToggle(evt) && renderDayTodoCompleteButton(evt)}

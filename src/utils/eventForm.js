@@ -57,28 +57,47 @@ export function buildCalendarEventPayload({
   const today = dayjs().startOf('day');
   const isPastDate = eventDate.isBefore(today);
   const isTodo = !!toDoValue;
+  const isRecurringEnabled = Boolean(userRecurringConfig?.enabled);
+  const wasCompleted = Boolean(selectedEvent?.completed);
   const rawTitle = toDoValue || title;
   const resolvedTitle =
-    isTodo && isPastDate && toDoValue
+    isTodo && isPastDate && toDoValue && !isRecurringEnabled
       ? toDoValue.replace(/^TO DO:\s*/i, '').trim() || rawTitle
-      : rawTitle;
+      : isTodo && toDoValue
+        ? toDoValue
+        : rawTitle;
 
-  const recurringConfig = isTodo && isPastDate ? null : userRecurringConfig;
-  const pastTodoFields =
-    isTodo && isPastDate
-      ? {
-          completed: true,
-          completedAt: selectedEvent?.completedAt || Date.now(),
-          createdFromAction: true,
-          isRecurringTodo: false,
-        }
-      : isTodo && !isPastDate
-        ? {
-            completed: false,
-            completedAt: undefined,
-            createdFromAction: false,
-          }
-        : {};
+  const recurringConfig = isRecurringEnabled
+    ? userRecurringConfig
+    : isTodo && isPastDate
+      ? null
+      : userRecurringConfig;
+
+  let todoStatusFields = {};
+  if (isTodo) {
+    if (isRecurringEnabled) {
+      const keepCompleted = isPastDate || wasCompleted;
+      todoStatusFields = {
+        isRecurringTodo: true,
+        completed: keepCompleted,
+        completedAt: keepCompleted ? selectedEvent?.completedAt || Date.now() : undefined,
+        createdFromAction: keepCompleted,
+      };
+    } else if (isPastDate) {
+      todoStatusFields = {
+        completed: true,
+        completedAt: selectedEvent?.completedAt || Date.now(),
+        createdFromAction: true,
+        isRecurringTodo: false,
+      };
+    } else {
+      todoStatusFields = {
+        completed: false,
+        completedAt: undefined,
+        createdFromAction: false,
+      };
+    }
+  }
 
   if (selectedEvent) {
     return {
@@ -91,7 +110,7 @@ export function buildCalendarEventPayload({
       day: selectedDate.valueOf(),
       id: selectedEvent.id,
       userRecurringConfig: recurringConfig,
-      ...pastTodoFields,
+      ...todoStatusFields,
     };
   }
 
@@ -103,6 +122,7 @@ export function buildCalendarEventPayload({
     toDo: toDoValue,
     day: selectedDate.valueOf(),
     completed: isTodo && isPastDate,
+    isRecurringTodo: isRecurringEnabled && isTodo,
     ...(isTodo &&
       isPastDate && {
         completedAt: Date.now(),

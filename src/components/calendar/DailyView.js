@@ -4,6 +4,7 @@ import { useCalendarContext } from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
 import { useToast } from '../../context/ToastContext';
 import { useResponsive, useRecurringActions, useEventDeleteConfirm, useDailyDayStrip, useCalendarEventActions } from '../../hooks';
+import { useTranslation } from '../../i18n/LanguageContext';
 import DailyDayStrip from './DailyDayStrip';
 import DailyEventsPanel, { useDailyBulkEditState } from './DailyEventsPanel';
 import DailyBulkEditModals from './DailyBulkEditModals';
@@ -11,6 +12,7 @@ import EventDeleteConfirmModal from './EventDeleteConfirmModal';
 import '../../index.css';
 
 const DailyView = () => {
+  const { t } = useTranslation();
   const { showError } = useToast();
   const { daySelected, setDaySelected, monthIndex, setMonthIndex } = useCalendarContext();
   const {
@@ -76,7 +78,7 @@ const DailyView = () => {
         await completeTodo(evt);
       }
     } catch {
-      showError(evt.completed ? 'Could not restore to-do.' : 'Could not mark complete.');
+      showError(evt.completed ? t('calendar.couldNotRestoreTodo') : t('calendar.couldNotMarkComplete'));
     }
   };
 
@@ -86,7 +88,7 @@ const DailyView = () => {
       className={`daily-todo-complete-circle flex-shrink-0 ${evt.completed ? 'daily-todo-complete-circle--done' : ''} ${extraClassName}`.trim()}
       onClick={(e) => handleDayViewToggleComplete(evt, e)}
       disabled={isLoading}
-      aria-label={evt.completed ? 'Mark as to-do' : 'Mark complete'}
+      aria-label={evt.completed ? t('calendar.markAsTodo') : t('calendar.markComplete')}
       aria-pressed={!!evt.completed}
     >
       {evt.completed && (
