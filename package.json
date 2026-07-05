@@ -29,8 +29,8 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "prestart": "node scripts/write-firebase-sw-config.js",
-    "prebuild": "node scripts/write-firebase-sw-config.js",
+    "prestart": "node scripts/write-firebase-sw-config.js && node scripts/write-build-info.js",
+    "prebuild": "node scripts/write-firebase-sw-config.js && node scripts/write-build-info.js",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

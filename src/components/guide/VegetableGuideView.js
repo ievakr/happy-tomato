@@ -50,6 +50,7 @@ function VegetableDetail({ veg }) {
 
       <div className="mt-3">
         <CareRow icon="wb_sunny" label={t('guide.sunlight')}>{veg.sun}</CareRow>
+        <CareRow icon="terrain" label={t('guide.soil')}>{veg.soil}</CareRow>
         <CareRow icon="grass" label={t('guide.sowing')}>{veg.sow}</CareRow>
         <CareRow icon="park" label={t('guide.transplanting')}>{veg.transplant}</CareRow>
         <CareRow icon="straighten" label={t('guide.spacing')}>{veg.spacing}</CareRow>

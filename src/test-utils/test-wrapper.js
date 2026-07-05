@@ -15,6 +15,8 @@ export const createWrapper = (contextValue = {}) => {
     setSmallCalendarMonth: jest.fn(),
     daySelected: null,
     setDaySelected: jest.fn(),
+    todayFocusNonce: 0,
+    goToToday: jest.fn(),
     currentView: 'month',
     setCurrentView: jest.fn(),
     weekIndex: 0,

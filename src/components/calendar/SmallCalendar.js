@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import dayjs from "dayjs";
-import { getMonth, getDayHeaders } from "../../utils";
+import { getMonth, getDayHeaders, capitalizeFirst } from "../../utils";
 import { useCalendarContext } from "../../context/CalendarContext";
+import { useTranslation } from "../../i18n/LanguageContext";
 
 export default function SmallCalendar() {
+    const { language } = useTranslation();
     const [currentMonthIdx, setCurrentMonthIdx] = useState(dayjs().month());
     const [currentMonth, setCurrentMonth] = useState(getMonth());
     useEffect(() => {
@@ -48,7 +50,7 @@ export default function SmallCalendar() {
         <div className="mt-4 mx-auto" style={{ width: '100%' }}>
             <header className="d-flex justify-content-between align-items-center mb-3">
                 <p className="text-secondary font-weight-bold mb-0">
-                    {dayjs(new Date(dayjs().year(), currentMonthIdx)).format("MMMM YYYY")}
+                    {capitalizeFirst(dayjs(new Date(dayjs().year(), currentMonthIdx)).locale(language).format("MMMM YYYY"))}
                 </p>
                 <div>
                     <button className="btn btn-link p-0" onClick={handlePrevMonth}>

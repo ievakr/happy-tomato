@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n/LanguageContext';
-import LanguageSwitcher from '../common/LanguageSwitcher';
 import AccountSettings from '../settings/AccountSettings';
 import './UserMenu.css';
 
@@ -127,11 +126,6 @@ function UserMenu() {
           <div className="px-3 py-2">
             <div className="fw-semibold">{currentUser?.displayName || t('auth.user')}</div>
             <div className="text-muted small">{currentUser?.email}</div>
-          </div>
-          <div className="dropdown-divider" />
-          <div className="px-3 py-2">
-            <div className="text-muted small mb-1">{t('auth.language')}</div>
-            <LanguageSwitcher />
           </div>
           <div className="dropdown-divider" />
           <button 

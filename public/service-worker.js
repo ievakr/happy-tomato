@@ -59,8 +59,8 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-const PRECACHE_NAME = 'happy-tomato-precache-v2';
-const RUNTIME_CACHE = 'happy-tomato-runtime-v1';
+const PRECACHE_NAME = 'happy-tomato-precache-v3';
+const RUNTIME_CACHE = 'happy-tomato-runtime-v2';
 
 const PRECACHE_URLS = [
   '/',
@@ -72,6 +72,9 @@ const PRECACHE_URLS = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Activate this new worker as soon as it finishes installing, so app updates
+  // take effect on the next launch instead of waiting behind the old worker.
+  self.skipWaiting();
   event.waitUntil(
     caches
       .open(PRECACHE_NAME)
@@ -131,25 +134,24 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (['style', 'script', 'image', 'font'].includes(request.destination)) {
+    // Stale-while-revalidate: serve the cached asset immediately (fast + works
+    // offline), but always kick off a background fetch to refresh the cache so
+    // a stale build can't get "stuck". On a cache miss (e.g. a new hashed chunk
+    // after an update) we wait for the network and cache the fresh response.
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
+      caches.open(RUNTIME_CACHE).then(async (cache) => {
+        const cachedResponse = await cache.match(request);
 
-        return fetch(request)
+        const networkFetch = fetch(request)
           .then((response) => {
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
+            if (response && response.status === 200 && response.type === 'basic') {
+              cache.put(request, response.clone());
             }
-
-            const responseClone = response.clone();
-            caches.open(RUNTIME_CACHE).then((cache) => {
-              cache.put(request, responseClone);
-            });
             return response;
           })
           .catch(() => cachedResponse);
+
+        return cachedResponse || networkFetch;
       })
     );
     return;

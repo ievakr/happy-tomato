@@ -21,8 +21,8 @@ import messages from './dictionaries/messages';
  */
 
 export const SUPPORTED_LANGUAGES = [
-  { code: 'en', label: 'English', nativeLabel: 'English' },
-  { code: 'lt', label: 'Lithuanian', nativeLabel: 'Lietuvių' },
+  { code: 'en', label: 'English', nativeLabel: 'English', flag: '🇬🇧' },
+  { code: 'lt', label: 'Lithuanian', nativeLabel: 'Lietuvių', flag: '🇱🇹' },
 ];
 
 const LANGUAGE_CODES = SUPPORTED_LANGUAGES.map((l) => l.code);
@@ -65,13 +65,30 @@ function readStoredLanguage() {
   return null;
 }
 
+/** The language to use before/at first render. */
+function getInitialLanguage() {
+  return readStoredLanguage() || detectDeviceLanguage();
+}
+
+// Apply the dayjs locale at module load, before React renders anything, so the
+// very first paint already formats dates in the right language. The `import
+// 'dayjs/locale/lt'` above only REGISTERS the locale; this line SELECTS it.
+dayjs.locale(getInitialLanguage());
+
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
-  const [language, setLanguageState] = useState(() => readStoredLanguage() || detectDeviceLanguage());
+  const [language, setLanguageState] = useState(getInitialLanguage);
+
+  // Set the dayjs locale SYNCHRONOUSLY during render (not in an effect) so that
+  // children render dates/day-names with the correct locale in the same pass.
+  // If it were only in an effect, text (via t()) would switch immediately while
+  // dayjs-formatted dates lagged a render behind, looking inconsistent.
+  if (dayjs.locale() !== language) {
+    dayjs.locale(language);
+  }
 
   useEffect(() => {
-    dayjs.locale(language);
     try {
       window.localStorage.setItem(STORAGE_KEY, language);
     } catch {

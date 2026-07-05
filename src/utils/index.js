@@ -167,6 +167,17 @@ export function deepClone(obj) {
  * @param {string} format - Format type ('short' for 3-letter, 'single' for 1-letter)
  * @returns {Array<string>} Array of day headers
  */
+/**
+ * Capitalize the first character of a string. Used for date labels because
+ * some locales (e.g. Lithuanian) render month/weekday names lowercase.
+ * @param {string} str
+ * @returns {string}
+ */
+export function capitalizeFirst(str) {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 export function getDayHeaders(format = 'short') {
   // Create a reference Monday (January 1, 2024 was a Monday)
   const monday = dayjs('2024-01-01');

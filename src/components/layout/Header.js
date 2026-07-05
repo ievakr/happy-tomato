@@ -3,13 +3,13 @@ import React, { useContext, useCallback } from 'react';
 import logo from '../../assets/logo.png';
 import { useCalendarContext } from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
-import { calendarDateFromMonthIndex } from '../../utils';
+import { calendarDateFromMonthIndex, capitalizeFirst } from '../../utils';
 import { useResponsive, useResponsiveCalendarView } from '../../hooks';
 import { useTranslation } from '../../i18n/LanguageContext';
 import UserMenu from '../auth/UserMenu';
 
 export default function Header() {
-    const { t } = useTranslation();
+    const { t, language } = useTranslation();
     const {
         monthIndex, 
         setMonthIndex, 
@@ -18,12 +18,12 @@ export default function Header() {
         weekIndex,
         setWeekIndex,
         daySelected,
-        setDaySelected
+        setDaySelected,
+        goToToday,
     } = useCalendarContext();
     const { showSidebar, setShowSidebar } = useContext(LayoutContext);
     const { isMobile } = useResponsive();
     const { switchToWeekView } = useResponsiveCalendarView();
-    
     function applyMonthChange(newMonth) {
         setMonthIndex(newMonth);
         // Reset week index when changing months
@@ -59,15 +59,17 @@ export default function Header() {
     }
 
     const exitGuideView = useCallback(() => {
+        goToToday();
         setCurrentView(isMobile ? 'daily' : 'month');
-    }, [isMobile, setCurrentView]);
+    }, [goToToday, isMobile, setCurrentView]);
 
     /** Mobile: one control for day → month → year (iPhone Calendar–style), replacing the icon toggle. */
     const mobileCalendarHierarchyYear = calendarDateFromMonthIndex(monthIndex).year();
-    const mobileNavMonthName =
+    const mobileNavMonthName = capitalizeFirst(
         currentView === 'daily'
-            ? calendarDateFromMonthIndex(monthIndex).format('MMMM')
-            : (daySelected || dayjs()).format('MMMM');
+            ? calendarDateFromMonthIndex(monthIndex).locale(language).format('MMMM')
+            : (daySelected || dayjs()).locale(language).format('MMMM')
+    );
     const handleMobileCalendarNav = () => {
         if (currentView === 'guide') return;
         if (currentView === 'daily') {
@@ -199,7 +201,7 @@ export default function Header() {
                                     </span>
                                 </button>
                                 <span className="calendar-month-label mx-2">
-                                    {dayjs(new Date(dayjs().year(), monthIndex)).format("MMMM YYYY")}
+                                    {capitalizeFirst(dayjs(new Date(dayjs().year(), monthIndex)).locale(language).format("MMMM YYYY"))}
                                 </span>
                                 <button
                                     className="btn btn-sm btn-light"
@@ -225,7 +227,7 @@ export default function Header() {
                                     </span>
                                 </button>
                                 <span className="calendar-month-label mx-2">
-                                    {dayjs(new Date(dayjs().year(), monthIndex)).format("MMMM YYYY")}
+                                    {capitalizeFirst(dayjs(new Date(dayjs().year(), monthIndex)).locale(language).format("MMMM YYYY"))}
                                 </span>
                                 <button
                                     className="btn btn-sm btn-light"

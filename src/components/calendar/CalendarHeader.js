@@ -1,19 +1,19 @@
 import React, { memo } from 'react';
 import { useCalendarContext } from '../../context/CalendarContext';
 import { useResponsive } from '../../hooks';
-import { getDayHeaders, calendarDateFromMonthIndex } from '../../utils';
+import { getDayHeaders, calendarDateFromMonthIndex, capitalizeFirst } from '../../utils';
 import { useTranslation } from '../../i18n/LanguageContext';
 
 /**
  * Calendar header component that displays day names starting from Monday
  */
 const CalendarHeader = memo(() => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const dayHeaders = getDayHeaders('short');
   const { monthIndex, setMonthIndex } = useCalendarContext();
   const { isMobile } = useResponsive();
 
-  const monthAnchor = calendarDateFromMonthIndex(monthIndex);
+  const monthAnchor = calendarDateFromMonthIndex(monthIndex).locale(language);
 
   const handlePrevMonth = () => setMonthIndex(monthIndex - 1);
   const handleNextMonth = () => setMonthIndex(monthIndex + 1);
@@ -34,7 +34,7 @@ const CalendarHeader = memo(() => {
             </span>
           </button>
           <span className="calendar-month-label">
-            {monthAnchor.format('MMMM YYYY')}
+            {capitalizeFirst(monthAnchor.format('MMMM YYYY'))}
           </span>
           <button
             className="btn btn-sm btn-light"

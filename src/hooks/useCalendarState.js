@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
 import { useResponsive } from './useResponsive';
+import { getCurrentWeekIndex, monthIndexFromCalendarDate } from '../utils';
 
 /**
  * Hook for calendar view state: month, week, day selection, and view mode.
@@ -15,6 +16,15 @@ export function useCalendarState() {
   const [currentView, setCurrentView] = useState(getInitialView());
   const [weekIndex, setWeekIndex] = useState(0);
   const [currentDayIndex, setCurrentDayIndex] = useState(0);
+  const [todayFocusNonce, setTodayFocusNonce] = useState(0);
+
+  const goToToday = useCallback(() => {
+    const today = dayjs().startOf('day');
+    setDaySelected(today);
+    setMonthIndex(monthIndexFromCalendarDate(today));
+    setWeekIndex(getCurrentWeekIndex(monthIndexFromCalendarDate(today), today));
+    setTodayFocusNonce((n) => n + 1);
+  }, []);
 
   // Sync small calendar month selection to main month
   useEffect(() => {
@@ -36,5 +46,7 @@ export function useCalendarState() {
     setWeekIndex,
     currentDayIndex,
     setCurrentDayIndex,
+    todayFocusNonce,
+    goToToday,
   };
 }

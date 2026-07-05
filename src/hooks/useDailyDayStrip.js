@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import dayjs from 'dayjs';
-import { monthIndexFromCalendarDate } from '../utils';
+import { monthIndexFromCalendarDate, capitalizeFirst } from '../utils';
 import { filterEventsForDay, isToday } from '../utils/eventDates';
+import { useTranslation } from '../i18n/LanguageContext';
 
 /** Mobile day strip: initial window size and how many days to add when scrolling near an edge */
 export const STRIP_INITIAL_DAY_COUNT = 60;
@@ -20,7 +21,10 @@ export function useDailyDayStrip({
   isInitialLoading,
   filteredEvents,
   openNewEventForDay,
+  todayFocusNonce = 0,
+  goToToday: goToTodayFromContext,
 }) {
+  const { language } = useTranslation();
   const scrollContainerRef = useRef(null);
   const dayElementMapRef = useRef(new Map());
   const stripPrependingRef = useRef(false);
@@ -264,11 +268,20 @@ export function useDailyDayStrip({
   );
 
   const jumpToToday = useCallback(() => {
-    const today = dayjs();
+    if (goToTodayFromContext) {
+      goToTodayFromContext();
+      return;
+    }
+    const today = dayjs().startOf('day');
     setDaySelected(today);
     setMonthIndex(monthIndexFromCalendarDate(today));
     reanchorStrip(today);
-  }, [setDaySelected, setMonthIndex, reanchorStrip]);
+  }, [goToTodayFromContext, setDaySelected, setMonthIndex, reanchorStrip]);
+
+  useEffect(() => {
+    if (!isMobile || todayFocusNonce === 0) return;
+    reanchorStrip(dayjs().startOf('day'));
+  }, [todayFocusNonce, isMobile, reanchorStrip]);
 
   useEffect(() => {
     const d = dayjs(selectedDayCalendarKey);
@@ -388,8 +401,8 @@ export function useDailyDayStrip({
   );
 
   const visibleMonthLabel = useMemo(
-    () => dayjs(`${visibleStripMonthKey}-01`).format('MMMM YYYY'),
-    [visibleStripMonthKey]
+    () => capitalizeFirst(dayjs(`${visibleStripMonthKey}-01`).locale(language).format('MMMM YYYY')),
+    [visibleStripMonthKey, language]
   );
 
   const allDays = useMemo(

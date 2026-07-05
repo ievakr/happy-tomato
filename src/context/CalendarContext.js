@@ -13,7 +13,9 @@ const CalendarContext = React.createContext({
     weekIndex: 0,
     setWeekIndex: (index) => {},
     currentDayIndex: 0,
-    setCurrentDayIndex: (index) => {}
+    setCurrentDayIndex: (index) => {},
+    todayFocusNonce: 0,
+    goToToday: () => {},
 });
 
 export function useCalendarContext() {

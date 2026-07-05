@@ -14,7 +14,8 @@ import '../../index.css';
 const DailyView = () => {
   const { t } = useTranslation();
   const { showError } = useToast();
-  const { daySelected, setDaySelected, monthIndex, setMonthIndex } = useCalendarContext();
+  const { daySelected, setDaySelected, monthIndex, setMonthIndex, todayFocusNonce, goToToday } =
+    useCalendarContext();
   const {
     filteredEvents,
     isInitialLoading,
@@ -46,6 +47,8 @@ const DailyView = () => {
     isInitialLoading,
     filteredEvents,
     openNewEventForDay: openEventForDay,
+    todayFocusNonce,
+    goToToday,
   });
 
   const {

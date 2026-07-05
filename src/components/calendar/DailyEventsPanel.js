@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import EventItem, { eventTodoOrTitleText } from './EventItem';
 import MobileDailyEventRow from './MobileDailyEventRow';
 import { filterEventsForDay, isToday } from '../../utils/eventDates';
+import { capitalizeFirst } from '../../utils';
 import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function DailyEventsPanel({
@@ -24,7 +25,7 @@ export default function DailyEventsPanel({
   onOpenBulkMove,
   onOpenBulkDelete,
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const selectAllCheckboxRef = useRef(null);
 
   const dayEvents = useMemo(() => {
@@ -63,7 +64,7 @@ export default function DailyEventsPanel({
       }}
     >
       <div className="mb-3">
-        <h5 className="mb-1">{currentDay.format('dddd, MMMM D, YYYY')}</h5>
+        <h5 className="mb-1">{capitalizeFirst(currentDay.locale(language).format('dddd, MMMM D, YYYY'))}</h5>
         {isToday(currentDay) && <small className="text-muted">{t('calendar.today')}</small>}
       </div>
 

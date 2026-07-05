@@ -1,6 +1,7 @@
 import React, { useContext, useState } from 'react';
 import CreateEventButton from '../forms/CreateEventButton';
 import Labels from '../calendar/Labels';
+import LanguageSwitcher from '../common/LanguageSwitcher';
 import { useCalendarContext } from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
 import { useEventContext } from '../../context/EventContext';
@@ -139,6 +140,11 @@ export default function Sidebar() {
                             {t('layout.vegetableGuide')}
                         </button>
                     </div>
+                </div>
+
+                <div className="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">
+                    <span className="text-muted small">{t('auth.language')}</span>
+                    <LanguageSwitcher variant="flags" />
                 </div>
             </aside>
         </>
