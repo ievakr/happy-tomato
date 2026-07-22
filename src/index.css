@@ -45,6 +45,25 @@ html.capacitor-ios-native #root {
   }
 }
 
+.vegetable-guide-bullets {
+  padding-left: 1.5rem;
+  list-style-type: disc;
+  list-style-position: outside;
+}
+
+.vegetable-guide article,
+.vegetable-guide article p,
+.vegetable-guide article li,
+.vegetable-guide article dd {
+  color: #212529;
+  font-size: 1rem;
+}
+
+.vegetable-guide article dt.text-secondary {
+  color: var(--bs-secondary-color, #6c757d) !important;
+  font-size: 1rem;
+}
+
 /* Whole app: sit above home indicator (viewport-fit=cover) */
 .app-shell {
   padding-bottom: env(safe-area-inset-bottom, 0px);

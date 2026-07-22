@@ -1,81 +1,14 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useTranslation } from '../../i18n/LanguageContext';
-import { vegetableGuide } from '../../data/vegetableGuide';
+import {
+  vegetableGuide,
+  GENERAL_GROWING_TIPS,
+  GENERAL_GROWING_TIPS_ID,
+} from '../../data/vegetableGuide';
+import VegetableGuideDetail, { DIFFICULTY_CLASS } from './VegetableGuideDetail';
+import VegetableGuideProblemDetail from './VegetableGuideProblemDetail';
 import Icon from '../common/Icon';
-
-const DIFFICULTY_CLASS = {
-  Easy: 'text-success',
-  Moderate: 'text-warning',
-  Advanced: 'text-danger',
-};
-
-function CareRow({ icon, label, children }) {
-  if (!children) return null;
-  return (
-    <div className="d-flex gap-3 py-2 border-bottom border-light">
-      <div className="text-secondary d-flex align-items-start" style={{ minWidth: '1.5rem' }}>
-        <Icon name={icon} style={{ fontSize: '1.25rem' }} />
-      </div>
-      <div className="flex-grow-1">
-        <div className="small text-uppercase text-secondary fw-semibold" style={{ letterSpacing: '0.02em' }}>
-          {label}
-        </div>
-        <div>{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function VegetableDetail({ veg }) {
-  const { t } = useTranslation();
-  return (
-    <article>
-      <div className="d-flex align-items-center gap-3 mb-2">
-        <span
-          className="d-inline-flex align-items-center justify-content-center rounded bg-light border"
-          style={{ width: '56px', height: '56px', flexShrink: 0 }}
-        >
-          <Icon plantIcon={veg.icon} style={{ fontSize: '1.75rem' }} />
-        </span>
-        <div>
-          <h2 className="h4 mb-1">{veg.name}</h2>
-          <span className={`small fw-semibold ${DIFFICULTY_CLASS[veg.difficulty] || 'text-secondary'}`}>
-            {t(`guide.difficulty.${veg.difficulty}`)}
-          </span>
-        </div>
-      </div>
-
-      <p className="text-muted">{veg.summary}</p>
-
-      <div className="mt-3">
-        <CareRow icon="wb_sunny" label={t('guide.sunlight')}>{veg.sun}</CareRow>
-        <CareRow icon="terrain" label={t('guide.soil')}>{veg.soil}</CareRow>
-        <CareRow icon="grass" label={t('guide.sowing')}>{veg.sow}</CareRow>
-        <CareRow icon="park" label={t('guide.transplanting')}>{veg.transplant}</CareRow>
-        <CareRow icon="straighten" label={t('guide.spacing')}>{veg.spacing}</CareRow>
-        <CareRow icon="south" label={t('guide.sowingDepth')}>{veg.depth}</CareRow>
-        <CareRow icon="water_drop" label={t('guide.watering')}>{veg.water}</CareRow>
-        <CareRow icon="eco" label={t('guide.feeding')}>{veg.feed}</CareRow>
-        <CareRow icon="agriculture" label={t('guide.harvest')}>{veg.harvest}</CareRow>
-      </div>
-
-      {veg.tips?.length ? (
-        <div className="mt-4 p-3 rounded-3 bg-light border">
-          <div className="d-flex align-items-center gap-2 mb-2">
-            <Icon name="tips_and_updates" className="text-secondary" style={{ fontSize: '1.15rem' }} />
-            <span className="small text-uppercase text-secondary fw-semibold">{t('guide.goodToKnow')}</span>
-          </div>
-          <ul className="mb-0 ps-3">
-            {veg.tips.map((tip, i) => (
-              <li key={i} className="mb-1">{tip}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </article>
-  );
-}
 
 export default function VegetableGuideView() {
   const { t } = useTranslation();
@@ -83,9 +16,11 @@ export default function VegetableGuideView() {
   const searchInputRef = useRef(null);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
+  const [selectedProblemId, setSelectedProblemId] = useState(null);
 
   const selectVegetable = (id) => {
     searchInputRef.current?.blur();
+    setSelectedProblemId(null);
     setSelectedId(id);
   };
 
@@ -95,10 +30,17 @@ export default function VegetableGuideView() {
     return vegetableGuide.filter((v) => v.name.toLowerCase().includes(q));
   }, [query]);
 
-  const selected = useMemo(
-    () => vegetableGuide.find((v) => v.id === selectedId) || null,
-    [selectedId],
-  );
+  const showGeneralTips = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    const label = 'general growing tips';
+    return label.includes(q) || GENERAL_GROWING_TIPS.name.toLowerCase().includes(q);
+  }, [query]);
+
+  const selected = useMemo(() => {
+    if (selectedId === GENERAL_GROWING_TIPS_ID) return GENERAL_GROWING_TIPS;
+    return vegetableGuide.find((v) => v.id === selectedId) || null;
+  }, [selectedId]);
 
   const searchBox = (
     <div className="p-3 border-bottom bg-white">
@@ -119,63 +61,109 @@ export default function VegetableGuideView() {
     </div>
   );
 
+  const listItems = [
+    ...filtered.map((veg) => {
+      const active = !isMobile && veg.id === selectedId && !selectedProblemId;
+      return (
+        <li key={veg.id} className="list-group-item p-0">
+          <button
+            type="button"
+            className={`btn w-100 text-start d-flex align-items-center gap-3 py-2 px-3 rounded-0 ${
+              active ? 'bg-light fw-semibold' : ''
+            }`}
+            onClick={() => selectVegetable(veg.id)}
+            aria-pressed={active}
+          >
+            <Icon plantIcon={veg.icon} style={{ fontSize: '1.35rem' }} />
+            <span className="flex-grow-1">{veg.name}</span>
+            <span className={`small ${DIFFICULTY_CLASS[veg.difficulty] || 'text-secondary'}`}>
+              {t(`guide.difficulty.${veg.difficulty}`)}
+            </span>
+            {isMobile ? (
+              <Icon name="chevron_right" className="text-secondary" style={{ fontSize: '1.25rem' }} />
+            ) : null}
+          </button>
+        </li>
+      );
+    }),
+  ];
+
+  if (showGeneralTips) {
+    const active = !isMobile && selectedId === GENERAL_GROWING_TIPS_ID;
+    listItems.push(
+      <li key={GENERAL_GROWING_TIPS_ID} className="list-group-item p-0">
+        <button
+          type="button"
+          className={`btn w-100 text-start d-flex align-items-center gap-3 py-2 px-3 rounded-0 ${
+            active ? 'bg-light fw-semibold' : ''
+          }`}
+          onClick={() => selectVegetable(GENERAL_GROWING_TIPS_ID)}
+          aria-pressed={active}
+        >
+          <Icon name="tips_and_updates" style={{ fontSize: '1.35rem' }} />
+          <span className="flex-grow-1">{t('guide.generalTips')}</span>
+          {isMobile ? (
+            <Icon name="chevron_right" className="text-secondary" style={{ fontSize: '1.25rem' }} />
+          ) : null}
+        </button>
+      </li>
+    );
+  }
+
   const list = (
     <ul className="list-group list-group-flush">
-      {filtered.length === 0 ? (
+      {filtered.length === 0 && !showGeneralTips ? (
         <li className="list-group-item text-muted small">{t('guide.noMatch', { query })}</li>
       ) : (
-        filtered.map((veg) => {
-          const active = !isMobile && veg.id === selectedId;
-          return (
-            <li key={veg.id} className="list-group-item p-0">
-              <button
-                type="button"
-                className={`btn w-100 text-start d-flex align-items-center gap-3 py-2 px-3 rounded-0 ${
-                  active ? 'bg-light fw-semibold' : ''
-                }`}
-                onClick={() => selectVegetable(veg.id)}
-                aria-pressed={active}
-              >
-                <Icon plantIcon={veg.icon} style={{ fontSize: '1.35rem' }} />
-                <span className="flex-grow-1">{veg.name}</span>
-                <span className={`small ${DIFFICULTY_CLASS[veg.difficulty] || 'text-secondary'}`}>
-                  {t(`guide.difficulty.${veg.difficulty}`)}
-                </span>
-                {isMobile ? (
-                  <Icon name="chevron_right" className="text-secondary" style={{ fontSize: '1.25rem' }} />
-                ) : null}
-              </button>
-            </li>
-          );
-        })
+        listItems
       )}
     </ul>
   );
 
   const intro = (
     <div className="px-3 pt-3 pb-2">
-      <p className="small text-muted mb-0">
-        {t('guide.intro')}
-      </p>
+      <p className="small mb-0">{t('guide.intro')}</p>
     </div>
   );
 
+  const detailContent = selectedProblemId ? (
+    <VegetableGuideProblemDetail
+      problemId={selectedProblemId}
+      onBack={() => setSelectedProblemId(null)}
+    />
+  ) : selected ? (
+    <VegetableGuideDetail veg={selected} onSelectProblem={setSelectedProblemId} />
+  ) : (
+    <p>{t('guide.selectPrompt')}</p>
+  );
+
   if (isMobile) {
-    if (selected) {
+    if (selectedProblemId || selected) {
+      const backLabel = selectedProblemId
+        ? selected?.name || t('guide.backToGuide')
+        : t('guide.allVegetables');
+      const onBack = selectedProblemId
+        ? () => setSelectedProblemId(null)
+        : () => setSelectedId(null);
+
       return (
         <div className="d-flex flex-column h-100 w-100 bg-white vegetable-guide">
           <div className="d-flex align-items-center gap-2 p-2 border-bottom flex-shrink-0">
             <button
               type="button"
               className="btn btn-sm btn-outline-secondary"
-              onClick={() => setSelectedId(null)}
+              onClick={onBack}
             >
               <Icon name="chevron_left" style={{ fontSize: '1.15rem', verticalAlign: 'middle' }} />
-              {t('guide.allVegetables')}
+              {backLabel}
             </button>
           </div>
           <div className="flex-grow-1 overflow-auto p-3" style={{ minHeight: 0 }}>
-            <VegetableDetail veg={selected} />
+            {selectedProblemId ? (
+              <VegetableGuideProblemDetail problemId={selectedProblemId} />
+            ) : (
+              <VegetableGuideDetail veg={selected} onSelectProblem={setSelectedProblemId} />
+            )}
           </div>
         </div>
       );
@@ -204,13 +192,7 @@ export default function VegetableGuideView() {
         </div>
       </div>
       <div className="flex-grow-1 overflow-auto p-4" style={{ minHeight: 0 }}>
-        {selected ? (
-          <div style={{ maxWidth: '640px' }}>
-            <VegetableDetail veg={selected} />
-          </div>
-        ) : (
-          <p className="text-muted">{t('guide.selectPrompt')}</p>
-        )}
+        <div style={{ maxWidth: '720px' }}>{detailContent}</div>
       </div>
     </div>
   );
