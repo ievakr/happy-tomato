@@ -282,7 +282,6 @@ const DETAILED_VEGETABLES = [
       'forked-roots',
       'hairy-roots',
       'carrot-fly',
-      'poor-germination',
       'root-splitting',
     ],
     harvest: [
@@ -815,8 +814,6 @@ const DETAILED_VEGETABLES = [
     planting: {
       paragraphs: [
         'Plant sprouted seed potatoes once heavy frosts have passed.',
-        'Plant 10–15 cm deep.',
-        'Spacing: 30 cm between plants, 60 cm between rows.',
       ],
       spacing: '30 cm between plants; 60 cm between rows.',
       depth: '10–15 cm.',

@@ -8,7 +8,7 @@ const CalendarContext = React.createContext({
     daySelected: null,
     setDaySelected: (day) => {},
     // View management
-    currentView: "month", // "month", "year" (mobile month drill-down), "week", "daily", or "guide"
+    currentView: "month", // "month", "year" (mobile month drill-down), "week", "daily", "guide", or "disease-guide"
     setCurrentView: () => {},
     weekIndex: 0,
     setWeekIndex: (index) => {},

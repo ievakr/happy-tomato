@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from '../../i18n/LanguageContext';
-import { isDetailedGuideEntry, isGeneralTipsEntry, getGuideProblemsByIds } from '../../data/vegetableGuide';
+import { isDetailedGuideEntry, isGeneralTipsEntry, getGuideProblemsForCrop } from '../../data/vegetableGuide';
 import Icon from '../common/Icon';
 
 const DIFFICULTY_CLASS = {
@@ -38,7 +38,7 @@ function BulletList({ items }) {
 function GuideSection({ icon, title, children }) {
   if (!children) return null;
   return (
-    <section className="mb-4">
+    <section className="mb-4 vegetable-guide-section">
       <h3
         className="h6 text-uppercase text-dark fw-bold mb-3 d-flex align-items-center gap-2"
         style={{ letterSpacing: '0.03em' }}
@@ -158,7 +158,7 @@ function LegacyVegetableDetail({ veg }) {
 function DetailedVegetableDetail({ veg, onSelectProblem }) {
   const { t } = useTranslation();
   const { conditions, planting, care, companions, rotation } = veg;
-  const problems = getGuideProblemsByIds(veg.commonProblems || []);
+  const problems = getGuideProblemsForCrop(veg.commonProblems || []);
 
   return (
     <article>
@@ -262,7 +262,12 @@ function DetailedVegetableDetail({ veg, onSelectProblem }) {
                   className="btn w-100 text-start d-flex align-items-center gap-3 py-2 px-3 rounded-0"
                   onClick={() => onSelectProblem?.(problem.id)}
                 >
-                  <Icon name={problem.icon || 'bug_report'} className="text-secondary" style={{ fontSize: '1.25rem' }} />
+                  <Icon
+                    name={problem.icon || 'bug_report'}
+                    plantIcon={problem.plantIcon}
+                    className="text-secondary"
+                    style={{ fontSize: '1.25rem' }}
+                  />
                   <span className="flex-grow-1">{problem.name}</span>
                   <Icon name="chevron_right" className="text-secondary" style={{ fontSize: '1.25rem' }} />
                 </button>
@@ -301,8 +306,9 @@ function DetailedVegetableDetail({ veg, onSelectProblem }) {
 
       {rotation ? (
         <GuideSection icon="autorenew" title={t('guide.cropRotation')}>
+          {rotation.note ? <p className="mb-3">{rotation.note}</p> : null}
           {rotation.avoidAfter?.length ? (
-            <div className="mb-2">
+            <div className="mb-3">
               <div className="fw-bold text-secondary mb-1 d-flex align-items-center gap-1">
                 <Icon name="block" className="text-danger" style={{ fontSize: '1rem' }} />
                 {t('guide.avoidAfter')}
@@ -319,7 +325,6 @@ function DetailedVegetableDetail({ veg, onSelectProblem }) {
               <BulletList items={rotation.goodBefore} />
             </div>
           ) : null}
-          {rotation.note ? <p className="mb-0">{rotation.note}</p> : null}
         </GuideSection>
       ) : null}
 

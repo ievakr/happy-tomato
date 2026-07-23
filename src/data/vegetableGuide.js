@@ -15,6 +15,7 @@ import GENERAL_GROWING_TIPS, { GENERAL_GROWING_TIPS_ID } from './vegetableGuideG
 import GUIDE_PROBLEMS, {
   getGuideProblem,
   getGuideProblemsByIds,
+  getGuideProblemsForCrop,
   getCropsAffectedByProblem,
 } from './vegetableGuideProblems';
 
@@ -24,6 +25,7 @@ export {
   GUIDE_PROBLEMS,
   getGuideProblem,
   getGuideProblemsByIds,
+  getGuideProblemsForCrop,
   getCropsAffectedByProblem,
 };
 

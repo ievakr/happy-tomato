@@ -63,6 +63,8 @@ export default function Header() {
         setCurrentView(isMobile ? 'daily' : 'month');
     }, [goToToday, isMobile, setCurrentView]);
 
+    const isGuideLikeView = currentView === 'guide' || currentView === 'disease-guide';
+
     /** Mobile: one control for day → month → year (iPhone Calendar–style), replacing the icon toggle. */
     const mobileCalendarHierarchyYear = calendarDateFromMonthIndex(monthIndex).year();
     const mobileNavMonthName = capitalizeFirst(
@@ -71,7 +73,7 @@ export default function Header() {
             : (daySelected || dayjs()).locale(language).format('MMMM')
     );
     const handleMobileCalendarNav = () => {
-        if (currentView === 'guide') return;
+        if (isGuideLikeView) return;
         if (currentView === 'daily') {
             setCurrentView('month');
         } else if (currentView === 'month') {
@@ -131,7 +133,7 @@ export default function Header() {
                         
                         {/* Right side: Month/year drill-down + settings (day view is default on mobile) */}
                         <div className="d-flex align-items-center gap-1">
-                            {currentView === 'guide' ? (
+                            {isGuideLikeView ? (
                                 <button
                                     type="button"
                                     className="calendar-header-mobile-calendar-nav btn btn-sm flex-shrink-0 text-nowrap"
@@ -175,7 +177,7 @@ export default function Header() {
 
                     {/* Center navigation - week or month */}
                     <div className="calendar-month-nav calendar-month-nav-centered d-flex align-items-center">
-                        {currentView === 'guide' ? (
+                        {isGuideLikeView ? (
                             <button
                                 type="button"
                                 className="btn btn-sm btn-outline-secondary d-inline-flex align-items-center"

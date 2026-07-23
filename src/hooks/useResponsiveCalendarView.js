@@ -35,7 +35,7 @@ export function useResponsiveCalendarView() {
       setCurrentView(isMobile ? 'daily' : 'month');
       return;
     }
-    if (currentView === 'guide') {
+    if (currentView === 'guide' || currentView === 'disease-guide') {
       return;
     }
     if (!isMobile && currentView === 'year') {

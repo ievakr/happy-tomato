@@ -140,6 +140,22 @@ export default function Sidebar() {
                             {t('layout.vegetableGuide')}
                         </button>
                     </div>
+
+                    <div className="sidebar-section">
+                        <button
+                            type="button"
+                            className={`btn w-100 ${currentView === 'disease-guide' ? 'btn-danger' : 'btn-outline-secondary'}`}
+                            onClick={() => {
+                                setCurrentView('disease-guide');
+                                setShowSidebar(false);
+                            }}
+                        >
+                            <span className="material-icons-outlined me-1" style={{ fontSize: '1rem', verticalAlign: 'middle' }}>
+                                healing
+                            </span>
+                            {t('layout.diseaseGuide')}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">

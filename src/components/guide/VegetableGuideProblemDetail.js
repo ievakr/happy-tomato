@@ -23,7 +23,7 @@ function BulletList({ items }) {
 function ProblemSection({ icon, title, children }) {
   if (!children) return null;
   return (
-    <section className="mb-4">
+    <section className="mb-4 vegetable-guide-section">
       <h3 className="h6 text-uppercase text-dark fw-bold mb-3 d-flex align-items-center gap-2">
         {icon ? <Icon name={icon} style={{ fontSize: '1.15rem' }} /> : null}
         {title}
@@ -36,7 +36,9 @@ function ProblemSection({ icon, title, children }) {
 export default function VegetableGuideProblemDetail({ problemId, onBack }) {
   const { t } = useTranslation();
   const problem = getGuideProblem(problemId);
-  const affectedCrops = getCropsAffectedByProblem(problemId, vegetableGuide);
+  const affectedCrops = problem?.appliesToAll
+    ? [t('guide.allVegetables')]
+    : getCropsAffectedByProblem(problemId, vegetableGuide);
 
   if (!problem) {
     return (
@@ -64,7 +66,11 @@ export default function VegetableGuideProblemDetail({ problemId, onBack }) {
           className="d-inline-flex align-items-center justify-content-center rounded bg-light border"
           style={{ width: '56px', height: '56px', flexShrink: 0 }}
         >
-          <Icon name={problem.icon || 'bug_report'} style={{ fontSize: '1.75rem' }} />
+          <Icon
+            name={problem.icon || 'bug_report'}
+            plantIcon={problem.plantIcon}
+            style={{ fontSize: '1.75rem' }}
+          />
         </span>
         <h2 className="h4 mb-0 fw-bold text-dark">{problem.name}</h2>
       </div>

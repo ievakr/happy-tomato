@@ -35,7 +35,6 @@ export function useDailyDayStrip({
   const suppressNextStripClickRef = useRef(false);
   const stripEdgeObserverRef = useRef(null);
   const [stripRecenterNonce, setStripRecenterNonce] = useState(1);
-  const selectedDayKeyForRecenterRef = useRef(null);
   const wasInitialLoadingRef = useRef(isInitialLoading);
   const [stripDayCount, setStripDayCount] = useState(STRIP_INITIAL_DAY_COUNT);
   const [stripStart, setStripStart] = useState(() =>
@@ -49,10 +48,6 @@ export function useDailyDayStrip({
     () => (daySelected || dayjs()).format('YYYY-MM-DD'),
     [daySelected]
   );
-
-  useEffect(() => {
-    selectedDayKeyForRecenterRef.current = selectedDayCalendarKey;
-  }, [selectedDayCalendarKey]);
 
   const scrollToDay = useCallback((targetEl) => {
     const container = scrollContainerRef.current;
@@ -352,12 +347,11 @@ export function useDailyDayStrip({
   useLayoutEffect(() => {
     if (!isMobile || stripPrependingRef.current || isInitialLoading) return;
 
-    const selectedKey = selectedDayKeyForRecenterRef.current;
-    const selectedEl = selectedKey ? dayElementMapRef.current.get(selectedKey) : null;
+    const selectedEl = dayElementMapRef.current.get(selectedDayCalendarKey);
     if (selectedEl) {
       scrollToDay(selectedEl);
     }
-  }, [stripRecenterNonce, isMobile, isInitialLoading, scrollToDay]);
+  }, [stripRecenterNonce, selectedDayCalendarKey, isMobile, isInitialLoading, scrollToDay]);
 
   useEffect(() => {
     if (wasInitialLoadingRef.current && !isInitialLoading && isMobile) {

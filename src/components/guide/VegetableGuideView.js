@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useTranslation } from '../../i18n/LanguageContext';
 import {
@@ -14,6 +14,8 @@ export default function VegetableGuideView() {
   const { t } = useTranslation();
   const { isMobile } = useResponsive();
   const searchInputRef = useRef(null);
+  const detailScrollRef = useRef(null);
+  const listScrollRef = useRef(null);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState(null);
   const [selectedProblemId, setSelectedProblemId] = useState(null);
@@ -23,6 +25,19 @@ export default function VegetableGuideView() {
     setSelectedProblemId(null);
     setSelectedId(id);
   };
+
+  useEffect(() => {
+    const el = detailScrollRef.current;
+    if (el) el.scrollTop = 0;
+  }, [selectedId, selectedProblemId]);
+
+  useEffect(() => {
+    if (selectedId != null || selectedProblemId != null) return;
+    const el = listScrollRef.current;
+    if (!el) return;
+    el.scrollTop = 0;
+    el.closest('section')?.scrollTo?.(0, 0);
+  }, [selectedId, selectedProblemId]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -158,7 +173,11 @@ export default function VegetableGuideView() {
               {backLabel}
             </button>
           </div>
-          <div className="flex-grow-1 overflow-auto p-3" style={{ minHeight: 0 }}>
+          <div
+            ref={detailScrollRef}
+            className="flex-grow-1 overflow-auto p-3"
+            style={{ minHeight: 0 }}
+          >
             {selectedProblemId ? (
               <VegetableGuideProblemDetail problemId={selectedProblemId} />
             ) : (
@@ -171,7 +190,11 @@ export default function VegetableGuideView() {
     return (
       <div className="d-flex flex-column h-100 w-100 bg-white vegetable-guide">
         {searchBox}
-        <div className="flex-grow-1 overflow-auto" style={{ minHeight: 0 }}>
+        <div
+          ref={listScrollRef}
+          className="flex-grow-1 overflow-auto"
+          style={{ minHeight: 0 }}
+        >
           {intro}
           {list}
         </div>
@@ -186,12 +209,20 @@ export default function VegetableGuideView() {
         style={{ width: '320px', flexShrink: 0 }}
       >
         {searchBox}
-        <div className="flex-grow-1 overflow-auto" style={{ minHeight: 0 }}>
+        <div
+          ref={listScrollRef}
+          className="flex-grow-1 overflow-auto"
+          style={{ minHeight: 0 }}
+        >
           {intro}
           {list}
         </div>
       </div>
-      <div className="flex-grow-1 overflow-auto p-4" style={{ minHeight: 0 }}>
+      <div
+        ref={detailScrollRef}
+        className="flex-grow-1 overflow-auto p-4"
+        style={{ minHeight: 0 }}
+      >
         <div style={{ maxWidth: '720px' }}>{detailContent}</div>
       </div>
     </div>

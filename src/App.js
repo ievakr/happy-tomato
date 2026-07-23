@@ -32,6 +32,7 @@ const ManagePlantsModal = lazy(() => import('./components/forms/ManagePlantsModa
 const ManageTodoModal = lazy(() => import('./components/forms/ManageTodoModal'));
 const WeeklySummaryTodoModal = lazy(() => import('./components/calendar/WeeklySummaryTodoModal'));
 const VegetableGuideView = lazy(() => import('./components/guide/VegetableGuideView'));
+const DiseaseGuideView = lazy(() => import('./components/guide/DiseaseGuideView'));
 
 /**
  * Main application component with responsive layout
@@ -302,12 +303,14 @@ function App() {
                 className={`flex-grow-1 d-flex flex-column${currentView === 'daily' ? ' calendar-section-daily' : ''}`}
                 style={{ 
                   minHeight: 0,
-                  overflow: currentView === 'guide' ? 'auto' : 'hidden',
+                  overflow: currentView === 'guide' || currentView === 'disease-guide' ? 'auto' : 'hidden',
                 }}
                 aria-label={
                   currentView === 'guide'
                     ? t('layout.vegetableGuide')
-                    : t('layout.calendarView')
+                    : currentView === 'disease-guide'
+                      ? t('layout.diseaseGuide')
+                      : t('layout.calendarView')
                 }
               >
                 {currentView === 'guide' ? (
@@ -317,6 +320,15 @@ function App() {
                       onError={handleError}
                     >
                       <VegetableGuideView />
+                    </ComponentErrorBoundary>
+                  </Suspense>
+                ) : currentView === 'disease-guide' ? (
+                  <Suspense fallback={inlineFallback}>
+                    <ComponentErrorBoundary
+                      componentName="DiseaseGuideView"
+                      onError={handleError}
+                    >
+                      <DiseaseGuideView />
                     </ComponentErrorBoundary>
                   </Suspense>
                 ) : (

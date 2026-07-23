@@ -6,6 +6,7 @@
 const GUIDE_PROBLEMS = [
   {
     id: 'powdery-mildew',
+    category: 'disease',
     name: 'Powdery mildew',
     icon: 'blur_on',
     whatIsIt:
@@ -34,6 +35,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'downy-mildew',
+    category: 'disease',
     name: 'Downy mildew',
     icon: 'water_drop',
     whatIsIt:
@@ -62,6 +64,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'late-blight',
+    category: 'disease',
     name: 'Late blight',
     icon: 'coronavirus',
     whatIsIt:
@@ -91,6 +94,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'early-blight',
+    category: 'disease',
     name: 'Early blight',
     icon: 'healing',
     whatIsIt:
@@ -119,6 +123,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'blossom-end-rot',
+    category: 'disorder',
     name: 'Blossom-end rot',
     icon: 'contrast',
     whatIsIt:
@@ -147,8 +152,9 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'aphids',
+    category: 'pest',
     name: 'Aphids',
-    icon: 'pest_control',
+    icon: 'bug_report',
     whatIsIt:
       'Small soft-bodied insects that cluster on young shoots and leaves. They suck sap, distort growth, and can spread plant viruses.',
     identify: [
@@ -175,8 +181,9 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'whiteflies',
+    category: 'pest',
     name: 'Whiteflies',
-    icon: 'pest_control',
+    icon: 'bug_report',
     whatIsIt:
       'Tiny white winged insects that gather on the undersides of leaves. They weaken plants and can spread viruses, especially in greenhouses.',
     identify: [
@@ -203,8 +210,9 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'slugs',
+    category: 'pest',
     name: 'Slugs and snails',
-    icon: 'pest_control',
+    icon: 'bug_report',
     whatIsIt:
       'Soft-bodied pests that feed mainly at night, chewing holes in leaves, stems and fruit, and can destroy seedlings overnight.',
     identify: [
@@ -231,6 +239,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'flea-beetles',
+    category: 'pest',
     name: 'Flea beetles',
     icon: 'bug_report',
     whatIsIt:
@@ -258,8 +267,9 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'cabbage-white-caterpillars',
+    category: 'pest',
     name: 'Cabbage white caterpillars',
-    icon: 'cruelty_free',
+    icon: 'bug_report',
     whatIsIt:
       'Caterpillars of cabbage white butterflies that chew holes in brassica leaves and can strip plants quickly.',
     identify: [
@@ -269,8 +279,6 @@ const GUIDE_PROBLEMS = [
     ],
     why: [
       'Butterflies laying eggs on brassicas in warm weather',
-      'Uncovered plants',
-      'Gardens with many brassicas in one place',
     ],
     fix: [
       'Check leaf undersides and remove eggs and caterpillars by hand',
@@ -285,8 +293,9 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'spider-mites',
+    category: 'pest',
     name: 'Spider mites',
-    icon: 'grain',
+    icon: 'bug_report',
     whatIsIt:
       'Tiny mites that thrive in hot, dry conditions. They suck sap from leaves, causing fine speckles and sometimes fine webbing.',
     identify: [
@@ -313,8 +322,9 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'carrot-fly',
+    category: 'pest',
     name: 'Carrot fly',
-    icon: 'flight',
+    icon: 'bug_report',
     whatIsIt:
       'A fly whose larvae tunnel into carrot roots, leaving rusty tunnels and making roots unattractive and prone to rotting.',
     identify: [
@@ -340,8 +350,9 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'onion-fly',
+    category: 'pest',
     name: 'Onion fly',
-    icon: 'pest_control',
+    icon: 'bug_report',
     whatIsIt:
       'A pest of onions and related crops. Maggots feed at the base of plants, causing wilting, yellowing and collapse of seedlings or young bulbs.',
     identify: [
@@ -367,6 +378,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'clubroot',
+    category: 'disease',
     name: 'Clubroot',
     icon: 'sick',
     whatIsIt:
@@ -394,6 +406,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'bolting',
+    category: 'disorder',
     name: 'Bolting',
     icon: 'trending_up',
     whatIsIt:
@@ -421,6 +434,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'flower-drop',
+    category: 'disorder',
     name: 'Flower drop',
     icon: 'local_florist',
     whatIsIt:
@@ -449,6 +463,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'cracked-fruit',
+    category: 'disorder',
     name: 'Cracked fruit',
     icon: 'broken_image',
     whatIsIt:
@@ -476,6 +491,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'poor-pollination',
+    category: 'disorder',
     name: 'Poor pollination',
     icon: 'hive',
     whatIsIt:
@@ -503,6 +519,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'bitter-fruit',
+    category: 'disorder',
     name: 'Bitter fruit',
     icon: 'sentiment_dissatisfied',
     whatIsIt:
@@ -530,6 +547,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'bitter-leaves',
+    category: 'disorder',
     name: 'Bitter leaves',
     icon: 'spa',
     whatIsIt:
@@ -557,8 +575,9 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'tip-burn',
+    category: 'disorder',
     name: 'Tip burn',
-    icon: 'border_style',
+    icon: 'local_fire_department',
     whatIsIt:
       'Leaf edges or tips turn brown and dry, commonly on lettuce. It is usually linked to uneven watering or calcium movement inside the plant.',
     identify: [
@@ -584,6 +603,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'root-splitting',
+    category: 'disorder',
     name: 'Root splitting',
     icon: 'call_split',
     whatIsIt:
@@ -611,6 +631,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'forked-roots',
+    category: 'disorder',
     name: 'Forked roots',
     icon: 'fork_right',
     whatIsIt:
@@ -637,6 +658,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'hairy-roots',
+    category: 'disorder',
     name: 'Hairy roots',
     icon: 'grass',
     whatIsIt:
@@ -663,8 +685,10 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'poor-germination',
+    category: 'disorder',
     name: 'Poor germination',
-    icon: 'psychiatry',
+    plantIcon: 'seedling',
+    appliesToAll: true,
     whatIsIt:
       'Seeds fail to come up evenly, or come up sparsely. Drying out during germination is one of the most common causes.',
     identify: [
@@ -690,6 +714,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'pithy-roots',
+    category: 'disorder',
     name: 'Pithy roots',
     icon: 'contrast',
     whatIsIt:
@@ -716,6 +741,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'sunscald',
+    category: 'disorder',
     name: 'Sunscald',
     icon: 'wb_sunny',
     whatIsIt:
@@ -743,6 +769,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'cucumber-beetles',
+    category: 'pest',
     name: 'Cucumber beetles',
     icon: 'bug_report',
     whatIsIt:
@@ -770,6 +797,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'squash-bugs',
+    category: 'pest',
     name: 'Squash bugs',
     icon: 'bug_report',
     whatIsIt:
@@ -797,6 +825,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'colorado-potato-beetle',
+    category: 'pest',
     name: 'Colorado potato beetle',
     icon: 'bug_report',
     whatIsIt:
@@ -824,8 +853,9 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'pea-moth',
+    category: 'pest',
     name: 'Pea moth',
-    icon: 'pest_control',
+    icon: 'bug_report',
     whatIsIt:
       'A moth whose caterpillars feed inside pea pods, leaving maggoty peas and frass inside otherwise healthy-looking pods.',
     identify: [
@@ -850,6 +880,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'common-scab',
+    category: 'disease',
     name: 'Common scab',
     icon: 'blur_circular',
     whatIsIt:
@@ -876,6 +907,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'green-tubers',
+    category: 'disorder',
     name: 'Green tubers',
     icon: 'warning',
     whatIsIt:
@@ -903,7 +935,8 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'grey-mould',
-    name: 'Grey mould (Botrytis)',
+    category: 'disease',
+    name: 'Grey mould',
     icon: 'cloud',
     whatIsIt:
       'A grey, fuzzy fungal rot that attacks soft tissue, flowers and ripening fruit, especially in damp, still air.',
@@ -930,6 +963,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'root-rot',
+    category: 'disease',
     name: 'Root rot',
     icon: 'opacity',
     whatIsIt:
@@ -957,6 +991,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'white-rot',
+    category: 'disease',
     name: 'White rot',
     icon: 'sick',
     whatIsIt:
@@ -984,6 +1019,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'rust',
+    category: 'disease',
     name: 'Rust',
     icon: 'blur_on',
     whatIsIt:
@@ -1011,6 +1047,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'bulb-rot',
+    category: 'disease',
     name: 'Bulb rot',
     icon: 'dangerous',
     whatIsIt:
@@ -1038,6 +1075,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'soft-necks',
+    category: 'disorder',
     name: 'Soft necks',
     icon: 'water',
     whatIsIt:
@@ -1065,6 +1103,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'small-bulbs',
+    category: 'disorder',
     name: 'Small bulbs',
     icon: 'radio_button_unchecked',
     whatIsIt:
@@ -1091,6 +1130,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'fusarium-wilt',
+    category: 'disease',
     name: 'Fusarium wilt',
     icon: 'sick',
     whatIsIt:
@@ -1118,6 +1158,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'yellow-leaves-overwatering',
+    category: 'disorder',
     name: 'Yellow leaves from overwatering',
     icon: 'opacity',
     whatIsIt:
@@ -1145,8 +1186,9 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'birds',
+    category: 'pest',
     name: 'Birds',
-    icon: 'visibility',
+    plantIcon: 'bird',
     whatIsIt:
       'Birds peck ripening fruit or pull at seedlings. Strawberries and soft fruit are especially attractive.',
     identify: [
@@ -1172,6 +1214,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'wind-damage',
+    category: 'disorder',
     name: 'Wind damage',
     icon: 'air',
     whatIsIt:
@@ -1199,6 +1242,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'wind-rock',
+    category: 'disorder',
     name: 'Wind rock',
     icon: 'air',
     whatIsIt:
@@ -1226,6 +1270,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'fruit-rot-wet-soil',
+    category: 'disorder',
     name: 'Fruit rotting on wet soil',
     icon: 'water',
     whatIsIt:
@@ -1253,6 +1298,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'loose-sprouts',
+    category: 'disorder',
     name: 'Loose sprouts',
     icon: 'expand',
     whatIsIt:
@@ -1279,6 +1325,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'premature-heading',
+    category: 'disorder',
     name: 'Premature heading',
     icon: 'event_busy',
     whatIsIt:
@@ -1305,8 +1352,9 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'poor-pod-production',
+    category: 'disorder',
     name: 'Poor pod production',
-    icon: 'inventory_2',
+    icon: 'circle',
     whatIsIt:
       'Pea plants grow plenty of foliage but set few pods, often because of excess nitrogen or stress during flowering.',
     identify: [
@@ -1332,6 +1380,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'heat-decline',
+    category: 'disorder',
     name: 'Heat decline',
     icon: 'device_thermostat',
     whatIsIt:
@@ -1359,6 +1408,7 @@ const GUIDE_PROBLEMS = [
   },
   {
     id: 'premature-flowering',
+    category: 'disorder',
     name: 'Premature flowering',
     icon: 'local_florist',
     whatIsIt:
@@ -1398,8 +1448,20 @@ export function getGuideProblemsByIds(ids = []) {
   return ids.map((id) => getGuideProblem(id)).filter(Boolean);
 }
 
+/** Crop-specific problems plus any shared problems that apply to every crop. */
+export function getGuideProblemsForCrop(ids = []) {
+  const specific = getGuideProblemsByIds(ids);
+  const specificIds = new Set(specific.map((p) => p.id));
+  const shared = GUIDE_PROBLEMS.filter((p) => p.appliesToAll && !specificIds.has(p.id));
+  return [...specific, ...shared];
+}
+
 /** Crops in the vegetable guide that list this problem. */
 export function getCropsAffectedByProblem(problemId, vegetableGuide = []) {
+  const problem = getGuideProblem(problemId);
+  if (problem?.appliesToAll) {
+    return vegetableGuide.map((veg) => veg.name);
+  }
   return vegetableGuide
     .filter((veg) => Array.isArray(veg.commonProblems) && veg.commonProblems.includes(problemId))
     .map((veg) => veg.name);
