@@ -15,6 +15,7 @@ import {
   reauthenticateWithCredential,
   reauthenticateWithPopup
 } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
 import { auth } from '../firebase';
 
 // Minimum time (ms) to show the intro splash on app open, so the brand is
@@ -94,8 +95,13 @@ export function AuthProvider({ children }) {
       setError(null);
       // continueUrl: if the console's custom action URL isn't configured (or fails to save),
       // Firebase's own hosted reset page will still show a "Continue" link back into the app.
+      // On native, window.location.origin is Capacitor's internal scheme (e.g. capacitor://localhost),
+      // not a real authorized web domain, so fall back to the public web app URL there.
+      const continueUrl = Capacitor.isNativePlatform()
+        ? `https://${process.env.REACT_APP_FIREBASE_AUTH_DOMAIN}`
+        : window.location.origin;
       const actionCodeSettings = {
-        url: window.location.origin,
+        url: continueUrl,
         handleCodeInApp: false,
       };
       return await sendPasswordResetEmail(auth, email, actionCodeSettings);
