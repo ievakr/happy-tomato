@@ -7,6 +7,8 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendPasswordResetEmail,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
   updateProfile,
   deleteUser,
   EmailAuthProvider,
@@ -90,7 +92,35 @@ export function AuthProvider({ children }) {
   async function resetPassword(email) {
     try {
       setError(null);
-      return await sendPasswordResetEmail(auth, email);
+      // continueUrl: if the console's custom action URL isn't configured (or fails to save),
+      // Firebase's own hosted reset page will still show a "Continue" link back into the app.
+      const actionCodeSettings = {
+        url: window.location.origin,
+        handleCodeInApp: false,
+      };
+      return await sendPasswordResetEmail(auth, email, actionCodeSettings);
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }
+
+  // Verify a password reset code (from an email link) and return the associated email
+  async function verifyResetCode(oobCode) {
+    try {
+      setError(null);
+      return await verifyPasswordResetCode(auth, oobCode);
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }
+
+  // Complete a password reset using the code from an email link
+  async function confirmReset(oobCode, newPassword) {
+    try {
+      setError(null);
+      return await confirmPasswordReset(auth, oobCode, newPassword);
     } catch (err) {
       setError(err.message);
       throw err;
@@ -187,6 +217,8 @@ export function AuthProvider({ children }) {
     loginWithGoogle,
     logout,
     resetPassword,
+    verifyResetCode,
+    confirmReset,
     updateUserProfile,
     reauthenticate,
     deleteAccount,

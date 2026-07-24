@@ -41,6 +41,16 @@ const auth = {
     'auth.resetFailed': 'Failed to send reset email. Please try again.',
     'auth.enterEmail': 'Please enter your email address',
     'auth.noAccountFound': 'No account found with this email',
+    // Reset password action (link from email)
+    'auth.verifyingLink': 'Verifying your reset link...',
+    'auth.resetLinkInvalid': 'This password reset link is invalid or has expired. Please request a new one.',
+    'auth.setNewPassword': 'Set a new password',
+    'auth.newPasswordFor': 'Choose a new password for {email}',
+    'auth.updatePassword': 'Update Password',
+    'auth.updatingPassword': 'Updating...',
+    'auth.passwordUpdated': 'Password updated!',
+    'auth.passwordUpdatedDesc': 'You can now sign in with your new password.',
+    'auth.continueToSignIn': 'Continue to Sign In',
     // User menu
     'auth.user': 'User',
     'auth.userMenu': 'User menu',
@@ -88,6 +98,16 @@ const auth = {
     'auth.resetFailed': 'Nepavyko išsiųsti laiško. Bandykite dar kartą.',
     'auth.enterEmail': 'Įveskite el. pašto adresą',
     'auth.noAccountFound': 'Su šiuo el. paštu paskyros nerasta',
+    // Reset password action (link from email)
+    'auth.verifyingLink': 'Tikrinama nuoroda...',
+    'auth.resetLinkInvalid': 'Ši slaptažodžio atkūrimo nuoroda negalioja arba nebegalioja. Užsisakykite naują.',
+    'auth.setNewPassword': 'Nustatykite naują slaptažodį',
+    'auth.newPasswordFor': 'Pasirinkite naują slaptažodį paskyrai {email}',
+    'auth.updatePassword': 'Atnaujinti slaptažodį',
+    'auth.updatingPassword': 'Atnaujinama...',
+    'auth.passwordUpdated': 'Slaptažodis atnaujintas!',
+    'auth.passwordUpdatedDesc': 'Dabar galite prisijungti nauju slaptažodžiu.',
+    'auth.continueToSignIn': 'Tęsti prie prisijungimo',
     // User menu
     'auth.user': 'Naudotojas',
     'auth.userMenu': 'Naudotojo meniu',
