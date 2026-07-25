@@ -8,14 +8,38 @@ const settings = {
 
     // Account information
     'settings.accountInformation': 'Account Information',
+    'settings.accountDetails': 'Account details',
     'settings.name': 'Name',
     'settings.namePlaceholder': 'Your name',
+    'settings.notSet': 'Not set',
     'settings.profileUpdated': 'Profile updated.',
     'settings.profileUpdateFailed': 'Failed to update profile',
 
+    // Change email
+    'settings.email': 'Email',
+    'settings.changeEmail': 'Change email',
+    'settings.emailManagedByGoogle': "Your email is managed by your Google account and can't be changed here.",
+    'settings.newEmail': 'New email',
+    'settings.newEmailPlaceholder': 'you@example.com',
+    'settings.currentPassword': 'Current password',
+    'settings.emailChangeSent': 'Verification email sent to {email}. Click the link there to finish changing your email.',
+    'settings.enterDifferentEmail': 'Enter a different email than your current one',
+    'settings.emailInUse': 'That email is already in use by another account',
+    'settings.invalidEmail': 'Invalid email address',
+    'settings.emailChangeFailed': 'Failed to send verification email. Please try again.',
+
+    // Change password
+    'settings.password': 'Password',
+    'settings.changePassword': 'Change password',
+    'settings.passwordManagedByGoogle': "Your account uses Google Sign-In and doesn't have a password to change.",
+    'settings.newPassword': 'New password',
+    'settings.newPasswordPlaceholder': 'Enter a new password',
+    'settings.confirmNewPassword': 'Confirm new password',
+    'settings.confirmNewPasswordPlaceholder': 'Confirm your new password',
+    'settings.passwordChanged': 'Password updated.',
+    'settings.passwordChangeFailed': 'Failed to update password. Please try again.',
+
     // Account management / deletion
-    'settings.accountManagement': 'Account Management',
-    'settings.deleteDescription': 'Permanently delete your account and all associated data.',
     'settings.deleteAccount': 'Delete Account',
     'settings.warning': 'Warning:',
     'settings.cannotUndo': "This action can't be undone.",
@@ -36,6 +60,8 @@ const settings = {
 
     // Notifications (account settings tab)
     'settings.pushNotifications': 'Push notifications',
+    'settings.on': 'On',
+    'settings.off': 'Off',
     'settings.enablePush': 'Enable push notifications',
     'settings.dailyRemindersOverdue': 'Daily reminders (today + overdue)',
     'settings.advanceReminders': 'Advance reminders',
@@ -113,14 +139,38 @@ const settings = {
 
     // Account information
     'settings.accountInformation': 'Paskyros informacija',
+    'settings.accountDetails': 'Paskyros duomenys',
     'settings.name': 'Vardas',
     'settings.namePlaceholder': 'Jūsų vardas',
+    'settings.notSet': 'Nenustatyta',
     'settings.profileUpdated': 'Profilis atnaujintas.',
     'settings.profileUpdateFailed': 'Nepavyko atnaujinti profilio',
 
+    // Change email
+    'settings.email': 'El. paštas',
+    'settings.changeEmail': 'Keisti el. paštą',
+    'settings.emailManagedByGoogle': 'Jūsų el. paštą valdo „Google“ paskyra, jo čia pakeisti negalima.',
+    'settings.newEmail': 'Naujas el. paštas',
+    'settings.newEmailPlaceholder': 'jusu@pastas.lt',
+    'settings.currentPassword': 'Dabartinis slaptažodis',
+    'settings.emailChangeSent': 'Patvirtinimo laiškas išsiųstas adresu {email}. Spustelėkite jame esančią nuorodą, kad baigtumėte el. pašto keitimą.',
+    'settings.enterDifferentEmail': 'Įveskite el. paštą, kuris skiriasi nuo dabartinio',
+    'settings.emailInUse': 'Šis el. paštas jau naudojamas kitos paskyros',
+    'settings.invalidEmail': 'Neteisingas el. pašto adresas',
+    'settings.emailChangeFailed': 'Nepavyko išsiųsti patvirtinimo laiško. Bandykite dar kartą.',
+
+    // Change password
+    'settings.password': 'Slaptažodis',
+    'settings.changePassword': 'Keisti slaptažodį',
+    'settings.passwordManagedByGoogle': 'Jūsų paskyra naudoja „Google“ prisijungimą ir neturi slaptažodžio, kurį būtų galima keisti.',
+    'settings.newPassword': 'Naujas slaptažodis',
+    'settings.newPasswordPlaceholder': 'Įveskite naują slaptažodį',
+    'settings.confirmNewPassword': 'Patvirtinkite naują slaptažodį',
+    'settings.confirmNewPasswordPlaceholder': 'Pakartokite naują slaptažodį',
+    'settings.passwordChanged': 'Slaptažodis atnaujintas.',
+    'settings.passwordChangeFailed': 'Nepavyko atnaujinti slaptažodžio. Bandykite dar kartą.',
+
     // Account management / deletion
-    'settings.accountManagement': 'Paskyros valdymas',
-    'settings.deleteDescription': 'Visam laikui ištrinti savo paskyrą ir visus susijusius duomenis.',
     'settings.deleteAccount': 'Ištrinti paskyrą',
     'settings.warning': 'Įspėjimas:',
     'settings.cannotUndo': 'Šio veiksmo nebus galima atšaukti.',
@@ -143,6 +193,8 @@ const settings = {
 
     // Notifications (account settings tab)
     'settings.pushNotifications': 'Tiesioginiai pranešimai',
+    'settings.on': 'Įjungta',
+    'settings.off': 'Išjungta',
     'settings.enablePush': 'Įjungti tiesioginius pranešimus',
     'settings.dailyRemindersOverdue': 'Kasdieniai priminimai (šiandien + pradelsti)',
     'settings.advanceReminders': 'Išankstiniai priminimai',

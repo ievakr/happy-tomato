@@ -3,6 +3,8 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
+  setDoc,
   writeBatch,
   doc,
   deleteDoc,
@@ -17,6 +19,46 @@ export function emailPreferencesDocIdFromEmail(email) {
   const trimmed = email.trim();
   if (!trimmed) return null;
   return trimmed.replace(/[.#$[\]]/g, '_');
+}
+
+/**
+ * Move the emailPreferences doc (push tokens, reminder settings) from the old
+ * email-derived id to the new one after a completed email change, so notification
+ * settings carry over instead of silently resetting. Best-effort: callers should
+ * treat failures here as non-fatal, since the email change itself already succeeded.
+ *
+ * Firestore security rules key reads/writes off the caller's ID-token email claim,
+ * which still reflects the OLD email right after an email-change action code is applied
+ * (tokens don't refresh automatically). So the old doc must be read+deleted first (while
+ * the token still matches it), then `onBeforeWrite` should refresh that token, and only
+ * then can the new doc — stamped with the new email — be created.
+ * @param {string} oldEmail
+ * @param {string} newEmail
+ * @param {{ onBeforeWrite?: () => Promise<void> }} [options]
+ * @returns {Promise<boolean>} whether a doc was migrated
+ */
+export async function migrateEmailPreferencesDoc(oldEmail, newEmail, options = {}) {
+  const { onBeforeWrite } = options;
+  const oldDocId = emailPreferencesDocIdFromEmail(oldEmail);
+  const newDocId = emailPreferencesDocIdFromEmail(newEmail);
+  if (!oldDocId || !newDocId || oldDocId === newDocId) return false;
+
+  const oldRef = doc(db, 'emailPreferences', oldDocId);
+  const oldSnap = await getDoc(oldRef);
+  if (!oldSnap.exists()) return false;
+
+  const data = oldSnap.data();
+  await deleteDoc(oldRef);
+
+  if (onBeforeWrite) await onBeforeWrite();
+
+  const newRef = doc(db, 'emailPreferences', newDocId);
+  await setDoc(
+    newRef,
+    { ...data, userEmail: newEmail, updatedAt: new Date().toISOString() },
+    { merge: true },
+  );
+  return true;
 }
 
 async function deleteDocSnapshots(docSnapshots) {

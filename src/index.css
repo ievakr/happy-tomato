@@ -226,6 +226,15 @@ html.capacitor-ios-native .calendar-header {
     min-width: 0 !important;
 }
 
+/* Compact language dropdown (globe + EN) — welcome screen + sidebar */
+.language-corner-btn {
+    border-radius: 50rem;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 0.35rem 0.7rem;
+    color: #495057;
+}
+
 .sidebar-menu > .sidebar-section + .sidebar-section {
     margin-top: 2rem;
 }

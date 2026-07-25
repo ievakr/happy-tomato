@@ -140,14 +140,6 @@
   right: 1.5rem;
 }
 
-.language-corner-btn {
-  border-radius: 50rem;
-  font-weight: 600;
-  font-size: 0.8rem;
-  padding: 0.35rem 0.7rem;
-  color: #495057;
-}
-
 .auth-title {
   font-family: 'Fredoka', 'Open Sans', sans-serif;
   font-weight: 700;

@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import React, { useContext, useCallback } from 'react';
 import logo from '../../assets/logo.png';
-import { useCalendarContext } from '../../context/CalendarContext';
+import { useCalendarContext, isFullPageCalendarView } from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
 import { calendarDateFromMonthIndex, capitalizeFirst } from '../../utils';
 import { useResponsive, useResponsiveCalendarView } from '../../hooks';
@@ -63,7 +63,7 @@ export default function Header() {
         setCurrentView(isMobile ? 'daily' : 'month');
     }, [goToToday, isMobile, setCurrentView]);
 
-    const isGuideLikeView = currentView === 'guide' || currentView === 'disease-guide';
+    const isGuideLikeView = isFullPageCalendarView(currentView);
 
     /** Mobile: one control for day → month → year (iPhone Calendar–style), replacing the icon toggle. */
     const mobileCalendarHierarchyYear = calendarDateFromMonthIndex(monthIndex).year();

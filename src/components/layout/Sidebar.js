@@ -158,9 +158,8 @@ export default function Sidebar() {
                     </div>
                 </div>
 
-                <div className="mt-auto pt-3 border-top d-flex align-items-center justify-content-between">
-                    <span className="text-muted small">{t('auth.language')}</span>
-                    <LanguageSwitcher variant="flags" />
+                <div className="mt-auto pt-3 border-top d-flex align-items-center justify-content-start">
+                    <LanguageSwitcher variant="corner" />
                 </div>
             </aside>
         </>

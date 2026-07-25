@@ -1,0 +1,219 @@
+/* Account settings — grouped list layout (banner + avatar + inset rows). */
+
+.settings-page {
+  position: relative;
+  background: #f8f9fa;
+}
+
+.settings-hero {
+  position: relative;
+  z-index: 2;
+  height: 140px;
+  background: #f8f9fa;
+  /* Allow the avatar to paint over the content below */
+  overflow: visible;
+  /* Half the avatar (52px) + a little breathing room before the first section */
+  margin-bottom: 72px;
+}
+
+/* Clip the tomato pattern to the banner; avatar sits outside this clip. */
+.settings-hero-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.settings-hero .tomato-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.settings-hero .tomato-bg-item {
+  position: absolute;
+  object-fit: contain;
+}
+
+.settings-avatar-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, 50%);
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: #fff;
+  padding: 3px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  z-index: 3;
+}
+
+.settings-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  background: #e8e8ed;
+}
+
+.settings-avatar-initials {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #15803d 0%, #14532d 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 2rem;
+  letter-spacing: 0.02em;
+}
+
+.settings-body {
+  position: relative;
+  z-index: 1;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+.settings-section-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1c1c1e;
+  margin: 0 0 10px 4px;
+}
+
+.settings-section-title + .settings-group {
+  margin-top: 0;
+}
+
+.settings-group {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  min-height: 52px;
+}
+
+button.settings-row {
+  cursor: pointer;
+}
+
+button.settings-row:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+button.settings-row:active {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.settings-row + .settings-row,
+.settings-row + .settings-collapse-body,
+.settings-collapse-body + .settings-row {
+  border-top: 1px solid #e5e5ea;
+}
+
+.settings-row-label {
+  flex: 0 0 auto;
+  font-size: 1rem;
+  color: #1c1c1e;
+}
+
+.settings-row-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  font-size: 1rem;
+  color: #8e8e93;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.settings-row-chevron {
+  flex: 0 0 auto;
+  color: #c7c7cc;
+  font-size: 1.25rem !important;
+  line-height: 1;
+}
+
+.settings-row-chevron--expand {
+  transition: transform 0.2s ease;
+}
+
+.settings-row-chevron--open {
+  transform: rotate(180deg);
+}
+
+.settings-collapse-body {
+  padding: 16px;
+}
+
+.settings-collapse-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e5ea;
+}
+
+.settings-row--danger .settings-row-label {
+  color: #dc3545;
+  flex: 1 1 auto;
+  text-align: center;
+  font-weight: 500;
+}
+
+.settings-row--danger .settings-row-chevron {
+  color: #f1aeb5;
+}
+
+.settings-group--padded .form-check:last-child {
+  margin-bottom: 0;
+}
+
+.settings-language-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 4px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  border-radius: 8px;
+}
+
+.settings-language-option:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.settings-language-option + .settings-language-option {
+  border-top: 1px solid #e5e5ea;
+  border-radius: 0;
+}
+
+.settings-language-check {
+  margin-left: auto;
+  color: #28a745;
+  font-size: 1.25rem !important;
+}

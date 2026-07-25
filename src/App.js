@@ -5,7 +5,7 @@ import './App.css';
 import { useCalendar } from './hooks/useCalendar';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
-import { useCalendarContext } from './context/CalendarContext';
+import { useCalendarContext, isFullPageCalendarView } from './context/CalendarContext';
 import { useResponsive, useResponsiveCalendarView } from './hooks';
 import { useEventContext } from './context/EventContext';
 import { useLayoutContext } from './context/LayoutContext';
@@ -33,6 +33,7 @@ const ManageTodoModal = lazy(() => import('./components/forms/ManageTodoModal'))
 const WeeklySummaryTodoModal = lazy(() => import('./components/calendar/WeeklySummaryTodoModal'));
 const VegetableGuideView = lazy(() => import('./components/guide/VegetableGuideView'));
 const DiseaseGuideView = lazy(() => import('./components/guide/DiseaseGuideView'));
+const AccountSettings = lazy(() => import('./components/settings/AccountSettings'));
 
 /**
  * Main application component with responsive layout
@@ -303,14 +304,16 @@ function App() {
                 className={`flex-grow-1 d-flex flex-column${currentView === 'daily' ? ' calendar-section-daily' : ''}`}
                 style={{ 
                   minHeight: 0,
-                  overflow: currentView === 'guide' || currentView === 'disease-guide' ? 'auto' : 'hidden',
+                  overflow: isFullPageCalendarView(currentView) ? 'auto' : 'hidden',
                 }}
                 aria-label={
                   currentView === 'guide'
                     ? t('layout.vegetableGuide')
                     : currentView === 'disease-guide'
                       ? t('layout.diseaseGuide')
-                      : t('layout.calendarView')
+                      : currentView === 'settings'
+                        ? t('settings.title')
+                        : t('layout.calendarView')
                 }
               >
                 {currentView === 'guide' ? (
@@ -329,6 +332,15 @@ function App() {
                       onError={handleError}
                     >
                       <DiseaseGuideView />
+                    </ComponentErrorBoundary>
+                  </Suspense>
+                ) : currentView === 'settings' ? (
+                  <Suspense fallback={inlineFallback}>
+                    <ComponentErrorBoundary
+                      componentName="AccountSettings"
+                      onError={handleError}
+                    >
+                      <AccountSettings />
                     </ComponentErrorBoundary>
                   </Suspense>
                 ) : (

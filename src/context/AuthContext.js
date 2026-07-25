@@ -13,7 +13,11 @@ import {
   deleteUser,
   EmailAuthProvider,
   reauthenticateWithCredential,
-  reauthenticateWithPopup
+  reauthenticateWithPopup,
+  verifyBeforeUpdateEmail,
+  applyActionCode,
+  checkActionCode,
+  updatePassword
 } from 'firebase/auth';
 import { Capacitor } from '@capacitor/core';
 import { auth } from '../firebase';
@@ -133,6 +137,83 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // Change the account email. This doesn't take effect immediately — Firebase sends a
+  // verification link to the new address, and the change only completes once that link
+  // is clicked (see EmailAction, which handles the `mode=verifyAndChangeEmail` link).
+  async function changeEmail(newEmail, password = null) {
+    try {
+      setError(null);
+      if (!currentUser) {
+        throw new Error('No user logged in');
+      }
+
+      await reauthenticate(password);
+
+      // Same reasoning as resetPassword: native's window.location.origin isn't a real,
+      // authorized web domain, so fall back to the public web app URL there.
+      const continueUrl = Capacitor.isNativePlatform()
+        ? `https://${process.env.REACT_APP_FIREBASE_AUTH_DOMAIN}`
+        : window.location.origin;
+      await verifyBeforeUpdateEmail(currentUser, newEmail, {
+        url: continueUrl,
+        handleCodeInApp: false,
+      });
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }
+
+  // Change the account password. Takes effect immediately (unlike changeEmail, there's no
+  // confirmation link) — requires reauthentication first since it's security-sensitive.
+  async function changePassword(currentPassword, newPassword) {
+    try {
+      setError(null);
+      if (!currentUser) {
+        throw new Error('No user logged in');
+      }
+
+      await reauthenticate(currentPassword);
+      await updatePassword(currentUser, newPassword);
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }
+
+  // Inspect an emailed action code (e.g. verifyAndChangeEmail, recoverEmail) before applying it.
+  async function checkAuthActionCode(oobCode) {
+    try {
+      setError(null);
+      return await checkActionCode(auth, oobCode);
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }
+
+  // Complete an emailed action code (finishes an email change, or reverts one via recoverEmail).
+  async function applyAuthActionCode(oobCode) {
+    try {
+      setError(null);
+      await applyActionCode(auth, oobCode);
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  }
+
+  // Refresh the locally cached user after a change Firebase made out-of-band (e.g. an
+  // email change action link). Forces a fresh ID token too, since Firestore security
+  // rules key off the token's email claim, which otherwise stays stale until its next
+  // natural refresh — no-ops if this browser tab isn't signed in as the affected user.
+  async function refreshCurrentUser() {
+    if (!auth.currentUser) return;
+    await auth.currentUser.reload();
+    await auth.currentUser.getIdToken(true);
+    setCurrentUser({ ...auth.currentUser });
+  }
+
   // Update user profile
   async function updateUserProfile(updates) {
     try {
@@ -225,6 +306,11 @@ export function AuthProvider({ children }) {
     resetPassword,
     verifyResetCode,
     confirmReset,
+    changeEmail,
+    changePassword,
+    checkAuthActionCode,
+    applyAuthActionCode,
+    refreshCurrentUser,
     updateUserProfile,
     reauthenticate,
     deleteAccount,

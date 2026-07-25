@@ -4,6 +4,7 @@ import { ConfirmModal, Modal } from '../common';
 import DatePicker from 'react-widgets/DatePicker';
 import { Localization } from 'react-widgets';
 import { DateLocalizer } from 'react-widgets/IntlLocalizer';
+import 'react-widgets/styles.css';
 import { RW_DATE_PICKER_INPUT_PROPS } from '../../constants/datePicker';
 import { EVENT_ACTIONS } from '../../constants';
 import { useToast } from '../../context/ToastContext';
@@ -84,6 +85,7 @@ export default function DailyBulkEditModals({
           icon="event"
           onClose={() => setShowBulkMoveModal(false)}
           size="sm"
+          className="event-modal"
           footer={
             <div className="d-flex gap-2 w-100">
               <button

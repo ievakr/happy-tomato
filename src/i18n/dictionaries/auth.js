@@ -52,6 +52,15 @@ const auth = {
     'auth.passwordUpdated': 'Password updated!',
     'auth.passwordUpdatedDesc': 'You can now sign in with your new password.',
     'auth.continueToSignIn': 'Continue to Sign In',
+    // Email change action (link from email)
+    'auth.emailLinkInvalidTitle': 'Link Invalid',
+    'auth.emailLinkInvalid': 'This link is invalid or has expired. Please try again from Account Settings.',
+    'auth.emailChanged': 'Email Updated',
+    'auth.emailChangedDesc': 'Your email has been changed to {email}.',
+    'auth.emailChangedDescGeneric': 'Your email has been changed.',
+    'auth.emailChangeReverted': 'Email Change Reverted',
+    'auth.emailChangeRevertedDesc': 'The email change has been undone and your account is back to its previous address.',
+    'auth.emailChangeRevertedNotice': "If you didn't request this change, we recommend resetting your password right away.",
     // User menu
     'auth.user': 'User',
     'auth.userMenu': 'User menu',
@@ -110,6 +119,15 @@ const auth = {
     'auth.passwordUpdated': 'Slaptažodis atnaujintas!',
     'auth.passwordUpdatedDesc': 'Dabar galite prisijungti nauju slaptažodžiu.',
     'auth.continueToSignIn': 'Tęsti prie prisijungimo',
+    // Email change action (link from email)
+    'auth.emailLinkInvalidTitle': 'Nuoroda negalioja',
+    'auth.emailLinkInvalid': 'Ši nuoroda negalioja arba nebegalioja. Bandykite dar kartą paskyros nustatymuose.',
+    'auth.emailChanged': 'El. paštas atnaujintas',
+    'auth.emailChangedDesc': 'Jūsų el. paštas pakeistas į {email}.',
+    'auth.emailChangedDescGeneric': 'Jūsų el. paštas pakeistas.',
+    'auth.emailChangeReverted': 'El. pašto keitimas atšauktas',
+    'auth.emailChangeRevertedDesc': 'El. pašto keitimas atšauktas, paskyra grąžinta į ankstesnį adresą.',
+    'auth.emailChangeRevertedNotice': 'Jei šio pakeitimo neprašėte, rekomenduojame nedelsiant atkurti slaptažodį.',
     // User menu
     'auth.user': 'Naudotojas',
     'auth.userMenu': 'Naudotojo meniu',

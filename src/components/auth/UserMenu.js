@@ -1,14 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useCalendarContext } from '../../context/CalendarContext';
 import { useTranslation } from '../../i18n/LanguageContext';
-import AccountSettings from '../settings/AccountSettings';
 import './UserMenu.css';
 
 function UserMenu() {
   const { currentUser, logout } = useAuth();
+  const { setCurrentView } = useCalendarContext();
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState(null);
   const menuRef = useRef(null);
   const triggerRef = useRef(null);
@@ -131,7 +131,7 @@ function UserMenu() {
           <button 
             className="dropdown-item d-flex align-items-center gap-2"
             onClick={() => {
-              setShowSettings(true);
+              setCurrentView('settings');
               setIsOpen(false);
             }}
             type="button"
@@ -144,10 +144,6 @@ function UserMenu() {
             {t('auth.signOut')}
           </button>
         </div>
-      )}
-
-      {showSettings && (
-        <AccountSettings onClose={() => setShowSettings(false)} />
       )}
     </div>
   );

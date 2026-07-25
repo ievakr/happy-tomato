@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from 'react';
 import dayjs from 'dayjs';
-import { useCalendarContext } from '../context/CalendarContext';
+import { useCalendarContext, isFullPageCalendarView } from '../context/CalendarContext';
 import { getCurrentWeekIndex } from '../utils';
 import { useResponsive } from './useResponsive';
 
@@ -35,7 +35,7 @@ export function useResponsiveCalendarView() {
       setCurrentView(isMobile ? 'daily' : 'month');
       return;
     }
-    if (currentView === 'guide' || currentView === 'disease-guide') {
+    if (isFullPageCalendarView(currentView)) {
       return;
     }
     if (!isMobile && currentView === 'year') {

@@ -15,7 +15,7 @@ const layout = {
     'layout.openMenu': 'Open menu',
     'layout.plantManagement': 'Plant Management',
     'layout.managePlants': 'Manage Plants',
-    'layout.todoManagement': 'To-do management',
+    'layout.todoManagement': 'To-do Management',
     'layout.manageTodo': 'Manage to-do',
     'layout.gardenPlanner': 'Garden Planner',
     'layout.vegetableGuide': 'Vegetable Guide',
