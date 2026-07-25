@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n/LanguageContext';
 import LanguageSwitcher from '../common/LanguageSwitcher';
+import Icon from '../common/Icon';
 import TomatoBackground from './TomatoBackground';
+import logo from '../../assets/logo.png';
 import './Auth.css';
 
 function ForgotPassword({ onBackToLogin }) {
@@ -29,7 +31,10 @@ function ForgotPassword({ onBackToLogin }) {
       setSuccess(true);
     } catch (err) {
       if (err.code === 'auth/user-not-found') {
-        setError(t('auth.noAccountFound'));
+        // Show the same success state as a real account, so this form can't be used
+        // to check which emails are registered. No email actually goes out, but the
+        // response is indistinguishable from the real thing.
+        setSuccess(true);
       } else if (err.code === 'auth/invalid-email') {
         setError(t('auth.invalidEmail'));
       } else {
@@ -45,11 +50,13 @@ function ForgotPassword({ onBackToLogin }) {
       <TomatoBackground />
       <div className="auth-card card shadow-lg border-0">
         <div className="card-body">
-          <div className="d-flex justify-content-center mb-3">
-            <LanguageSwitcher />
+          <div className="auth-brand">
+            <img src={logo} alt="" />
+            <span>Happy Tomato</span>
           </div>
+
           <div className="text-center mb-4">
-            <h2 className="auth-title h3 fw-bold mb-1">{t('auth.resetPassword')}</h2>
+            <h2 className="auth-title mb-1">{t('auth.resetPassword')}</h2>
             <p className="auth-subtitle mb-0">
               {t('auth.resetInstructions')}
             </p>
@@ -64,18 +71,21 @@ function ForgotPassword({ onBackToLogin }) {
 
           {!success ? (
             <form onSubmit={handleSubmit} className="auth-form d-grid gap-3">
-              <div>
-                <label htmlFor="email" className="form-label fw-semibold">{t('auth.email')}</label>
-                <input
-                  id="email"
-                  type="email"
-                  className="form-control form-control-lg"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t('auth.emailPlaceholder')}
-                  disabled={loading}
-                  required
-                />
+              <div className="auth-field">
+                <label htmlFor="email" className="form-label">{t('auth.email')}</label>
+                <div className="auth-input-wrap">
+                  <Icon name="email" className="auth-input-icon" />
+                  <input
+                    id="email"
+                    type="email"
+                    className="form-control form-control-lg auth-input"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('auth.emailPlaceholder')}
+                    disabled={loading}
+                    required
+                  />
+                </div>
               </div>
 
               <button
@@ -108,6 +118,10 @@ function ForgotPassword({ onBackToLogin }) {
               </button>
             </div>
           )}
+
+          <div className="d-flex justify-content-center mt-4">
+            <LanguageSwitcher variant="dropdown" abbreviateEnglish className="auth-language-dropdown" />
+          </div>
         </div>
       </div>
     </div>

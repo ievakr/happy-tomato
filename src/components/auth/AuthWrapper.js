@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import Welcome from './Welcome';
 import Login from './Login';
 import Signup from './Signup';
 import ForgotPassword from './ForgotPassword';
@@ -22,7 +23,7 @@ function clearResetPasswordParamsFromUrl() {
 
 function AuthWrapper({ children }) {
   const { currentUser, bootLoading } = useAuth();
-  const [authView, setAuthView] = useState('login'); // 'login', 'signup', or 'forgot'
+  const [authView, setAuthView] = useState('welcome'); // 'welcome', 'login', 'signup', or 'forgot'
   const [resetCode, setResetCode] = useState(getResetPasswordCode);
 
   // Handle the password reset link first, even if the user already has a session
@@ -49,14 +50,20 @@ function AuthWrapper({ children }) {
   // Confirmed signed out — show authentication screens
   return (
     <>
+      {authView === 'welcome' && (
+        <Welcome
+          onLogin={() => setAuthView('login')}
+          onSignup={() => setAuthView('signup')}
+        />
+      )}
       {authView === 'login' && (
         <Login
-          onSwitchToSignup={() => setAuthView('signup')}
           onForgotPassword={() => setAuthView('forgot')}
+          onBack={() => setAuthView('welcome')}
         />
       )}
       {authView === 'signup' && (
-        <Signup onSwitchToLogin={() => setAuthView('login')} />
+        <Signup onBack={() => setAuthView('welcome')} />
       )}
       {authView === 'forgot' && (
         <ForgotPassword onBackToLogin={() => setAuthView('login')} />

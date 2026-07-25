@@ -13,6 +13,7 @@ import {
 } from "firebase/auth";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getMessaging, isSupported } from "firebase/messaging";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 import { Capacitor } from "@capacitor/core";
 
 const firebaseConfig = {
@@ -54,6 +55,29 @@ if (missingEnvVars.length > 0) {
 }
 
 const app = initializeApp(firebaseConfig);
+
+// Bot/abuse protection for Auth, Firestore, and Functions calls. Web-only for now —
+// native Capacitor builds would need App Attest/Play Integrity providers instead of
+// reCAPTCHA, which isn't wired up yet. No-ops if REACT_APP_RECAPTCHA_SITE_KEY isn't
+// set, so this stays inert until App Check is actually enabled for the project.
+// Setup (do this in the Firebase console, not in code):
+//   1. Firebase Console → Build → App Check → register this web app with reCAPTCHA v3,
+//      then put the generated site key in REACT_APP_RECAPTCHA_SITE_KEY.
+//   2. In App Check → APIs, turn on enforcement for Authentication (and Firestore/
+//      Functions if desired) once you've confirmed real traffic isn't being blocked.
+//   3. For local dev, the console will log a debug token on first run — add it under
+//      App Check → Manage debug tokens so localhost isn't treated as unverified.
+const recaptchaSiteKey = process.env.REACT_APP_RECAPTCHA_SITE_KEY;
+
+if (!Capacitor.isNativePlatform() && recaptchaSiteKey) {
+    if (process.env.NODE_ENV !== "production") {
+        window.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    }
+    initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+        isTokenAutoRefreshEnabled: true,
+    });
+}
 
 const tabManager = Capacitor.isNativePlatform()
     ? persistentSingleTabManager()
