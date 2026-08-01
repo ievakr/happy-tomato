@@ -395,7 +395,7 @@ export function useDailyDayStrip({
   );
 
   const visibleMonthLabel = useMemo(
-    () => capitalizeFirst(dayjs(`${visibleStripMonthKey}-01`).locale(language).format('MMMM YYYY')),
+    () => capitalizeFirst(dayjs(`${visibleStripMonthKey}-01`).locale(language).format('MMMM')),
     [visibleStripMonthKey, language]
   );
 

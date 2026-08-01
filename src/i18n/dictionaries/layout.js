@@ -2,6 +2,7 @@
 const layout = {
   en: {
     'layout.month': 'Month',
+    'layout.yearShort': 'Year',
     'layout.week': 'Week',
     'layout.monthView': 'Month view',
     'layout.weekView': 'Week view',
@@ -20,6 +21,7 @@ const layout = {
     'layout.gardenPlanner': 'Garden Planner',
     'layout.vegetableGuide': 'Vegetable Guide',
     'layout.diseaseGuide': 'Disease Guide',
+    'layout.profile': 'Profile',
     'layout.calendar': 'Calendar',
     'layout.yearLabel': 'Year {year}',
     'layout.monthViewNamed': 'Month view — {month}',
@@ -28,6 +30,7 @@ const layout = {
   },
   lt: {
     'layout.month': 'Mėnuo',
+    'layout.yearShort': 'Metai',
     'layout.week': 'Savaitė',
     'layout.monthView': 'Mėnesio vaizdas',
     'layout.weekView': 'Savaitės vaizdas',
@@ -46,6 +49,7 @@ const layout = {
     'layout.gardenPlanner': 'Daržo planuoklė',
     'layout.vegetableGuide': 'Daržovių gidas',
     'layout.diseaseGuide': 'Ligų gidas',
+    'layout.profile': 'Profilis',
     'layout.calendar': 'Kalendorius',
     'layout.yearLabel': '{year} m.',
     'layout.monthViewNamed': 'Mėnesio vaizdas — {month}',

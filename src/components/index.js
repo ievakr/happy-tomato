@@ -14,7 +14,6 @@ export { default as SmallCalendar } from './calendar/SmallCalendar';
 
 // Form components
 export { default as EventModal } from './forms/EventModal';
-export { default as CreateEventButton } from './forms/CreateEventButton';
 
 // Common components
 export { default as CustomDropdown } from './common/CustomDropdown'; 

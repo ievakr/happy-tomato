@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Modal } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { deleteAllUserData } from '../../utils/deleteUserData';
@@ -9,6 +10,7 @@ import pushService from '../../services/pushService';
 import { useTranslation } from '../../i18n/LanguageContext';
 import Icon from '../common/Icon';
 import TomatoBackground from '../auth/TomatoBackground';
+import { getUserAvatarSrc } from '../../utils/userAvatar';
 import './AccountSettings.css';
 
 /** Labels ordered Monday–Sunday; values match dayjs `.day()` (0 = Sunday … 6 = Saturday). */
@@ -81,6 +83,7 @@ function AccountSettings() {
   const { showSuccess, showError } = useToast();
   const pushNotifications = usePushNotifications();
   const [openPanel, setOpenPanel] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
@@ -106,21 +109,6 @@ function AccountSettings() {
   const currentLanguageLabel =
     languages.find((lng) => lng.code === language)?.nativeLabel || language;
 
-  const getInitials = () => {
-    if (currentUser?.displayName) {
-      return currentUser.displayName
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join('');
-    }
-    if (currentUser?.email) {
-      return currentUser.email[0].toUpperCase();
-    }
-    return '?';
-  };
-
   const closePanel = () => setOpenPanel(null);
 
   const togglePanel = (id) => {
@@ -143,12 +131,14 @@ function AccountSettings() {
       setShowConfirmNewPassword(false);
       setPasswordChangeError('');
     }
-    if (current === 'delete' && next !== 'delete') {
-      setPassword('');
-      setError('');
-    }
 
     setOpenPanel(next);
+  };
+
+  const resetDeleteConfirm = () => {
+    setShowDeleteConfirm(false);
+    setPassword('');
+    setError('');
   };
 
   const handleSaveEmailPreferences = async () => {
@@ -339,15 +329,11 @@ function AccountSettings() {
           <TomatoBackground cols={7} rows={3} maxSize={72} minSize={32} seed={42} />
         </div>
         <div className="settings-avatar-wrap">
-          {currentUser?.photoURL ? (
-            <img
-              src={currentUser.photoURL}
-              alt=""
-              className="settings-avatar"
-            />
-          ) : (
-            <div className="settings-avatar-initials">{getInitials()}</div>
-          )}
+          <img
+            src={getUserAvatarSrc(currentUser)}
+            alt=""
+            className="settings-avatar"
+          />
         </div>
       </div>
 
@@ -784,69 +770,73 @@ function AccountSettings() {
         </div>
 
         <div className="settings-group">
-          <SettingsCollapseRow
-            id="delete"
-            label={t('settings.deleteAccount')}
-            open={openPanel === 'delete'}
-            onToggle={() => togglePanel('delete')}
-            danger
+          <button
+            type="button"
+            className="settings-row settings-row--danger"
+            onClick={() => setShowDeleteConfirm(true)}
           >
-            <div className="d-grid gap-3">
-              <div className="alert alert-danger mb-0">
-                <strong>{t('settings.warning')}</strong> {t('settings.cannotUndo')}
-                <ul className="mb-0 mt-2">
-                  <li>{t('settings.deleteBullet1')}</li>
-                  <li>{t('settings.deleteBullet2')}</li>
-                  <li>{t('settings.deleteBullet3')}</li>
-                </ul>
-              </div>
-
-              {error && <div className="alert alert-danger mb-0">{error}</div>}
-
-              {!isGoogleUser && (
-                <div>
-                  <label htmlFor="confirm-password" className="form-label">
-                    {t('settings.enterPasswordConfirm')}
-                  </label>
-                  <input
-                    id="confirm-password"
-                    type="password"
-                    className="form-control"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('settings.passwordPlaceholder')}
-                    disabled={deleting}
-                    autoComplete="current-password"
-                  />
-                </div>
-              )}
-
-              {isGoogleUser && (
-                <div className="alert alert-info mb-0">{t('settings.googleReauthNotice')}</div>
-              )}
-
-              <div className="settings-collapse-actions">
-                <button
-                  type="button"
-                  className="btn btn-outline-secondary"
-                  onClick={closePanel}
-                  disabled={deleting}
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={handleDeleteAccount}
-                  disabled={deleting || (!isGoogleUser && !password)}
-                >
-                  {deleting ? t('settings.deleting') : t('settings.deleteMyAccount')}
-                </button>
-              </div>
-            </div>
-          </SettingsCollapseRow>
+            <span className="settings-row-label">{t('settings.deleteAccount')}</span>
+          </button>
         </div>
       </div>
+
+      <Modal show={showDeleteConfirm} onHide={resetDeleteConfirm} centered>
+        <Modal.Header closeButton={!deleting}>
+          <Modal.Title>{t('settings.deleteAccount')}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="d-grid gap-3">
+          <div className="alert alert-danger mb-0">
+            <strong>{t('settings.warning')}</strong> {t('settings.cannotUndo')}
+            <ul className="mb-0 mt-2">
+              <li>{t('settings.deleteBullet1')}</li>
+              <li>{t('settings.deleteBullet2')}</li>
+              <li>{t('settings.deleteBullet3')}</li>
+            </ul>
+          </div>
+
+          {error && <div className="alert alert-danger mb-0">{error}</div>}
+
+          {!isGoogleUser && (
+            <div>
+              <label htmlFor="confirm-password" className="form-label">
+                {t('settings.enterPasswordConfirm')}
+              </label>
+              <input
+                id="confirm-password"
+                type="password"
+                className="form-control"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={t('settings.passwordPlaceholder')}
+                disabled={deleting}
+                autoComplete="current-password"
+              />
+            </div>
+          )}
+
+          {isGoogleUser && (
+            <div className="alert alert-info mb-0">{t('settings.googleReauthNotice')}</div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            onClick={resetDeleteConfirm}
+            disabled={deleting}
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger"
+            onClick={handleDeleteAccount}
+            disabled={deleting || (!isGoogleUser && !password)}
+          >
+            {deleting ? t('settings.deleting') : t('settings.deleteMyAccount')}
+          </button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

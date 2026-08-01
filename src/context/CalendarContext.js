@@ -3,7 +3,13 @@ import React, { useContext } from "react";
 // Views that replace the calendar grid entirely with a standalone page (as opposed to
 // "month"/"year"/"week"/"daily", which are all ways of looking at the calendar itself).
 // The header shows a "back to calendar" control instead of month/week navigation for these.
-export const FULL_PAGE_CALENDAR_VIEWS = ["guide", "disease-guide", "settings"];
+export const FULL_PAGE_CALENDAR_VIEWS = [
+    "guide",
+    "disease-guide",
+    "settings",
+    "manage-plants",
+    "manage-todo",
+];
 
 export function isFullPageCalendarView(view) {
     return FULL_PAGE_CALENDAR_VIEWS.includes(view);
@@ -17,7 +23,8 @@ const CalendarContext = React.createContext({
     daySelected: null,
     setDaySelected: (day) => {},
     // View management
-    currentView: "month", // "month", "year" (mobile month drill-down), "week", "daily", or one of FULL_PAGE_CALENDAR_VIEWS
+    // "month", "year", "week", "daily", or one of FULL_PAGE_CALENDAR_VIEWS
+    currentView: "month",
     setCurrentView: () => {},
     weekIndex: 0,
     setWeekIndex: (index) => {},

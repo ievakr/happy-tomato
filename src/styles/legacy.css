@@ -408,7 +408,6 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
     width: 300px !important;
     height: 100vh !important;
     z-index: 1050 !important;
-    background-color: white !important;
     transition: left 0.3s ease-in-out !important;
     /* Below status bar / notch — matches Bootstrap p-3 (1rem) + safe areas (Capacitor / WKWebView) */
     padding-top: calc(1rem + env(safe-area-inset-top, 0px)) !important;

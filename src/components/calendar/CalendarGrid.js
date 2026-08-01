@@ -38,7 +38,7 @@ const CalendarGrid = ({ month }) => {
   return (
     <div 
       ref={swipeRef}
-      className="calendar-grid flex-grow-1"
+      className={`calendar-grid flex-grow-1${isMobile ? ' calendar-grid--month' : ''}`}
       style={{ touchAction: isMobile ? 'pan-y' : 'auto' }}
       role="grid"
       aria-label={t('calendar.monthViewLabel')}

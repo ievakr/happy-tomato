@@ -436,3 +436,98 @@
     font-size: 1rem;
   }
 }
+
+.calendar-month-label--month-view {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* Mobile month view — clean date-picker layout (todo counts under day numbers) */
+.calendar-grid--month {
+  background: #fff;
+  gap: 0;
+  padding: 0.25rem 0.35rem 0.75rem;
+}
+
+.calendar-header-days--month {
+  background: #fff;
+  border-bottom-color: transparent !important;
+  padding: 0.15rem 0.35rem 0.35rem;
+}
+
+.calendar-header-day-label {
+  color: #9ca3af;
+  font-weight: 500;
+  font-size: 0.8rem;
+}
+
+.month-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.3rem;
+  min-height: 0;
+  height: 100%;
+  padding: 0.55rem 0.15rem 0.35rem;
+  border: 0;
+  background: transparent;
+  color: #111827;
+  cursor: pointer;
+}
+
+.month-day:active {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.month-day--muted {
+  color: #d1d5db;
+}
+
+.month-day-number {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.1;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.month-day-number--today {
+  background: #dc3545;
+  color: #fff;
+  border-radius: 999px;
+}
+
+.month-day-meta {
+  min-height: 1.15rem;
+}
+
+.month-day-count {
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .calendar-grid--month .calendar-day-skeleton,
+  .calendar-grid--month > * {
+    border: 0 !important;
+    background: transparent !important;
+    min-height: 0 !important;
+  }
+
+  .calendar-header-days--month + .calendar-grid--month,
+  .calendar-grid.calendar-grid--month {
+    background-color: #fff !important;
+  }
+}

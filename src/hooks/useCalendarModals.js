@@ -6,8 +6,6 @@ import { useCallback, useEffect, useState } from 'react';
 export function useCalendarModals() {
   const [showEventModal, setShowEventModal] = useState(false);
   const [showPlantModal, setShowPlantModal] = useState(false);
-  const [showManagePlantsModal, setShowManagePlantsModal] = useState(false);
-  const [showManageTodoModal, setShowManageTodoModal] = useState(false);
   const [showWeeklySummaryModal, setShowWeeklySummaryModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [dosage, setDosage] = useState('');
@@ -43,10 +41,6 @@ export function useCalendarModals() {
     setShowEventModal,
     showPlantModal,
     setShowPlantModal,
-    showManagePlantsModal,
-    setShowManagePlantsModal,
-    showManageTodoModal,
-    setShowManageTodoModal,
     showWeeklySummaryModal,
     setShowWeeklySummaryModal,
     selectedEvent,

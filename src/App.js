@@ -28,8 +28,8 @@ const DailyView = lazy(() => import('./components/calendar/DailyView'));
 const YearlyView = lazy(() => import('./components/calendar/YearlyView'));
 const EventModal = lazy(() => import('./components/forms/EventModal'));
 const CreatePlantModal = lazy(() => import('./components/forms/CreatePlantModal'));
-const ManagePlantsModal = lazy(() => import('./components/forms/ManagePlantsModal'));
-const ManageTodoModal = lazy(() => import('./components/forms/ManageTodoModal'));
+const ManagePlantsPage = lazy(() => import('./components/forms/ManagePlantsPage'));
+const ManageTodoPage = lazy(() => import('./components/forms/ManageTodoPage'));
 const WeeklySummaryTodoModal = lazy(() => import('./components/calendar/WeeklySummaryTodoModal'));
 const VegetableGuideView = lazy(() => import('./components/guide/VegetableGuideView'));
 const DiseaseGuideView = lazy(() => import('./components/guide/DiseaseGuideView'));
@@ -45,9 +45,6 @@ function App() {
   const {
     showEventModal,
     showPlantModal,
-    showManagePlantsModal,
-    setShowManagePlantsModal,
-    showManageTodoModal,
     showWeeklySummaryModal,
     setShowWeeklySummaryModal,
     filteredEvents,
@@ -211,27 +208,6 @@ function App() {
             </Suspense>
           )}
           
-          {/* Manage Plants modal overlay */}
-          {showManagePlantsModal && (
-            <Suspense fallback={<LoadingOverlay text={t('messages.loadingData')} backdrop={true} />}>
-              <ComponentErrorBoundary
-                componentName="ManagePlantsModal"
-                onError={handleError}
-              >
-                <ManagePlantsModal onClose={() => setShowManagePlantsModal(false)} />
-              </ComponentErrorBoundary>
-            </Suspense>
-          )}
-
-          {showManageTodoModal && createPortal(
-            <Suspense fallback={<LoadingOverlay text={t('messages.loadingData')} backdrop={true} />}>
-              <ComponentErrorBoundary componentName="ManageTodoModal" onError={handleError}>
-                <ManageTodoModal />
-              </ComponentErrorBoundary>
-            </Suspense>,
-            document.body
-          )}
-
           {showWeeklySummaryModal && createPortal(
             <Suspense fallback={<LoadingOverlay text={t('messages.loadingData')} backdrop={true} />}>
               <ComponentErrorBoundary componentName="WeeklySummaryTodoModal" onError={handleError}>
@@ -313,7 +289,11 @@ function App() {
                       ? t('layout.diseaseGuide')
                       : currentView === 'settings'
                         ? t('settings.title')
-                        : t('layout.calendarView')
+                        : currentView === 'manage-plants'
+                          ? t('layout.plantManagement')
+                          : currentView === 'manage-todo'
+                            ? t('layout.todoManagement')
+                            : t('layout.calendarView')
                 }
               >
                 {currentView === 'guide' ? (
@@ -341,6 +321,24 @@ function App() {
                       onError={handleError}
                     >
                       <AccountSettings />
+                    </ComponentErrorBoundary>
+                  </Suspense>
+                ) : currentView === 'manage-plants' ? (
+                  <Suspense fallback={inlineFallback}>
+                    <ComponentErrorBoundary
+                      componentName="ManagePlantsPage"
+                      onError={handleError}
+                    >
+                      <ManagePlantsPage />
+                    </ComponentErrorBoundary>
+                  </Suspense>
+                ) : currentView === 'manage-todo' ? (
+                  <Suspense fallback={inlineFallback}>
+                    <ComponentErrorBoundary
+                      componentName="ManageTodoPage"
+                      onError={handleError}
+                    >
+                      <ManageTodoPage />
                     </ComponentErrorBoundary>
                   </Suspense>
                 ) : (

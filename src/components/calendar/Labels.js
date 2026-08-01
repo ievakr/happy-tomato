@@ -3,7 +3,11 @@ import { useEventContext } from "../../context/EventContext";
 import { EventListSkeleton, CustomDropdown } from "../common";
 import { useTranslation } from "../../i18n/LanguageContext";
 
-export default function Labels({ headerClassName = 'mt-4 mb-2', contentClassName = 'mb-3' }) {
+export default function Labels({
+    headerClassName = 'mt-4 mb-2',
+    contentClassName = 'mb-3',
+    sepClassName = '',
+}) {
     const { t } = useTranslation();
     const { labels, setLabels, isInitialLoading } = useEventContext();
     
@@ -80,7 +84,11 @@ export default function Labels({ headerClassName = 'mt-4 mb-2', contentClassName
                         >
                             {t('calendar.selectAllCategories')}
                         </button>
-                        <span className="fw-normal" style={{ color: '#495057' }} aria-hidden>
+                        <span
+                            className={`fw-normal ${sepClassName}`.trim()}
+                            style={sepClassName ? undefined : { color: '#495057' }}
+                            aria-hidden
+                        >
                             ·
                         </span>
                         <button
