@@ -83,31 +83,6 @@
   opacity: 0.95;
 }
 
-.sidebar-labels {
-  margin-top: 0.25rem;
-  margin-bottom: 1rem;
-}
-
-.sidebar-labels .text-secondary,
-.sidebar-labels .fw-bold,
-.sidebar-labels .labels-filter-category-bulk-btn {
-  color: var(--sidebar-fg) !important;
-}
-
-.sidebar-labels .labels-filter-category-bulk-btn:hover,
-.sidebar-labels .labels-filter-category-bulk-btn:active,
-.sidebar-labels .labels-filter-category-bulk-btn:disabled {
-  color: var(--sidebar-fg-muted) !important;
-}
-
-.sidebar-labels .labels-filter-category-bulk-btn:disabled {
-  opacity: 0.55 !important;
-}
-
-.sidebar-labels-sep {
-  color: var(--sidebar-separator) !important;
-}
-
 .sidebar-footer {
   margin-top: auto;
   padding-top: 1rem;

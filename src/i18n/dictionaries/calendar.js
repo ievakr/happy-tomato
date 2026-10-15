@@ -66,6 +66,10 @@ const calendar = {
     'calendar.clearAll': 'Clear all',
     'calendar.selectCategoriesToFilter': 'Select categories to filter',
     'calendar.allCategoriesSelected': 'All categories selected',
+    'calendar.allCategories': 'All categories',
+    'calendar.filterTitle': 'Filter',
+    'calendar.searchCategories': 'Search categories',
+    'calendar.clear': 'Clear',
     'calendar.categoriesSelectedSingular': '{count} category selected',
     'calendar.categoriesSelectedPlural': '{count} categories selected',
 
@@ -141,6 +145,10 @@ const calendar = {
     'calendar.clearAll': 'Išvalyti visas',
     'calendar.selectCategoriesToFilter': 'Pasirinkite kategorijas filtravimui',
     'calendar.allCategoriesSelected': 'Pasirinktos visos kategorijos',
+    'calendar.allCategories': 'Visos kategorijos',
+    'calendar.filterTitle': 'Filtras',
+    'calendar.searchCategories': 'Ieškoti kategorijų',
+    'calendar.clear': 'Išvalyti',
     'calendar.categoriesSelectedSingular': 'Pasirinkta {count} kategorija',
     'calendar.categoriesSelectedPlural': 'Pasirinktos {count} kategorijos',
 

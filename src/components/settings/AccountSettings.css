@@ -68,23 +68,12 @@
   padding: 0 16px 40px;
 }
 
-.settings-section-title {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #1c1c1e;
-  margin: 0 0 10px 4px;
-}
-
-.settings-section-title + .settings-group {
-  margin-top: 0;
-}
-
 .settings-group {
   background: #fff;
+  border: 1px solid #e5e5ea;
   border-radius: 14px;
   overflow: hidden;
   margin-bottom: 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .settings-row {
@@ -113,8 +102,9 @@ button.settings-row:active {
 }
 
 .settings-row + .settings-row,
-.settings-row + .settings-collapse-body,
-.settings-collapse-body + .settings-row {
+.settings-row + .settings-editor,
+.settings-editor + .settings-row,
+.settings-editor + .settings-editor {
   border-top: 1px solid #e5e5ea;
 }
 
@@ -150,17 +140,120 @@ button.settings-row:active {
   transform: rotate(180deg);
 }
 
-.settings-collapse-body {
-  padding: 16px;
+/* Open row: the card itself is the editor (label + field + actions), not a summary stacked on a second form. */
+.settings-editor {
+  padding: 14px 16px 16px;
 }
 
-.settings-collapse-actions {
+.settings-editor-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.settings-editor-toggle .settings-row-chevron {
+  margin-left: auto;
+}
+
+.settings-editor-toggle:focus-visible {
+  outline: 2px solid rgba(220, 53, 69, 0.45);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.settings-editor-body {
+  margin-top: 12px;
+}
+
+.settings-editor-form {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-editor-body .form-control,
+.settings-editor-body .form-select {
+  border: 1px solid #d8d8de;
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 1rem;
+  color: #1c1c1e;
+  background: #fff;
+  box-shadow: none;
+}
+
+.settings-editor-body .form-control:focus,
+.settings-editor-body .form-select:focus {
+  border-color: #c7c7cc;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.12);
+}
+
+.settings-editor-body .input-group .form-control {
+  border-radius: 8px 0 0 8px;
+}
+
+.settings-editor-body .input-group .btn {
+  border-color: #d8d8de;
+  border-radius: 0 8px 8px 0;
+  color: #8e8e93;
+}
+
+.settings-editor-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 10px;
+}
+
+.settings-editor-body > .settings-editor-actions {
   margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid #e5e5ea;
+}
+
+.settings-editor-actions .btn {
+  min-width: 96px;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.settings-editor-cancel {
+  background: #fff;
+  color: #1c1c1e;
+  border: 1px solid #d1d1d6;
+}
+
+.settings-editor-cancel:hover:not(:disabled),
+.settings-editor-cancel:focus-visible:not(:disabled) {
+  background: #f7f7f8;
+  color: #1c1c1e;
+  border-color: #c7c7cc;
+}
+
+.settings-editor-save {
+  background: #dc3545;
+  border: 1px solid #dc3545;
+  color: #fff;
+}
+
+.settings-editor-save:hover:not(:disabled),
+.settings-editor-save:focus-visible:not(:disabled) {
+  background: #c82333;
+  border-color: #bd2130;
+  color: #fff;
+}
+
+.settings-editor-save:disabled,
+.settings-editor-cancel:disabled {
+  opacity: 0.65;
 }
 
 .settings-row--danger .settings-row-label {

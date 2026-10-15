@@ -1708,6 +1708,11 @@
   resolved "https://registry.npmjs.org/@fontsource/material-icons-outlined/-/material-icons-outlined-5.2.6.tgz"
   integrity sha512-99XKAkwnCg0s0/ywax+o3m01HSNM5gGzSBw+WnlWG2+WY3wOjcN+wXMfm4zP37Yme7Yze2DvKxF78tHWOrlwFw==
 
+"@fontsource/nunito@^5.3.0":
+  version "5.3.0"
+  resolved "https://registry.npmjs.org/@fontsource/nunito/-/nunito-5.3.0.tgz"
+  integrity sha512-vw9TaTQJ/zpEpKrsODuPmOvaVjXgdda6B+xXA4YqjrdeJ62MLgVoDerdRXFQHyBnSCt2yQ2nHKCHPP/Pv7Xq4Q==
+
 "@fontsource/open-sans@^5.2.7":
   version "5.2.7"
   resolved "https://registry.npmjs.org/@fontsource/open-sans/-/open-sans-5.2.7.tgz"

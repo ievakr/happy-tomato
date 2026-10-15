@@ -36,6 +36,14 @@ function SettingsCollapseRow({
 }) {
   const panelId = `settings-panel-${id}`;
   const className = `settings-row${danger ? ' settings-row--danger' : ''}`;
+  const chevron = (
+    <Icon
+      name="expand_more"
+      className={`settings-row-chevron settings-row-chevron--expand${
+        open ? ' settings-row-chevron--open' : ''
+      }`}
+    />
+  );
 
   if (disabled) {
     return (
@@ -48,32 +56,47 @@ function SettingsCollapseRow({
     );
   }
 
-  return (
-    <>
-      <button
-        type="button"
-        className={className}
-        onClick={onToggle}
-        aria-expanded={open}
-        aria-controls={panelId}
-      >
-        <span className="settings-row-label">{label}</span>
-        {value != null && value !== '' && (
-          <span className="settings-row-value">{value}</span>
-        )}
-        <Icon
-          name="expand_more"
-          className={`settings-row-chevron settings-row-chevron--expand${
-            open ? ' settings-row-chevron--open' : ''
-          }`}
-        />
-      </button>
-      {open && (
-        <div id={panelId} className="settings-collapse-body">
+  if (open) {
+    return (
+      <div className="settings-editor">
+        <button
+          type="button"
+          className="settings-editor-toggle"
+          onClick={onToggle}
+          aria-expanded="true"
+          aria-controls={panelId}
+        >
+          <span className="settings-row-label" id={`${panelId}-label`}>
+            {label}
+          </span>
+          {chevron}
+        </button>
+        <div
+          id={panelId}
+          className="settings-editor-body"
+          role="region"
+          aria-labelledby={`${panelId}-label`}
+        >
           {children}
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={onToggle}
+      aria-expanded="false"
+      aria-controls={panelId}
+    >
+      <span className="settings-row-label">{label}</span>
+      {value != null && value !== '' && (
+        <span className="settings-row-value">{value}</span>
       )}
-    </>
+      {chevron}
+    </button>
   );
 }
 
@@ -338,8 +361,6 @@ function AccountSettings() {
       </div>
 
       <div className="settings-body">
-        <h2 className="settings-section-title">{t('settings.accountDetails')}</h2>
-
         <div className="settings-group">
           <SettingsCollapseRow
             id="name"
@@ -348,32 +369,28 @@ function AccountSettings() {
             open={openPanel === 'name'}
             onToggle={() => togglePanel('name')}
           >
-            <form onSubmit={handleSaveProfile} className="d-grid gap-2">
-              <div>
-                <label htmlFor="edit-display-name" className="form-label small mb-1">
-                  {t('settings.name')}
-                </label>
-                <input
-                  id="edit-display-name"
-                  type="text"
-                  className="form-control"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder={t('settings.namePlaceholder')}
-                  disabled={savingProfile}
-                  autoFocus
-                />
-              </div>
-              <div className="settings-collapse-actions">
+            <form onSubmit={handleSaveProfile} className="settings-editor-form">
+              <input
+                id="edit-display-name"
+                type="text"
+                className="form-control"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={t('settings.namePlaceholder')}
+                disabled={savingProfile}
+                autoFocus
+                aria-label={t('settings.name')}
+              />
+              <div className="settings-editor-actions">
                 <button
                   type="button"
-                  className="btn btn-outline-secondary"
+                  className="btn settings-editor-cancel"
                   onClick={closePanel}
                   disabled={savingProfile}
                 >
                   {t('common.cancel')}
                 </button>
-                <button type="submit" className="btn btn-success" disabled={savingProfile}>
+                <button type="submit" className="btn settings-editor-save" disabled={savingProfile}>
                   {savingProfile ? t('common.saving') : t('common.save')}
                 </button>
               </div>
@@ -390,7 +407,7 @@ function AccountSettings() {
             onToggle={() => togglePanel('email')}
             disabled={isGoogleUser}
           >
-            <form onSubmit={handleChangeEmail} className="d-grid gap-2">
+            <form onSubmit={handleChangeEmail} className="settings-editor-form">
               {emailChangeError && (
                 <div className="alert alert-danger mb-0 py-2">{emailChangeError}</div>
               )}
@@ -425,16 +442,16 @@ function AccountSettings() {
                   autoComplete="current-password"
                 />
               </div>
-              <div className="settings-collapse-actions">
+              <div className="settings-editor-actions">
                 <button
                   type="button"
-                  className="btn btn-outline-secondary"
+                  className="btn settings-editor-cancel"
                   onClick={closePanel}
                   disabled={changingEmail}
                 >
                   {t('common.cancel')}
                 </button>
-                <button type="submit" className="btn btn-success" disabled={changingEmail}>
+                <button type="submit" className="btn settings-editor-save" disabled={changingEmail}>
                   {changingEmail ? t('common.saving') : t('common.save')}
                 </button>
               </div>
@@ -449,7 +466,7 @@ function AccountSettings() {
             onToggle={() => togglePanel('password')}
             disabled={isGoogleUser}
           >
-            <form onSubmit={handleChangePassword} className="d-grid gap-2">
+            <form onSubmit={handleChangePassword} className="settings-editor-form">
               {passwordChangeError && (
                 <div className="alert alert-danger mb-0 py-2">{passwordChangeError}</div>
               )}
@@ -519,16 +536,16 @@ function AccountSettings() {
                   </button>
                 </div>
               </div>
-              <div className="settings-collapse-actions">
+              <div className="settings-editor-actions">
                 <button
                   type="button"
-                  className="btn btn-outline-secondary"
+                  className="btn settings-editor-cancel"
                   onClick={closePanel}
                   disabled={changingPassword}
                 >
                   {t('common.cancel')}
                 </button>
-                <button type="submit" className="btn btn-success" disabled={changingPassword}>
+                <button type="submit" className="btn settings-editor-save" disabled={changingPassword}>
                   {changingPassword ? t('common.saving') : t('common.save')}
                 </button>
               </div>
@@ -757,9 +774,9 @@ function AccountSettings() {
               </div>
             )}
 
-            <div className="settings-collapse-actions">
+            <div className="settings-editor-actions">
               <button
-                className="btn btn-success"
+                className="btn settings-editor-save"
                 type="button"
                 onClick={handleSaveEmailPreferences}
               >

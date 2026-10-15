@@ -3,8 +3,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n/LanguageContext';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import Icon from '../common/Icon';
-import TomatoBackground from './TomatoBackground';
-import logo from '../../assets/logo.png';
 import './Auth.css';
 
 function ForgotPassword({ onBackToLogin }) {
@@ -46,87 +44,51 @@ function ForgotPassword({ onBackToLogin }) {
   };
 
   return (
-    <div className="auth-container d-flex align-items-center justify-content-center">
-      <TomatoBackground />
-      <div className="auth-card card shadow-lg border-0">
-        <div className="card-body">
-          <div className="auth-brand">
-            <img src={logo} alt="" />
-            <span>Happy Tomato</span>
-          </div>
-
-          <div className="text-center mb-4">
-            <h2 className="auth-title mb-1">{t('auth.resetPassword')}</h2>
-            <p className="auth-subtitle mb-0">
-              {t('auth.resetInstructions')}
-            </p>
-          </div>
-
-          {error && <div className="auth-error alert alert-danger">{error}</div>}
-          {success && (
-            <div className="auth-success alert alert-success">
-              {t('auth.resetEmailSent')}
-            </div>
-          )}
-
-          {!success ? (
-            <form onSubmit={handleSubmit} className="auth-form d-grid gap-3">
-              <div className="auth-field">
-                <label htmlFor="email" className="form-label">{t('auth.email')}</label>
-                <div className="auth-input-wrap">
-                  <Icon name="email" className="auth-input-icon" />
-                  <input
-                    id="email"
-                    type="email"
-                    className="form-control form-control-lg auth-input"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('auth.emailPlaceholder')}
-                    disabled={loading}
-                    required
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary btn-lg w-100"
-                disabled={loading}
-              >
-                {loading ? t('auth.sending') : t('auth.sendResetLink')}
-              </button>
-            </form>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary btn-lg w-100"
-              onClick={onBackToLogin}
-            >
-              {t('auth.backToLogin')}
-            </button>
-          )}
-
-          {!success && (
-            <div className="auth-footer text-center mt-4">
-              <button
-                type="button"
-                className="btn btn-link p-0 fw-semibold text-decoration-none"
-                onClick={onBackToLogin}
-                disabled={loading}
-              >
-                ← {t('auth.backToLogin')}
-              </button>
-            </div>
-          )}
-
-          <div className="d-flex justify-content-center mt-4">
-            <LanguageSwitcher variant="dropdown" abbreviateEnglish className="auth-language-dropdown" />
-          </div>
+    <div className="auth-container auth-signup d-flex justify-content-center">
+      <div className="auth-signup-inner">
+        <div className="auth-signup-bar">
+          <button type="button" className="auth-back-link" onClick={onBackToLogin}>
+            <Icon name="chevron_left" />
+            <span>{t('auth.back')}</span>
+          </button>
+          <LanguageSwitcher variant="segment" />
         </div>
+
+        <h1 className="auth-signup-title">{t('auth.resetPassword')}</h1>
+
+        {error && <div className="auth-error alert alert-danger">{error}</div>}
+        {success && (
+          <div className="auth-success alert alert-success">{t('auth.resetEmailSent')}</div>
+        )}
+
+        {!success && (
+          <form onSubmit={handleSubmit} className="auth-form auth-signup-form">
+            <div className="auth-field">
+              <label htmlFor="email" className="form-label">{t('auth.email')}</label>
+              <input
+                id="email"
+                type="email"
+                className="form-control auth-input"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                autoComplete="email"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-primary btn-lg w-100 auth-signup-submit"
+              disabled={loading}
+            >
+              {loading ? t('auth.sending') : t('auth.sendResetLink')}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   );
 }
 
 export default ForgotPassword;
-

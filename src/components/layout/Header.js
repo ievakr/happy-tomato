@@ -58,6 +58,19 @@ export default function Header() {
     }
 
     const isGuideLikeView = isFullPageCalendarView(currentView);
+    const sectionTitleKey = {
+        settings: 'settings.account',
+        'manage-plants': 'layout.plantManagement',
+        'manage-todo': 'layout.todoManagement',
+        guide: 'layout.vegetableGuide',
+        'disease-guide': 'layout.diseaseGuide',
+    }[currentView];
+    const sectionTitle = sectionTitleKey ? t(sectionTitleKey) : '';
+    const isYearView = currentView === 'year';
+    const navDate = dayjs(new Date(dayjs().year(), monthIndex)).locale(language);
+    const monthLabel = isYearView
+        ? navDate.format('YYYY')
+        : capitalizeFirst(navDate.format('MMMM YYYY'));
 
     const handlePrevWeek = () => {
         if (weekIndex > 0) {
@@ -77,23 +90,78 @@ export default function Header() {
         }
     };
 
+    const handlePrevYear = () => setMonthIndex(monthIndex - 12);
+    const handleNextYear = () => setMonthIndex(monthIndex + 12);
+
+    const goPrev = currentView === 'week'
+        ? handlePrevWeek
+        : isYearView
+            ? handlePrevYear
+            : handlePrevMonth;
+    const goNext = currentView === 'week'
+        ? handleNextWeek
+        : isYearView
+            ? handleNextYear
+            : handleNextMonth;
+    const prevLabel = currentView === 'week'
+        ? t('layout.previousWeek')
+        : isYearView
+            ? t('calendar.prevYear')
+            : t('layout.previousMonth');
+    const nextLabel = currentView === 'week'
+        ? t('layout.nextWeek')
+        : isYearView
+            ? t('calendar.nextYear')
+            : t('layout.nextMonth');
+
     return (
         <header className={`calendar-header position-relative border-bottom bg-white px-2 px-md-4 py-2 ${isMobile ? 'd-flex flex-column' : 'd-flex align-items-center'}`}>
             {isMobile ? (
-                <div className="d-flex align-items-center justify-content-between">
+                <div className="header-mobile-bar">
                     <button
-                        className="sidebar-toggle btn btn-sm btn-outline-secondary"
+                        className={`header-menu-btn${sectionTitle ? '' : ' header-menu-btn--large'}`}
                         onClick={toggleSidebar}
                         type="button"
                         aria-label={t('layout.openMenu')}
                     >
-                        <span className="material-icons-outlined" style={{ fontSize: '1.1rem' }}>
+                        <span className="material-icons-outlined" aria-hidden>
                             menu
                         </span>
                     </button>
+                    {sectionTitle ? (
+                        <h1 className="header-page-title">{sectionTitle}</h1>
+                    ) : !isGuideLikeView ? (
+                        <div className="header-month-nav">
+                            <button
+                                className="header-month-chevron"
+                                onClick={goPrev}
+                                aria-label={prevLabel}
+                                title={prevLabel}
+                                type="button"
+                            >
+                                <span className="material-icons-outlined" aria-hidden>
+                                    chevron_left
+                                </span>
+                            </button>
+                            <span className="header-month-label">{monthLabel}</span>
+                            <button
+                                className="header-month-chevron"
+                                onClick={goNext}
+                                aria-label={nextLabel}
+                                title={nextLabel}
+                                type="button"
+                            >
+                                <span className="material-icons-outlined" aria-hidden>
+                                    chevron_right
+                                </span>
+                            </button>
+                        </div>
+                    ) : (
+                        <span className="header-month-nav" />
+                    )}
                     <button
                         type="button"
-                        className="btn p-0 border-0 bg-transparent"
+                        className="header-avatar-btn"
                         onClick={openProfile}
                         aria-label={t('layout.profile')}
                         title={t('layout.profile')}
@@ -107,6 +175,9 @@ export default function Header() {
                 </div>
             ) : (
                 <>
+                    {sectionTitle && (
+                        <h1 className="header-page-title header-page-title--desktop">{sectionTitle}</h1>
+                    )}
                     {!isGuideLikeView && (
                         <div className="calendar-month-nav calendar-month-nav-centered d-flex align-items-center">
                             {currentView === 'week' ? (
@@ -123,7 +194,7 @@ export default function Header() {
                                         </span>
                                     </button>
                                     <span className="calendar-month-label mx-2">
-                                        {capitalizeFirst(dayjs(new Date(dayjs().year(), monthIndex)).locale(language).format("MMMM YYYY"))}
+                                        {monthLabel}
                                     </span>
                                     <button
                                         className="btn btn-sm btn-light"
@@ -151,7 +222,7 @@ export default function Header() {
                                         </span>
                                     </button>
                                     <span className="calendar-month-label mx-2">
-                                        {capitalizeFirst(dayjs(new Date(dayjs().year(), monthIndex)).locale(language).format("MMMM YYYY"))}
+                                        {monthLabel}
                                     </span>
                                     <button
                                         className="btn btn-sm btn-light"

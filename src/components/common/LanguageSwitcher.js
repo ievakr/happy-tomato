@@ -9,6 +9,8 @@ import Icon from './Icon';
  * variant="flags" renders flag-only toggle buttons (used in the user menu).
  * variant="dropdown" renders a single button (flag + name) that opens a
  * dropdown menu listing every language with its flag.
+ * variant="segment" renders an EN | LT pill: the active code is filled red,
+ * the other stays gray. Used on the welcome screen.
  * variant="corner" renders a minimal text-based trigger (globe icon + language
  * code) that opens a plain-text list with a checkmark on the active language —
  * the compact site-header style (e.g. "EN ▾").
@@ -19,6 +21,31 @@ import Icon from './Icon';
 export default function LanguageSwitcher({ className = '', size = 'sm', variant = 'text', abbreviateEnglish = false }) {
   const { t, language, setLanguage, languages } = useTranslation();
   const btnSize = size === 'sm' ? 'btn-sm' : '';
+
+  if (variant === 'segment') {
+    return (
+      <div
+        className={`language-segment ${className}`.trim()}
+        role="group"
+        aria-label={t('auth.language')}
+      >
+        {languages.map((lng) => {
+          const active = lng.code === language;
+          return (
+            <button
+              key={lng.code}
+              type="button"
+              className={`language-segment-btn${active ? ' is-active' : ''}`}
+              aria-pressed={active}
+              onClick={() => setLanguage(lng.code)}
+            >
+              {lng.code.toUpperCase()}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   if (variant === 'corner') {
     const current = languages.find((lng) => lng.code === language) || languages[0];

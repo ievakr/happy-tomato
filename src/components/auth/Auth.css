@@ -80,22 +80,21 @@
 }
 
 .auth-brand span {
-  font-family: 'Fredoka', 'Open Sans', sans-serif;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1rem;
   color: #33a13a;
 }
 
 /* Welcome screen hero + heading */
 .auth-welcome-hero {
-  width: 190px;
-  height: 190px;
+  width: 168px;
+  height: 168px;
   border-radius: 50%;
   background: #fdf1d3;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0.5rem auto 1.75rem;
+  margin: 0.25rem auto 1.5rem;
 }
 
 .auth-welcome-hero img {
@@ -106,10 +105,9 @@
 }
 
 .auth-welcome-title {
-  font-family: 'Fredoka', 'Open Sans', sans-serif;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 2.1rem;
-  color: #1f2937;
+  color: #1c1c1e;
   margin-bottom: 0.5rem;
 }
 
@@ -133,22 +131,47 @@
   background: #e9ecef;
 }
 
-/* Corner language selector (Welcome screen) */
-.auth-corner-lang {
-  position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
+.auth-welcome-top {
+  display: flex;
+  justify-content: flex-end;
+  margin: -0.5rem 0 0.85rem;
 }
 
 .auth-title {
-  font-family: 'Fredoka', 'Open Sans', sans-serif;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 1.7rem;
   color: var(--auth-accent);
 }
 
 .auth-subtitle {
-  color: #6b7280;
+  color: #8e8e93;
+  font-weight: 600;
+}
+
+.language-segment {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  border: 1px solid #e6e6ea;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.language-segment-btn {
+  border: 0;
+  background: transparent;
+  color: #8e8e93;
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 0.45rem 0.7rem;
+  border-radius: 9px;
+}
+
+.language-segment-btn.is-active {
+  background: #dc3545;
+  color: #fff;
 }
 
 /* Pill-shaped inputs with a leading icon */
@@ -330,4 +353,146 @@
   .auth-card .card-body {
     padding: 2rem 1.5rem;
   }
+}
+
+/* Sign up screen */
+.auth-signup {
+  background: #fff;
+  align-items: flex-start;
+  padding: 1.1rem 1.25rem 2rem;
+}
+
+.auth-signup-inner {
+  width: 100%;
+  max-width: 440px;
+}
+
+.auth-signup-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.35rem;
+}
+
+.auth-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.05rem;
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 1.05rem;
+  padding: 0;
+  line-height: 1;
+}
+
+.auth-back-link .material-icons-outlined {
+  font-size: 1.35rem;
+}
+
+.auth-signup-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  display: block;
+  margin-bottom: 0.85rem;
+}
+
+.auth-signup-title {
+  font-weight: 800;
+  font-size: 2rem;
+  color: #1c1c1e;
+  text-align: left;
+  margin: 0 0 1.35rem;
+}
+
+.auth-signup-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-signup .auth-form .form-label {
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.98rem;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-bottom: 0.4rem;
+}
+
+.auth-signup .auth-form .form-control.auth-input {
+  border-radius: 12px;
+  border-color: #e5e7eb;
+  padding: 0.8rem 1rem;
+  font-weight: 500;
+  color: #1c1c1e;
+}
+
+.auth-signup .auth-form .form-control.auth-input::placeholder {
+  color: #c4c4c8;
+  font-weight: 500;
+}
+
+.auth-signup .auth-form .form-control.auth-input--with-toggle {
+  padding-right: 2.75rem;
+}
+
+.auth-signup .auth-input-toggle {
+  color: #9ca3af;
+}
+
+.auth-signup .auth-signup-submit {
+  margin-top: 0.35rem;
+  border-radius: 12px;
+  box-shadow: none;
+  font-weight: 800;
+}
+
+.auth-signup .auth-divider {
+  text-transform: none;
+  letter-spacing: 0;
+  color: #9ca3af;
+  font-size: 0.95rem;
+  margin: 1.15rem 0;
+}
+
+.auth-google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  font-weight: 800;
+  color: #1c1c1e;
+}
+
+.auth-google-btn:disabled {
+  opacity: 0.6;
+}
+
+.auth-google-mark {
+  color: #ea4335;
+  font-weight: 800;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.auth-forgot-link {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: #dc3545;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0;
+  text-align: left;
+}
+
+.auth-forgot-link:disabled {
+  opacity: 0.6;
 }

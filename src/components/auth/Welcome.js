@@ -20,8 +20,8 @@ function Welcome({ onLogin, onSignup }) {
       <TomatoBackground />
       <div className="auth-card card shadow-lg border-0">
         <div className="card-body text-center">
-          <div className="auth-corner-lang">
-            <LanguageSwitcher variant="corner" />
+          <div className="auth-welcome-top">
+            <LanguageSwitcher variant="segment" />
           </div>
 
           <div className="auth-welcome-hero" aria-hidden="true">

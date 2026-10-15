@@ -12,8 +12,8 @@ const settings = {
     'settings.name': 'Name',
     'settings.namePlaceholder': 'Your name',
     'settings.notSet': 'Not set',
-    'settings.profileUpdated': 'Profile updated.',
-    'settings.profileUpdateFailed': 'Failed to update profile',
+    'settings.profileUpdated': 'Account updated.',
+    'settings.profileUpdateFailed': 'Failed to update account',
 
     // Change email
     'settings.email': 'Email',
@@ -143,8 +143,8 @@ const settings = {
     'settings.name': 'Vardas',
     'settings.namePlaceholder': 'Jūsų vardas',
     'settings.notSet': 'Nenustatyta',
-    'settings.profileUpdated': 'Profilis atnaujintas.',
-    'settings.profileUpdateFailed': 'Nepavyko atnaujinti profilio',
+    'settings.profileUpdated': 'Paskyra atnaujinta.',
+    'settings.profileUpdateFailed': 'Nepavyko atnaujinti paskyros',
 
     // Change email
     'settings.email': 'El. paštas',

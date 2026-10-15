@@ -1,5 +1,4 @@
 import React, { useContext } from 'react';
-import Labels from '../calendar/Labels';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import { useCalendarContext, isFullPageCalendarView } from '../../context/CalendarContext';
 import LayoutContext from '../../context/LayoutContext';
@@ -86,14 +85,6 @@ export default function Sidebar() {
             );
           })}
         </nav>
-
-        <div className="sidebar-labels flex-grow-1 overflow-auto">
-          <Labels
-            headerClassName="mb-2"
-            contentClassName=""
-            sepClassName="sidebar-labels-sep"
-          />
-        </div>
 
         <div className="sidebar-footer">
           <LanguageSwitcher variant="corner" />

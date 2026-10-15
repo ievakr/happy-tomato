@@ -2,7 +2,7 @@
 const forms = {
   en: {
     // Create/Manage plant modals
-    'forms.createPlant': 'Create Plant',
+    'forms.createPlant': 'Create plant',
     'forms.creating': 'Creating...',
     'forms.managePlants': 'Manage Plants',
     'forms.plantCategory': 'Plant Category',
@@ -10,11 +10,12 @@ const forms = {
     'forms.plantVariety': 'Plant Variety',
     'forms.plantVarietyPlaceholder': 'e.g. Cherry',
     'forms.category': 'Category',
+    'forms.plantName': 'Name',
     'forms.varietyOptional': 'Variety (optional)',
     'forms.chooseIcon': 'Choose icon',
     'forms.editPlant': 'Edit plant',
     'forms.deletePlant': 'Delete plant',
-    'forms.noPlantsYet': 'No plants yet. Create plants using the "+ Create Plant" button.',
+    'forms.noPlantsYet': 'No plants yet.',
     'forms.deletePlantConfirm':
       'Are you sure? Events using this plant will keep the reference but the plant will no longer appear in lists.',
     'forms.enterCategoryError': 'Please enter a plant category.',
@@ -72,11 +73,12 @@ const forms = {
     'forms.plantVariety': 'Augalo veislė',
     'forms.plantVarietyPlaceholder': 'pvz. Vyšniniai',
     'forms.category': 'Kategorija',
+    'forms.plantName': 'Pavadinimas',
     'forms.varietyOptional': 'Veislė (nebūtina)',
     'forms.chooseIcon': 'Pasirinkite piktogramą',
     'forms.editPlant': 'Redaguoti augalą',
     'forms.deletePlant': 'Ištrinti augalą',
-    'forms.noPlantsYet': 'Dar nėra augalų. Sukurkite augalų mygtuku „+ Sukurti augalą“.',
+    'forms.noPlantsYet': 'Dar nėra augalų.',
     'forms.deletePlantConfirm':
       'Ar tikrai? Įvykiai, naudojantys šį augalą, išsaugos nuorodą, bet augalas nebebus rodomas sąrašuose.',
     'forms.enterCategoryError': 'Prašome įvesti augalo kategoriją.',

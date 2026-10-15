@@ -158,6 +158,32 @@
   overflow: hidden;
 }
 
+.daily-strip-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px 4px;
+  background: transparent;
+}
+
+.daily-strip-toolbar-btn {
+  background: #fff;
+  color: #1c1c1e;
+  border: 1px solid #d8d8de;
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.daily-strip-toolbar-btn:hover,
+.daily-strip-toolbar-btn:focus-visible {
+  background: #fff;
+  color: #1c1c1e;
+  border-color: #c7c7cc;
+}
+
 .daily-week-header {
   flex-shrink: 0;
 }
@@ -462,6 +488,53 @@
   font-size: 0.8rem;
 }
 
+.yearly-view {
+  background: #fff;
+  overflow: auto;
+}
+
+.yearly-view-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 16px;
+  align-content: start;
+}
+
+.year-month {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 92px;
+  padding: 14px 8px;
+  border: 1px solid #e5e5ea;
+  border-radius: 14px;
+  background: #fff;
+  color: #1c1c1e;
+}
+
+.year-month-name {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.year-month-counts {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  min-height: 1.15rem;
+}
+
+.year-month--current {
+  border-color: #dc3545;
+  background: rgba(220, 53, 69, 0.08);
+  color: #dc3545;
+}
+
 .month-day {
   display: flex;
   flex-direction: column;
@@ -530,4 +603,136 @@
   .calendar-grid.calendar-grid--month {
     background-color: #fff !important;
   }
+}
+
+.category-filter-bar {
+  padding: 12px 16px 0;
+  background: #fff;
+}
+
+.category-filter-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d8d8de;
+  border-radius: 10px;
+  background: #fff;
+  color: #1c1c1e;
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.category-filter-trigger-icon {
+  font-size: 1.15rem !important;
+  color: #1c1c1e;
+}
+
+.category-filter-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.category-filter-trigger-chevron {
+  font-size: 1.25rem !important;
+  color: #8e8e93;
+}
+
+.category-filter-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1060;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: flex-end;
+}
+
+.category-filter-sheet {
+  width: 100%;
+  max-height: min(85vh, 640px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 18px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+
+.category-filter-title {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1c1c1e;
+}
+
+.category-filter-search {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  background: #f2f2f7;
+  color: #1c1c1e;
+  padding: 10px 14px;
+  font-size: 1rem;
+}
+
+.category-filter-search:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+}
+
+.category-filter-bulk {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 0 8px;
+}
+
+.category-filter-bulk-btn {
+  border: 0;
+  background: transparent;
+  color: #007aff;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 4px 0;
+}
+
+.category-filter-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.category-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 2px;
+  margin: 0;
+  font-size: 1.05rem;
+  color: #1c1c1e;
+  cursor: pointer;
+}
+
+.category-filter-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  flex: 0 0 auto;
+  border: 1.5px solid #c7c7cc;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.category-filter-check:checked {
+  border-color: #dc3545;
+  background-color: #dc3545;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='5 12 10 17 19 7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 14px;
 }

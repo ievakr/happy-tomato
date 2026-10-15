@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useSavedTodos } from '../../hooks';
 import { useTranslation } from '../../i18n/LanguageContext';
+import { Icon } from '../common';
 
 export default function ManageTodoPage() {
   const { t } = useTranslation();
@@ -16,8 +17,6 @@ export default function ManageTodoPage() {
   return (
     <div className="h-100 overflow-auto">
       <div className="container-md py-4" style={{ maxWidth: '760px' }}>
-        <h2 className="mb-3">{t('layout.todoManagement')}</h2>
-
         <form onSubmit={handleAdd} className="d-flex gap-2 align-items-stretch mb-3">
           <input
             type="text"
@@ -49,10 +48,12 @@ export default function ManageTodoPage() {
                 <span className="text-break flex-grow-1">{item}</span>
                 <button
                   type="button"
-                  className="btn btn-sm btn-outline-danger flex-shrink-0"
+                  className="btn btn-sm btn-link text-danger p-1 flex-shrink-0"
                   onClick={() => removeItem(item)}
+                  aria-label={t('common.delete')}
+                  title={t('common.delete')}
                 >
-                  {t('common.delete')}
+                  <Icon name="delete" style={{ fontSize: '1.15rem' }} />
                 </button>
               </li>
             ))

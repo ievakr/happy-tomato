@@ -4,7 +4,7 @@ html {
 }
 
 body {
-  font-family: 'Open Sans', system-ui, -apple-system, sans-serif;
+  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
   min-height: 100%;
 }
 
@@ -248,37 +248,6 @@ html.capacitor-ios-native .calendar-header {
 
 .sidebar-section > *:last-child {
     margin-bottom: 0 !important;
-}
-
-/* Sidebar category filter — fixed grey; no hover/disabled colour or opacity shift */
-.labels-filter-category-bulk-btn {
-    color: #495057 !important;
-    opacity: 1 !important;
-    text-decoration: none !important;
-}
-.labels-filter-category-bulk-btn:hover,
-.labels-filter-category-bulk-btn:active,
-.labels-filter-category-bulk-btn:disabled {
-    color: #495057 !important;
-    opacity: 1 !important;
-    text-decoration: none !important;
-    background-color: transparent !important;
-    border-color: transparent !important;
-    box-shadow: none !important;
-}
-.labels-filter-category-bulk-btn:focus-visible {
-    color: #495057 !important;
-    opacity: 1 !important;
-    text-decoration: none !important;
-    background-color: transparent !important;
-    border-color: transparent !important;
-    box-shadow: 0 0 0 0.2rem rgba(73, 80, 87, 0.35) !important;
-}
-.labels-filter-category-bulk-btn:not(:disabled) {
-    cursor: pointer;
-}
-.labels-filter-category-bulk-btn:disabled {
-    cursor: not-allowed;
 }
 
 /* Mobile scope control: stay outline + grey text (avoid BS solid fill on hover/active after navigating views) */

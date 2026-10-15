@@ -2,11 +2,9 @@ import React from 'react';
 import { getDayHeaders } from '../../utils';
 import { useCalendarContext } from '../../context/CalendarContext';
 import { useTranslation } from '../../i18n/LanguageContext';
+import CategoryFilter from './CategoryFilter';
 
 export default function DailyDayStrip({
-  visibleMonthLabel,
-  monthIndex,
-  applyMonthChange,
   jumpToToday,
   bindStripScrollContainer,
   scheduleStripScrollWork,
@@ -25,9 +23,10 @@ export default function DailyDayStrip({
 
   return (
     <>
-      <div className="d-flex align-items-center justify-content-between gap-2 py-2 px-2 bg-light">
+      <CategoryFilter />
+      <div className="daily-strip-toolbar">
         <button
-          className="btn btn-sm btn-outline-secondary flex-shrink-0"
+          className="btn btn-sm daily-strip-toolbar-btn"
           onClick={() => setCurrentView('month')}
           type="button"
           title={t('layout.monthView')}
@@ -35,33 +34,8 @@ export default function DailyDayStrip({
         >
           {t('layout.month')}
         </button>
-        <div className="d-flex align-items-center justify-content-center gap-2 min-w-0">
-          <button
-            className="btn btn-sm btn-light flex-shrink-0"
-            onClick={() => applyMonthChange(monthIndex - 1)}
-            aria-label={t('calendar.prevMonth')}
-            title={t('calendar.prevMonth')}
-            type="button"
-          >
-            <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-              chevron_left
-            </span>
-          </button>
-          <span className="calendar-month-label text-truncate">{visibleMonthLabel}</span>
-          <button
-            className="btn btn-sm btn-light flex-shrink-0"
-            onClick={() => applyMonthChange(monthIndex + 1)}
-            aria-label={t('calendar.nextMonth')}
-            title={t('calendar.nextMonth')}
-            type="button"
-          >
-            <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-              chevron_right
-            </span>
-          </button>
-        </div>
         <button
-          className="btn btn-sm btn-outline-secondary flex-shrink-0"
+          className="btn btn-sm daily-strip-toolbar-btn"
           onClick={jumpToToday}
           type="button"
         >

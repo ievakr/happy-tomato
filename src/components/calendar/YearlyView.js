@@ -1,28 +1,41 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import dayjs from 'dayjs';
 import { useCalendarContext } from '../../context/CalendarContext';
 import { useEventContext } from '../../context/EventContext';
 import { useResponsive } from '../../hooks';
 import { calendarDateFromMonthIndex, calendarNavRefYear } from '../../utils';
+import { isTodoEvent, isCompletedTodoAction } from '../../utils/recurringTodos';
 import { useTranslation } from '../../i18n/LanguageContext';
 
 const MONTHS_0_11 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 
 /**
- * Mobile year picker (iOS Calendar–style): 12-month grid; pick a month to return to month view.
+ * Mobile year picker: 12 month cards. Counts under each name split open to-dos
+ * (red) and completed ones (green). Picking a month returns to month view.
  */
 export default function YearlyView() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { monthIndex, setMonthIndex, setCurrentView } = useCalendarContext();
-  const { isInitialLoading } = useEventContext();
+  const { filteredEvents, isInitialLoading } = useEventContext();
   const { isMobile } = useResponsive();
 
   const refYear = calendarNavRefYear();
   const yearAnchor = calendarDateFromMonthIndex(monthIndex);
   const displayYear = yearAnchor.year();
+  const selectedMonth = yearAnchor.month();
 
-  const goPrevYear = () => setMonthIndex(monthIndex - 12);
-  const goNextYear = () => setMonthIndex(monthIndex + 12);
+  const countsByMonth = useMemo(() => {
+    const counts = {};
+    (filteredEvents || []).forEach((evt) => {
+      const d = dayjs(evt.day);
+      if (!d.isValid() || d.year() !== displayYear) return;
+      const bucket = counts[d.month()] || { todo: 0, done: 0 };
+      if (isTodoEvent(evt)) bucket.todo += 1;
+      if (isCompletedTodoAction(evt)) bucket.done += 1;
+      counts[d.month()] = bucket;
+    });
+    return counts;
+  }, [filteredEvents, displayYear]);
 
   const selectMonth = (month0to11) => {
     const nextIndex = (displayYear - refYear) * 12 + month0to11;
@@ -30,63 +43,44 @@ export default function YearlyView() {
     setCurrentView('month');
   };
 
-  if (!isMobile) {
-    return null;
-  }
-
-  if (isInitialLoading) {
+  if (!isMobile || isInitialLoading) {
     return null;
   }
 
   return (
-    <div className="yearly-view flex-grow-1 d-flex flex-column bg-white" role="navigation" aria-label={t('calendar.yearViewLabel')}>
-      <div className="yearly-view-toolbar py-2 px-2 bg-light border-bottom">
-        <div className="d-flex align-items-center justify-content-center gap-2">
-          <button
-            type="button"
-            className="btn btn-sm btn-light"
-            onClick={goPrevYear}
-            aria-label={t('calendar.prevYear')}
-            title={t('calendar.prevYear')}
-          >
-            <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-              chevron_left
-            </span>
-          </button>
-          <span className="calendar-month-label fs-5 fw-semibold">{displayYear}</span>
-          <button
-            type="button"
-            className="btn btn-sm btn-light"
-            onClick={goNextYear}
-            aria-label={t('calendar.nextYear')}
-            title={t('calendar.nextYear')}
-          >
-            <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-              chevron_right
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <div
-        className="yearly-view-grid flex-grow-1 p-3"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '10px',
-          alignContent: 'start',
-        }}
-      >
+    <div className="yearly-view flex-grow-1" role="navigation" aria-label={t('calendar.yearViewLabel')}>
+      <div className="yearly-view-grid">
         {MONTHS_0_11.map((m) => {
-          const label = dayjs(new Date(displayYear, m, 1)).format('MMM');
+          const label = dayjs(new Date(displayYear, m, 1)).locale(language).format('MMM');
+          const current = m === selectedMonth;
+          const { todo, done } = countsByMonth[m] || { todo: 0, done: 0 };
           return (
             <button
               key={m}
               type="button"
-              className="btn btn-outline-secondary py-3"
+              className={`year-month${current ? ' year-month--current' : ''}`}
               onClick={() => selectMonth(m)}
+              aria-current={current ? 'date' : undefined}
             >
-              <span className="fw-semibold">{label}</span>
+              <span className="year-month-name">{label}</span>
+              <span className="year-month-counts">
+                {todo > 0 && (
+                  <span
+                    className="month-day-count bg-danger text-white"
+                    title={t('calendar.notDoneTapToView', { count: todo })}
+                  >
+                    {todo}
+                  </span>
+                )}
+                {done > 0 && (
+                  <span
+                    className="month-day-count bg-success text-white"
+                    title={t('calendar.doneTapToView', { count: done })}
+                  >
+                    {done}
+                  </span>
+                )}
+              </span>
             </button>
           );
         })}
