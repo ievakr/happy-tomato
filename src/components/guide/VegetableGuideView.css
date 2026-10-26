@@ -118,6 +118,11 @@
   font-size: 1.25rem;
 }
 
+.guide-crop > .guide-back {
+  margin: 0 0 4px;
+  padding-left: 0;
+}
+
 .guide-detail-scroll {
   padding: 4px 20px 32px;
 }

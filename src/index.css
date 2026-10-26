@@ -45,17 +45,6 @@ html.capacitor-ios-native #root {
   }
 }
 
-.vegetable-guide-bullets {
-  padding-left: 1.5rem;
-  list-style-type: disc;
-  list-style-position: outside;
-}
-
-.vegetable-guide-section {
-  border-top: 1px solid #dee2e6;
-  padding-top: 1.25rem;
-}
-
 .disease-guide-category + .disease-guide-category {
   border-top: 1px solid #dee2e6;
   margin-top: 0.75rem;

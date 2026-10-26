@@ -7,28 +7,15 @@ import {
 } from '../../data/vegetableGuide';
 import Icon from '../common/Icon';
 
-function BulletList({ items }) {
-  if (!items?.length) return null;
+function GuideNote({ title, lines }) {
+  const items = (Array.isArray(lines) ? lines : [lines]).filter(Boolean);
+  if (!items.length) return null;
   return (
-    <ul className="mb-0 vegetable-guide-bullets">
-      {items.map((item, i) => (
-        <li key={i} className="mb-1">
-          {item}
-        </li>
+    <section className="guide-note">
+      <h3>{title}</h3>
+      {items.map((line, index) => (
+        <p key={index}>{line}</p>
       ))}
-    </ul>
-  );
-}
-
-function ProblemSection({ icon, title, children }) {
-  if (!children) return null;
-  return (
-    <section className="mb-4 vegetable-guide-section">
-      <h3 className="h6 text-uppercase text-dark fw-bold mb-3 d-flex align-items-center gap-2">
-        {icon ? <Icon name={icon} style={{ fontSize: '1.15rem' }} /> : null}
-        {title}
-      </h3>
-      {children}
     </section>
   );
 }
@@ -42,63 +29,46 @@ export default function VegetableGuideProblemDetail({ problemId, onBack }) {
 
   if (!problem) {
     return (
-      <div>
-        <button type="button" className="btn btn-sm btn-outline-secondary mb-3" onClick={onBack}>
-          <Icon name="chevron_left" style={{ fontSize: '1.15rem', verticalAlign: 'middle' }} />
-          {t('guide.backToGuide')}
-        </button>
-        <p>{t('guide.problemNotFound')}</p>
-      </div>
+      <article className="guide-crop">
+        {onBack ? (
+          <button type="button" className="guide-back" onClick={onBack}>
+            <Icon name="chevron_left" />
+            {t('common.back')}
+          </button>
+        ) : null}
+        <p className="guide-empty">{t('guide.problemNotFound')}</p>
+      </article>
     );
   }
 
+  const categoryLabel = problem.category
+    ? t(`guide.problemCategory.${problem.category}`)
+    : null;
+
   return (
-    <article>
+    <article className="guide-crop">
       {onBack ? (
-        <button type="button" className="btn btn-sm btn-outline-secondary mb-3" onClick={onBack}>
-          <Icon name="chevron_left" style={{ fontSize: '1.15rem', verticalAlign: 'middle' }} />
-          {t('guide.backToGuide')}
+        <button type="button" className="guide-back" onClick={onBack}>
+          <Icon name="chevron_left" />
+          {t('common.back')}
         </button>
       ) : null}
-
-      <div className="d-flex align-items-center gap-3 mb-3">
-        <span
-          className="d-inline-flex align-items-center justify-content-center rounded bg-light border"
-          style={{ width: '56px', height: '56px', flexShrink: 0 }}
-        >
-          <Icon
-            name={problem.icon || 'bug_report'}
-            plantIcon={problem.plantIcon}
-            style={{ fontSize: '1.75rem' }}
-          />
-        </span>
-        <h2 className="h4 mb-0 fw-bold text-dark">{problem.name}</h2>
-      </div>
-
-      <ProblemSection icon="info" title={t('guide.problemWhatIsIt')}>
-        <p className="mb-0">{problem.whatIsIt}</p>
-      </ProblemSection>
-
-      <ProblemSection icon="visibility" title={t('guide.problemIdentify')}>
-        <BulletList items={problem.identify} />
-      </ProblemSection>
-
-      <ProblemSection icon="help_outline" title={t('guide.problemWhy')}>
-        <BulletList items={problem.why} />
-      </ProblemSection>
-
-      <ProblemSection icon="build" title={t('guide.problemFix')}>
-        <BulletList items={problem.fix} />
-      </ProblemSection>
-
-      <ProblemSection icon="shield" title={t('guide.problemPrevent')}>
-        <BulletList items={problem.prevent} />
-      </ProblemSection>
-
+      <h2 className="guide-crop-title">{problem.name}</h2>
+      {categoryLabel ? (
+        <div className="guide-chips">
+          <span className="guide-chip">{categoryLabel}</span>
+        </div>
+      ) : null}
+      <GuideNote title={t('guide.problemWhatIsIt')} lines={problem.whatIsIt} />
+      <GuideNote title={t('guide.problemIdentify')} lines={problem.identify} />
+      <GuideNote title={t('guide.problemWhy')} lines={problem.why} />
+      <GuideNote title={t('guide.problemFix')} lines={problem.fix} />
+      <GuideNote title={t('guide.problemPrevent')} lines={problem.prevent} />
       {affectedCrops.length ? (
-        <ProblemSection icon="eco" title={t('guide.problemPlantsAffected')}>
-          <BulletList items={affectedCrops} />
-        </ProblemSection>
+        <section className="guide-note">
+          <h3>{t('guide.problemPlantsAffected')}</h3>
+          <p>{affectedCrops.join(', ')}</p>
+        </section>
       ) : null}
     </article>
   );
