@@ -1,13 +1,67 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { usePlants } from '../../hooks/usePlants';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useEventContext } from '../../context/EventContext';
 import { useLayoutContext } from '../../context/LayoutContext';
 import { VEGETABLE_ICONS } from '../../constants';
-import { ConfirmModal, Icon } from '../common';
+import { Icon } from '../common';
 import { useTranslation } from '../../i18n/LanguageContext';
 import './ManagePlantsPage.css';
+
+function DeletePlantSheet({ name, onConfirm, onCancel, isLoading }) {
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !isLoading) onCancel();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [isLoading, onCancel]);
+
+  return createPortal(
+    <div className="plant-delete-backdrop" onClick={isLoading ? undefined : onCancel}>
+      <div
+        className="plant-delete-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-plant-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="plant-delete-grabber" aria-hidden="true" />
+        <div className="plant-delete-header">
+          <h2 id="delete-plant-title">{t('forms.deletePlantTitle', { name })}</h2>
+          <button
+            type="button"
+            className="plant-delete-close"
+            onClick={onCancel}
+            aria-label={t('common.close')}
+            disabled={isLoading}
+          >
+            <Icon name="close" />
+          </button>
+        </div>
+        <p className="plant-delete-message">{t('forms.deletePlantConfirm')}</p>
+        <button
+          type="button"
+          className="plant-delete-confirm"
+          onClick={onConfirm}
+          disabled={isLoading}
+        >
+          {t('common.delete')}
+        </button>
+      </div>
+    </div>,
+    document.body,
+  );
+}
 
 export default function ManagePlantsPage() {
   const { t } = useTranslation();
@@ -65,14 +119,22 @@ export default function ManagePlantsPage() {
     setShowPlantModal(true);
   };
 
+  const closeDeleteConfirm = useCallback(() => {
+    if (deletePlantMutation.isPending) return;
+    setDeleteConfirmId(null);
+  }, [deletePlantMutation.isPending]);
+
+  const plantToDelete = plants.find((plant) => plant.id === deleteConfirmId);
+
   return (
-    <div className="h-100 overflow-auto">
+    <div className="plants-page-scroll h-100 overflow-auto">
       <div className="plants-page">
         <button
           type="button"
           onClick={handleCreatePlant}
-          className="btn btn-danger w-100 plant-create-btn"
+          className="plant-create-btn"
         >
+          <Icon name="add" className="plant-create-icon" />
           {t('forms.createPlant')}
         </button>
 
@@ -82,111 +144,123 @@ export default function ManagePlantsPage() {
           <div className="plant-list">
             {plants.map((plant) =>
               editingId === plant.id ? (
-                <form key={plant.id} onSubmit={handleSaveEdit} className="plant-editor">
-                  <div>
-                    <label className="plant-editor-label" htmlFor="edit-plant-name">
-                      {t('forms.plantName')}
-                    </label>
-                    <input
-                      id="edit-plant-name"
-                      type="text"
-                      className="form-control"
-                      placeholder={t('forms.plantCategoryPlaceholder')}
-                      value={editCategory}
-                      onChange={(e) => setEditCategory(e.target.value)}
-                      autoFocus
-                    />
+                <form key={plant.id} onSubmit={handleSaveEdit} className="plant-card plant-card--editing">
+                  <div className="plant-card-summary">
+                    <span className="plant-card-icon" aria-hidden>
+                      <Icon plantIcon={editIcon || 'leaf'} />
+                    </span>
+                    <span className="plant-card-text">
+                      <span className="plant-card-name">{editCategory || plant.category}</span>
+                      {editVariety ? (
+                        <span className="plant-card-variety">{editVariety}</span>
+                      ) : null}
+                    </span>
+                    <span className="plant-card-actions">
+                      <button
+                        type="button"
+                        className="plant-card-action"
+                        onClick={cancelEdit}
+                        aria-label={t('forms.editPlant')}
+                      >
+                        <Icon name="edit" />
+                      </button>
+                      <button
+                        type="button"
+                        className="plant-card-action plant-card-action--delete"
+                        onClick={() => setDeleteConfirmId(plant.id)}
+                        aria-label={t('forms.deletePlant')}
+                      >
+                        <Icon name="delete" />
+                      </button>
+                    </span>
                   </div>
-                  <div>
-                    <label className="plant-editor-label" htmlFor="edit-plant-variety">
-                      {t('forms.plantVariety')}
+                  <div className="plant-editor-body">
+                    <label className="plant-editor-field" htmlFor="edit-plant-name">
+                      <span>{t('forms.category')}</span>
+                      <input
+                        id="edit-plant-name"
+                        type="text"
+                        placeholder={t('forms.plantCategoryPlaceholder')}
+                        value={editCategory}
+                        onChange={(e) => setEditCategory(e.target.value)}
+                      />
                     </label>
-                    <input
-                      id="edit-plant-variety"
-                      type="text"
-                      className="form-control"
-                      placeholder={t('forms.plantVarietyPlaceholder')}
-                      value={editVariety}
-                      onChange={(e) => setEditVariety(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <span className="plant-editor-label">{t('forms.chooseIcon')}</span>
-                    <div className="plant-icon-picker">
-                      {Object.keys(VEGETABLE_ICONS).map((iconKey) => (
+                    <label className="plant-editor-field" htmlFor="edit-plant-variety">
+                      <span>{t('forms.varietyOptional')}</span>
+                      <input
+                        id="edit-plant-variety"
+                        type="text"
+                        placeholder={t('forms.plantVarietyPlaceholder')}
+                        value={editVariety}
+                        onChange={(e) => setEditVariety(e.target.value)}
+                      />
+                    </label>
+                    <div className="plant-icon-grid">
+                      {Object.entries(VEGETABLE_ICONS).map(([iconKey, displayName]) => (
                         <button
                           key={iconKey}
                           type="button"
-                          className={`plant-icon-option${editIcon === iconKey ? ' is-selected' : ''}`}
+                          className={`plant-icon-choice${editIcon === iconKey ? ' is-selected' : ''}`}
                           onClick={() => setEditIcon(iconKey)}
-                          title={VEGETABLE_ICONS[iconKey]}
+                          title={displayName}
+                          aria-label={displayName}
                           aria-pressed={editIcon === iconKey}
                         >
-                          <Icon plantIcon={iconKey} style={{ fontSize: '1.1rem' }} />
+                          <Icon plantIcon={iconKey} />
                         </button>
                       ))}
                     </div>
-                  </div>
-                  <div className="plant-editor-actions">
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary"
-                      onClick={cancelEdit}
-                    >
-                      {t('common.cancel')}
-                    </button>
                     <button
                       type="submit"
-                      className="btn btn-danger"
-                      disabled={updatePlantMutation.isPending}
+                      className="plant-editor-save"
+                      disabled={updatePlantMutation.isPending || !editCategory.trim()}
                     >
                       {t('common.save')}
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-link text-danger plant-editor-delete"
-                    onClick={() => setDeleteConfirmId(plant.id)}
-                  >
-                    <Icon name="delete" className="plant-editor-delete-icon" />
-                    {t('forms.deletePlant')}
-                  </button>
                 </form>
               ) : (
-                <button
-                  key={plant.id}
-                  type="button"
-                  className="plant-row"
-                  onClick={() => startEdit(plant)}
-                >
-                  <Icon
-                    plantIcon={plant.icon || 'leaf'}
-                    className="plant-row-icon"
-                  />
-                  <span className="plant-row-text">
-                    <span className="plant-row-name">{plant.category}</span>
+                <div key={plant.id} className="plant-card">
+                  <span className="plant-card-icon" aria-hidden>
+                    <Icon plantIcon={plant.icon || 'leaf'} />
+                  </span>
+                  <span className="plant-card-text">
+                    <span className="plant-card-name">{plant.category}</span>
                     {plant.variety ? (
-                      <span className="plant-row-variety">{plant.variety}</span>
+                      <span className="plant-card-variety">{plant.variety}</span>
                     ) : null}
                   </span>
-                  <Icon name="chevron_right" className="plant-row-chevron" />
-                </button>
+                  <span className="plant-card-actions">
+                    <button
+                      type="button"
+                      className="plant-card-action"
+                      onClick={() => startEdit(plant)}
+                      aria-label={t('forms.editPlant')}
+                    >
+                      <Icon name="edit" />
+                    </button>
+                    <button
+                      type="button"
+                      className="plant-card-action plant-card-action--delete"
+                      onClick={() => setDeleteConfirmId(plant.id)}
+                      aria-label={t('forms.deletePlant')}
+                    >
+                      <Icon name="delete" />
+                    </button>
+                  </span>
+                </div>
               )
             )}
           </div>
         )}
       </div>
 
-      {deleteConfirmId && (
-        <ConfirmModal
-          title={t('forms.deletePlant')}
-          message={t('forms.deletePlantConfirm')}
-          confirmLabel={t('common.delete')}
-          variant="danger"
-          onConfirm={() => handleDelete(deleteConfirmId)}
-          onCancel={() => setDeleteConfirmId(null)}
+      {plantToDelete && (
+        <DeletePlantSheet
+          name={plantToDelete.category}
+          onConfirm={() => handleDelete(plantToDelete.id)}
+          onCancel={closeDeleteConfirm}
           isLoading={deletePlantMutation.isPending}
-          zIndex={1055}
         />
       )}
     </div>

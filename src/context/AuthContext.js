@@ -22,9 +22,9 @@ import {
 import { Capacitor } from '@capacitor/core';
 import { auth } from '../firebase';
 
-// Minimum time (ms) to show the intro splash on app open, so the brand is
-// always visible for a moment even when auth resolves instantly.
-const INTRO_MIN_DISPLAY_MS = 3000;
+// Minimum time (ms) to show the intro splash on app open, matching the
+// one soft logo pulse.
+const INTRO_MIN_DISPLAY_MS = 1200;
 
 const AuthContext = createContext();
 
@@ -147,7 +147,9 @@ export function AuthProvider({ children }) {
         throw new Error('No user logged in');
       }
 
-      await reauthenticate(password);
+      if (password) {
+        await reauthenticate(password);
+      }
 
       // Same reasoning as resetPassword: native's window.location.origin isn't a real,
       // authorized web domain, so fall back to the public web app URL there.

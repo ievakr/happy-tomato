@@ -11,9 +11,9 @@ import './Sidebar.css';
 const NAV_ITEMS = [
   { id: 'calendar', icon: 'calendar_month', labelKey: 'layout.calendar', calendar: true },
   { view: 'manage-plants', icon: 'eco', labelKey: 'layout.plantManagement' },
-  { view: 'manage-todo', icon: 'edit_note', labelKey: 'layout.todoManagement' },
+  { view: 'manage-todo', icon: 'checklist', labelKey: 'layout.todoManagement' },
   { view: 'guide', icon: 'menu_book', labelKey: 'layout.vegetableGuide' },
-  { view: 'disease-guide', icon: 'healing', labelKey: 'layout.diseaseGuide' },
+  { view: 'disease-guide', icon: 'coronavirus', labelKey: 'layout.diseaseGuide' },
   { view: 'settings', icon: 'person', labelKey: 'layout.profile' },
 ];
 
@@ -61,7 +61,7 @@ export default function Sidebar() {
       >
         <div className="sidebar-brand">
           <img src={logo} alt="" className="sidebar-brand-logo" />
-          <div className="sidebar-brand-name app-title">Happy Tomato</div>
+          <div className="sidebar-brand-name">Happy Tomato</div>
         </div>
 
         <nav className="sidebar-nav" aria-label={t('layout.menu')}>
@@ -87,14 +87,14 @@ export default function Sidebar() {
         </nav>
 
         <div className="sidebar-footer">
-          <LanguageSwitcher variant="corner" />
-          <span className="sidebar-footer-sep" aria-hidden />
+          <LanguageSwitcher variant="segment" />
           <button
             type="button"
             className="sidebar-footer-logout"
             onClick={handleLogout}
           >
-            {t('auth.signOut')}
+            <span className="material-icons-outlined sidebar-nav-icon">logout</span>
+            <span>{t('auth.signOut')}</span>
           </button>
         </div>
       </aside>

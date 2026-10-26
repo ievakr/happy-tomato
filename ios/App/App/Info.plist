@@ -51,5 +51,7 @@
 	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Happy Tomato uses your location to show the weather for your garden.</string>
 </dict>
 </plist>

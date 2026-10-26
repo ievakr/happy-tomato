@@ -22,7 +22,7 @@ export default function YearlyView() {
   const refYear = calendarNavRefYear();
   const yearAnchor = calendarDateFromMonthIndex(monthIndex);
   const displayYear = yearAnchor.year();
-  const selectedMonth = yearAnchor.month();
+  const today = dayjs();
 
   const countsByMonth = useMemo(() => {
     const counts = {};
@@ -52,35 +52,37 @@ export default function YearlyView() {
       <div className="yearly-view-grid">
         {MONTHS_0_11.map((m) => {
           const label = dayjs(new Date(displayYear, m, 1)).locale(language).format('MMM');
-          const current = m === selectedMonth;
+          const isCurrentMonth = displayYear === today.year() && m === today.month();
           const { todo, done } = countsByMonth[m] || { todo: 0, done: 0 };
           return (
             <button
               key={m}
               type="button"
-              className={`year-month${current ? ' year-month--current' : ''}`}
+              className={`year-month${isCurrentMonth ? ' year-month--current' : ''}`}
               onClick={() => selectMonth(m)}
-              aria-current={current ? 'date' : undefined}
+              aria-current={isCurrentMonth ? 'date' : undefined}
             >
               <span className="year-month-name">{label}</span>
-              <span className="year-month-counts">
-                {todo > 0 && (
-                  <span
-                    className="month-day-count bg-danger text-white"
-                    title={t('calendar.notDoneTapToView', { count: todo })}
-                  >
-                    {todo}
-                  </span>
-                )}
-                {done > 0 && (
-                  <span
-                    className="month-day-count bg-success text-white"
-                    title={t('calendar.doneTapToView', { count: done })}
-                  >
-                    {done}
-                  </span>
-                )}
-              </span>
+              {(todo > 0 || done > 0) && (
+                <span className="year-month-counts">
+                  {todo > 0 && (
+                    <span
+                      className="year-count year-count--todo"
+                      title={t('calendar.notDoneTapToView', { count: todo })}
+                    >
+                      {todo}
+                    </span>
+                  )}
+                  {done > 0 && (
+                    <span
+                      className="year-count year-count--done"
+                      title={t('calendar.doneTapToView', { count: done })}
+                    >
+                      {done}
+                    </span>
+                  )}
+                </span>
+              )}
             </button>
           );
         })}

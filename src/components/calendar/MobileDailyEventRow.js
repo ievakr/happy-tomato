@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import CalendarEventChip from './CalendarEventChip';
+import Icon from '../common/Icon';
 import { eventTodoOrTitleText } from './EventItem';
 import { useTranslation } from '../../i18n/LanguageContext';
 
-/** Width of the delete hint strip revealed when swiping left (px). */
-const MOBILE_EVENT_DELETE_REVEAL_PX = 52;
-/** Release past this fraction of the reveal width → delete. Higher = longer swipe required. */
-const MOBILE_EVENT_DELETE_RELEASE_RATIO = 0.85;
+/** Width of the red Delete action revealed when swiping left (px). */
+const MOBILE_EVENT_DELETE_REVEAL_PX = 112;
+/** Release past this fraction of the reveal width → keep Delete open. */
+const MOBILE_EVENT_DELETE_OPEN_RATIO = 0.35;
 
 export default function MobileDailyEventRow({
   evt,
@@ -21,6 +21,12 @@ export default function MobileDailyEventRow({
   deleteDisabled,
 }) {
   const { t } = useTranslation();
+  const title = eventTodoOrTitleText(evt);
+  const plantId = (evt.labels || [])[0];
+  const plant = plantId ? plantsById?.[plantId] : null;
+  const plantLine = plant
+    ? [plant.category, plant.variety].filter(Boolean).join(' · ')
+    : '';
   const [openPx, setOpenPx] = useState(0);
   const openPxRef = useRef(0);
   const [isHorizontalPan, setIsHorizontalPan] = useState(false);
@@ -43,7 +49,7 @@ export default function MobileDailyEventRow({
     const el = contentRef.current;
     if (!el) return;
 
-    const DELETE_RELEASE_AT = MOBILE_EVENT_DELETE_REVEAL_PX * MOBILE_EVENT_DELETE_RELEASE_RATIO;
+    const DELETE_OPEN_AT = MOBILE_EVENT_DELETE_REVEAL_PX * MOBILE_EVENT_DELETE_OPEN_RATIO;
     const AXIS_LOCK_PX = 10;
 
     const clampOpen = (v) =>
@@ -92,12 +98,9 @@ export default function MobileDailyEventRow({
       panModeRef.current = 'undecided';
       setIsHorizontalPan(false);
       const x = openPxRef.current;
-      if (x >= DELETE_RELEASE_AT && !deleteDisabled) {
-        openDeleteConfirmFromSwipe();
-        return;
-      }
-      openPxRef.current = 0;
-      setOpenPx(0);
+      const next = x >= DELETE_OPEN_AT && !deleteDisabled ? MOBILE_EVENT_DELETE_REVEAL_PX : 0;
+      openPxRef.current = next;
+      setOpenPx(next);
     };
 
     const onTouchCancel = () => {
@@ -121,14 +124,14 @@ export default function MobileDailyEventRow({
     };
   }, [bulkEditMode, deleteDisabled, openDeleteConfirmFromSwipe]);
 
-  const rowShellClass = 'd-flex align-items-stretch mb-1 mobile-daily-event-swipe';
+  const rowShellClass = 'daily-task-swipe mb-2';
 
   const rowInner = (
     <>
       {bulkEditMode && (
         <input
           type="checkbox"
-          className="form-check-input bulk-edit-day-checkbox flex-shrink-0 mt-1"
+          className="daily-bulk-check flex-shrink-0"
           checked={evt.id ? bulkSelectedEventIds.includes(evt.id) : false}
           onClick={(e) => e.stopPropagation()}
           onChange={() => evt.id && toggleBulkEventSelection(evt.id)}
@@ -136,26 +139,22 @@ export default function MobileDailyEventRow({
         />
       )}
       {!bulkEditMode && supportsDayViewCompleteToggle(evt) && renderDayTodoCompleteButton(evt)}
-      <div className="flex-grow-1 min-w-0 align-self-start">
-        <CalendarEventChip
-          event={evt}
-          plantsById={plantsById || {}}
-          listMode
-          preferFullPlantIcons
-          bulkEditSelected={!!evt.id && bulkSelectedEventIds.includes(evt.id)}
-          hideLeadingStatusIcon={!bulkEditMode && supportsDayViewCompleteToggle(evt)}
-          onClick={(e) => handleEventClick(evt, e)}
-        />
-      </div>
+      <span className={`daily-task-icon${evt.completed ? ' daily-task-icon--done' : ''}`}>
+        <Icon plantIcon={plant?.icon || 'leaf'} />
+      </span>
+      <span className="daily-task-copy">
+        <span className={`daily-task-title${evt.completed ? ' daily-task-title--done' : ''}`}>{title}</span>
+        {plantLine ? <span className="daily-task-sub">{plantLine}</span> : null}
+      </span>
     </>
   );
 
   if (bulkEditMode) {
     return (
       <div
-        className={`d-flex align-items-start gap-2 mb-1 ${
-          evt.id && bulkSelectedEventIds.includes(evt.id) ? 'rounded border border-success border-2 p-1' : ''
-        }`}
+        className={`daily-task-card${evt.completed ? ' daily-task-card--done' : ''}`}
+        onClick={(e) => handleEventClick(evt, e)}
+        role="button"
       >
         {rowInner}
       </div>
@@ -163,33 +162,36 @@ export default function MobileDailyEventRow({
   }
 
   return (
-    <div className={`${rowShellClass} position-relative overflow-hidden rounded`}>
-      {openPx > 0 && (
-        <div
-          className="mobile-daily-event-swipe__track position-absolute top-0 end-0 bottom-0"
-          style={{
-            width: MOBILE_EVENT_DELETE_REVEAL_PX,
-            background: 'transparent',
-            pointerEvents: 'none',
-          }}
-          aria-hidden
-        >
-          <span
-            className="material-icons-outlined text-danger mobile-daily-event-swipe-delete-icon"
-            aria-hidden
-          >
-            delete
-          </span>
-        </div>
-      )}
+    <div className={`${rowShellClass} position-relative`}>
+      <button
+        type="button"
+        className="daily-task-swipe-delete"
+        style={{ width: MOBILE_EVENT_DELETE_REVEAL_PX }}
+        disabled={deleteDisabled}
+        onClick={openDeleteConfirmFromSwipe}
+      >
+        <span className="material-icons-outlined" aria-hidden>
+          delete
+        </span>
+        {t('common.delete')}
+      </button>
       <div
         ref={contentRef}
-        className="mobile-daily-event-swipe__content position-relative d-flex align-items-start gap-2 w-100"
+        className={`daily-task-card mobile-daily-event-swipe__content${evt.completed ? ' daily-task-card--done' : ''}`}
         style={{
           touchAction: 'pan-y',
           transform: `translateX(${-openPx}px)`,
           transition: isHorizontalPan ? 'none' : 'transform 0.2s ease-out',
         }}
+        onClick={(e) => {
+          if (openPxRef.current > 0) {
+            openPxRef.current = 0;
+            setOpenPx(0);
+            return;
+          }
+          handleEventClick(evt, e);
+        }}
+        role="button"
       >
         {rowInner}
       </div>

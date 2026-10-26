@@ -16,6 +16,7 @@ import EventModal from '../components/forms/EventModal';
 import CalendarContext from '../context/CalendarContext';
 import EventContext from '../context/EventContext';
 import { ToastProvider } from '../context/ToastContext';
+import { LanguageProvider } from '../i18n/LanguageContext';
 import { TODO_ITEMS } from '../constants';
 
 // Mock Firebase
@@ -129,13 +130,15 @@ const renderEventModal = (contextValue = {}) => {
   
   return {
     ...render(
-      <ToastProvider>
-        <CalendarContext.Provider value={calendarValue}>
-          <EventContext.Provider value={eventValue}>
-            <EventModal />
-          </EventContext.Provider>
-        </CalendarContext.Provider>
-      </ToastProvider>
+      <LanguageProvider>
+        <ToastProvider>
+          <CalendarContext.Provider value={calendarValue}>
+            <EventContext.Provider value={eventValue}>
+              <EventModal />
+            </EventContext.Provider>
+          </CalendarContext.Provider>
+        </ToastProvider>
+      </LanguageProvider>
     ),
     contextValue: eventValue,
   };
@@ -153,7 +156,7 @@ describe('E2E: Critical User Flows', () => {
     test('should create a simple event with description only', async () => {
       const { contextValue } = renderEventModal();
 
-      const descInput = screen.getByPlaceholderText(/add a description/i);
+      const descInput = screen.getByLabelText(/description/i);
       await userEvent.type(descInput, 'Check soil moisture levels');
 
       await userEvent.click(screen.getByRole('button', { name: /save/i }));
@@ -175,7 +178,7 @@ describe('E2E: Critical User Flows', () => {
     test('should create event with plant labels', async () => {
       const { contextValue } = renderEventModal();
 
-      await userEvent.type(screen.getByPlaceholderText(/add a description/i), 'Harvest tomatoes');
+      await userEvent.type(screen.getByLabelText(/description/i), 'Harvest tomatoes');
       await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
@@ -192,7 +195,7 @@ describe('E2E: Critical User Flows', () => {
       await userEvent.click(screen.getByRole('button', { name: /select a to-do/i }));
       await userEvent.click(await screen.findByRole('option', { name: /water plants/i }));
 
-      await userEvent.type(screen.getByPlaceholderText(/add a description/i), 'Weekly watering');
+      await userEvent.type(screen.getByLabelText(/description/i), 'Weekly watering');
       await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
@@ -205,7 +208,7 @@ describe('E2E: Critical User Flows', () => {
     test('should validate required fields', () => {
       renderEventModal();
 
-      expect(screen.getByPlaceholderText(/add a description/i)).toBeRequired();
+      expect(screen.getByLabelText(/description/i)).toBeRequired();
     });
   });
 
@@ -249,7 +252,7 @@ describe('E2E: Critical User Flows', () => {
       expect(screen.getByRole('button', { name: /update/i })).toBeInTheDocument();
 
       // Change description
-      const descInput = screen.getByPlaceholderText(/add a description/i);
+      const descInput = screen.getByLabelText(/description/i);
       await userEvent.clear(descInput);
       await userEvent.type(descInput, 'Evening watering');
 
@@ -286,7 +289,7 @@ describe('E2E: Critical User Flows', () => {
         selectedEvent: existingEvent,
       });
 
-      const descInput = screen.getByPlaceholderText(/add a description/i);
+      const descInput = screen.getByLabelText(/description/i);
       await userEvent.clear(descInput);
       await userEvent.type(descInput, 'Updated');
 
@@ -318,14 +321,14 @@ describe('E2E: Critical User Flows', () => {
         selectedEvent: regularEvent,
       });
 
-      await userEvent.click(screen.getByTitle('Delete event'));
+      await userEvent.click(screen.getByRole('button', { name: /^delete$/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/delete "old event"/i)).toBeInTheDocument();
+        expect(screen.getByText(/"old event" will be removed/i)).toBeInTheDocument();
       });
 
       const confirmDialog = screen
-        .getByText('Delete Event', { selector: '.modal-title' })
+        .getByText('Delete event?')
         .closest('[role="dialog"]');
       await userEvent.click(within(confirmDialog).getByRole('button', { name: /^delete$/i }));
 
@@ -357,26 +360,26 @@ describe('E2E: Critical User Flows', () => {
         selectedEvent: eventToKeep,
       });
 
-      await userEvent.click(screen.getByTitle('Delete event'));
+      await userEvent.click(screen.getByRole('button', { name: /^delete$/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/delete "important event"/i)).toBeInTheDocument();
+        expect(screen.getByText(/"important event" will be removed/i)).toBeInTheDocument();
       });
 
       const confirmDialog = screen
-        .getByText('Delete Event', { selector: '.modal-title' })
+        .getByText('Delete event?')
         .closest('[role="dialog"]');
       await userEvent.click(within(confirmDialog).getByRole('button', { name: /cancel/i }));
 
       await waitFor(() => {
-        expect(screen.queryByText(/delete "important event"/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/"important event" will be removed/i)).not.toBeInTheDocument();
       });
 
       expect(contextValue.dispatchCallEvent).not.toHaveBeenCalledWith(
         expect.objectContaining({ type: 'delete' })
       );
 
-      expect(screen.getByText('Edit Event')).toBeInTheDocument();
+      expect(screen.getByText('Edit event')).toBeInTheDocument();
     });
 
     test('should delete a TODO event', async () => {
@@ -398,11 +401,11 @@ describe('E2E: Critical User Flows', () => {
       await userEvent.click(deleteBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/delete "to do: water"/i)).toBeInTheDocument();
+        expect(screen.getByText(/"water" will be removed/i)).toBeInTheDocument();
       });
 
       const confirmDialog = screen
-        .getByText('Delete Event', { selector: '.modal-title' })
+        .getByText('Delete event?')
         .closest('[role="dialog"]');
       await userEvent.click(within(confirmDialog).getByRole('button', { name: /^delete$/i }));
 
@@ -420,7 +423,7 @@ describe('E2E: Critical User Flows', () => {
     test('should show recurring config section for new events', () => {
       renderEventModal();
 
-      expect(screen.getByText('New Event')).toBeInTheDocument();
+      expect(screen.getByText('New event')).toBeInTheDocument();
       expect(screen.getByText('To-do')).toBeInTheDocument();
     });
 
@@ -430,7 +433,7 @@ describe('E2E: Critical User Flows', () => {
 
       await userEvent.click(screen.getByRole('button', { name: /select a to-do/i }));
       await userEvent.click(await screen.findByRole('option', { name: /fertilize roses/i }));
-      await userEvent.type(screen.getByPlaceholderText(/add a description/i), 'First fertilizer application');
+      await userEvent.type(screen.getByLabelText(/description/i), 'First fertilizer application');
       await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
       await waitFor(() => {
@@ -443,7 +446,7 @@ describe('E2E: Critical User Flows', () => {
     test('should require description field', () => {
       renderEventModal();
 
-      const descInput = screen.getByPlaceholderText(/add a description/i);
+      const descInput = screen.getByLabelText(/description/i);
       expect(descInput).toBeRequired();
       expect(descInput).toHaveAttribute('required');
     });
@@ -451,9 +454,9 @@ describe('E2E: Critical User Flows', () => {
     test('should have all expected form fields', () => {
       renderEventModal();
 
-      expect(screen.getByPlaceholderText(/add a description/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
       expect(screen.getByText('To-do')).toBeInTheDocument();
-      expect(screen.getByText('Plants')).toBeInTheDocument();
+      expect(screen.getByText('Plant')).toBeInTheDocument();
       expect(screen.getByText('Date')).toBeInTheDocument();
     });
 

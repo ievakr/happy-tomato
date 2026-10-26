@@ -1,0 +1,30 @@
+.disease-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.disease-filter {
+  margin: 0;
+  padding: 8px 16px;
+  border: 1px solid #e6e6ea;
+  border-radius: 999px;
+  background: #fff;
+  color: #1c1c1e;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.disease-filter.is-selected {
+  border-color: #1c1c1e;
+  background: #f3f1ec;
+}
+
+.disease-row-category {
+  flex: 0 0 auto;
+  color: #8e8e93;
+  font-size: 0.95rem;
+  font-weight: 500;
+}

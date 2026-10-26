@@ -132,8 +132,7 @@ html.capacitor-ios-native .calendar-section-daily {
   flex: 1 1 0 !important;
   min-height: 0 !important;
   width: 100%;
-  /* Continues gray behind flex gaps so a short flex chain is not a white strip */
-  background-color: #f8f9fa;
+  background-color: #faf8f4;
 }
 
 /* Capacitor iOS: default flex-basis:auto leaves unused space below the last flex child (dead band above home indicator). */
@@ -176,18 +175,6 @@ html.capacitor-ios-native .calendar-header {
   word-wrap: normal;
   direction: ltr;
   -webkit-font-smoothing: antialiased;
-}
-
-/* Mobile daily swipe-delete: Material glyph sits low in its em box; nudge up optically */
-.mobile-daily-event-swipe__track .mobile-daily-event-swipe-delete-icon {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  display: block;
-  font-size: 1.3rem;
-  line-height: 1;
-  transform: translate(-50%, calc(-50% - 0.45em));
-  user-select: none;
 }
 
 .calendar-event-box {

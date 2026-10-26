@@ -2,7 +2,7 @@ import React from 'react';
 import Icon from '../common/Icon';
 import { UI_CONSTANTS } from '../../constants';
 import { useRecurringActions, useResponsive } from '../../hooks';
-import { plantLabelDisplayText, eventTodoOrTitleText } from './EventItem';
+import { plantLabelDisplayText, eventActionText } from './EventItem';
 
 function buildEventClasses(evt, isTodoEvent, listMode, bulkEditSelected) {
   const base = listMode
@@ -54,7 +54,7 @@ export default function CalendarEventChip({
       ? labels.length
       : UI_CONSTANTS.MAX_ICONS_PER_EVENT;
   const iconsFlexWrap = preferFullPlantIcons || !isMobile ? 'wrap' : 'nowrap';
-  const primaryText = eventTodoOrTitleText(evt);
+  const primaryText = eventActionText(evt);
   const titleText = primaryText
     ? `${primaryText}${evt.description ? ` - ${evt.description}` : ''}`
     : '';

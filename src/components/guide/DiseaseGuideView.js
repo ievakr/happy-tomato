@@ -4,8 +4,16 @@ import { useTranslation } from '../../i18n/LanguageContext';
 import { GUIDE_PROBLEMS } from '../../data/vegetableGuide';
 import VegetableGuideProblemDetail from './VegetableGuideProblemDetail';
 import Icon from '../common/Icon';
+import './VegetableGuideView.css';
+import './DiseaseGuideView.css';
 
 const CATEGORY_ORDER = ['disease', 'pest', 'disorder'];
+
+const CATEGORY_ICON = {
+  disease: 'coronavirus',
+  pest: 'bug_report',
+  disorder: 'healing',
+};
 
 function sortByName(a, b) {
   return a.name.localeCompare(b.name);
@@ -18,6 +26,7 @@ export default function DiseaseGuideView() {
   const detailScrollRef = useRef(null);
   const listScrollRef = useRef(null);
   const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
 
   const selectProblem = (id) => {
@@ -38,88 +47,66 @@ export default function DiseaseGuideView() {
     el.closest('section')?.scrollTo?.(0, 0);
   }, [selectedId]);
 
-  const groups = useMemo(() => {
+  const problems = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const matched = q
-      ? GUIDE_PROBLEMS.filter((p) => p.name.toLowerCase().includes(q))
-      : GUIDE_PROBLEMS;
+    return GUIDE_PROBLEMS.filter((problem) => {
+      if (categoryFilter && problem.category !== categoryFilter) return false;
+      if (!q) return true;
+      return problem.name.toLowerCase().includes(q);
+    }).sort(sortByName);
+  }, [query, categoryFilter]);
 
-    return CATEGORY_ORDER.map((category) => ({
-      category,
-      label: t(`guide.problemCategory.${category}`),
-      items: matched.filter((p) => p.category === category).sort(sortByName),
-    })).filter((group) => group.items.length > 0);
-  }, [query, t]);
-
-  const searchBox = (
-    <div className="p-3 border-bottom bg-white">
-      <div className="input-group">
-        <span className="input-group-text bg-white">
-          <Icon name="search" className="text-secondary" style={{ fontSize: '1rem' }} />
-        </span>
+  const listBody = (
+    <div className="guide-list-page">
+      <label className="guide-search">
+        <Icon name="search" className="guide-search-icon" />
         <input
           ref={searchInputRef}
           type="search"
-          className="form-control"
           placeholder={t('guide.diseaseSearchPlaceholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           aria-label={t('guide.diseaseSearchPlaceholder')}
         />
-      </div>
-    </div>
-  );
-
-  const renderProblemButton = (problem) => {
-    const active = !isMobile && problem.id === selectedId;
-    return (
-      <li key={problem.id} className="list-group-item p-0">
-        <button
-          type="button"
-          className={`btn w-100 text-start d-flex align-items-center gap-3 py-2 px-3 rounded-0 ${
-            active ? 'bg-light fw-semibold' : ''
-          }`}
-          onClick={() => selectProblem(problem.id)}
-          aria-pressed={active}
-        >
-          <Icon
-            name={problem.icon || 'bug_report'}
-            plantIcon={problem.plantIcon}
-            className="text-secondary"
-            style={{ fontSize: '1.35rem' }}
-          />
-          <span className="flex-grow-1">{problem.name}</span>
-          {isMobile ? (
-            <Icon name="chevron_right" className="text-secondary" style={{ fontSize: '1.25rem' }} />
-          ) : null}
-        </button>
-      </li>
-    );
-  };
-
-  const list = (
-    <div>
-      {groups.length === 0 ? (
-        <p className="px-3 text-muted small">{t('guide.diseaseNoMatch', { query })}</p>
-      ) : (
-        groups.map((group) => (
-          <div key={group.category} className="disease-guide-category mb-2">
-            <div
-              className="px-3 py-2 small text-uppercase text-secondary fw-bold"
-              style={{ letterSpacing: '0.03em' }}
+      </label>
+      <div className="disease-filters">
+        {CATEGORY_ORDER.map((category) => {
+          const selected = categoryFilter === category;
+          return (
+            <button
+              key={category}
+              type="button"
+              className={`disease-filter${selected ? ' is-selected' : ''}`}
+              aria-pressed={selected}
+              onClick={() => setCategoryFilter(selected ? null : category)}
             >
-              {group.label}
-            </div>
-            <ul className="list-group list-group-flush">{group.items.map(renderProblemButton)}</ul>
-          </div>
-        ))
+              {t(`guide.problemCategory.${category}`)}
+            </button>
+          );
+        })}
+      </div>
+      {problems.length === 0 ? (
+        <p className="guide-empty">{t('guide.diseaseNoMatch', { query })}</p>
+      ) : (
+        <div className="guide-card">
+          {problems.map((problem) => (
+            <button
+              key={problem.id}
+              type="button"
+              className="guide-row"
+              onClick={() => selectProblem(problem.id)}
+              aria-pressed={!isMobile && problem.id === selectedId}
+            >
+              <Icon name={CATEGORY_ICON[problem.category] || 'bug_report'} className="guide-row-icon" />
+              <span className="guide-row-name">{problem.name}</span>
+              <span className="disease-row-category">
+                {t(`guide.problemCategory.${problem.category}`)}
+              </span>
+              <Icon name="chevron_right" className="guide-row-chevron" />
+            </button>
+          ))}
+        </div>
       )}
-    </div>
-  );
-
-  const intro = (
-    <div className="px-3 pt-3 pb-2">
-      <p className="small mb-0">{t('guide.diseaseIntro')}</p>
     </div>
   );
 
@@ -132,20 +119,14 @@ export default function DiseaseGuideView() {
   if (isMobile) {
     if (selectedId) {
       return (
-        <div className="d-flex flex-column h-100 w-100 bg-white vegetable-guide">
-          <div className="d-flex align-items-center gap-2 p-2 border-bottom flex-shrink-0">
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-secondary"
-              onClick={() => setSelectedId(null)}
-            >
-              <Icon name="chevron_left" style={{ fontSize: '1.15rem', verticalAlign: 'middle' }} />
-              {t('guide.allDiseases')}
-            </button>
-          </div>
+        <div className="d-flex flex-column h-100 w-100 vegetable-guide guide-detail-shell">
+          <button type="button" className="guide-back" onClick={() => setSelectedId(null)}>
+            <Icon name="chevron_left" />
+            {t('common.back')}
+          </button>
           <div
             ref={detailScrollRef}
-            className="flex-grow-1 overflow-auto p-3"
+            className="flex-grow-1 overflow-auto guide-detail-scroll"
             style={{ minHeight: 0 }}
           >
             <VegetableGuideProblemDetail problemId={selectedId} />
@@ -154,39 +135,35 @@ export default function DiseaseGuideView() {
       );
     }
     return (
-      <div className="d-flex flex-column h-100 w-100 bg-white vegetable-guide">
-        {searchBox}
+      <div className="d-flex flex-column h-100 w-100 vegetable-guide guide-list-shell">
         <div
           ref={listScrollRef}
           className="flex-grow-1 overflow-auto"
           style={{ minHeight: 0 }}
         >
-          {intro}
-          {list}
+          {listBody}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="d-flex h-100 w-100 bg-white vegetable-guide">
+    <div className="d-flex h-100 w-100 vegetable-guide guide-list-shell">
       <div
-        className="d-flex flex-column border-end h-100"
-        style={{ width: '320px', flexShrink: 0 }}
+        className="d-flex flex-column h-100 guide-list-shell"
+        style={{ width: '420px', flexShrink: 0 }}
       >
-        {searchBox}
         <div
           ref={listScrollRef}
           className="flex-grow-1 overflow-auto"
           style={{ minHeight: 0 }}
         >
-          {intro}
-          {list}
+          {listBody}
         </div>
       </div>
       <div
         ref={detailScrollRef}
-        className="flex-grow-1 overflow-auto p-4"
+        className="flex-grow-1 overflow-auto guide-detail-scroll"
         style={{ minHeight: 0 }}
       >
         <div style={{ maxWidth: '720px' }}>{detailContent}</div>

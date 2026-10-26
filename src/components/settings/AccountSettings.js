@@ -9,8 +9,7 @@ import { usePushNotifications } from '../../hooks/usePushNotifications';
 import pushService from '../../services/pushService';
 import { useTranslation } from '../../i18n/LanguageContext';
 import Icon from '../common/Icon';
-import TomatoBackground from '../auth/TomatoBackground';
-import { getUserAvatarSrc } from '../../utils/userAvatar';
+import { readOfflinePreview, writeOfflinePreview } from '../../utils/offlinePreview';
 import './AccountSettings.css';
 
 /** Labels ordered Monday–Sunday; values match dayjs `.day()` (0 = Sunday … 6 = Saturday). */
@@ -23,6 +22,42 @@ const NOTIFICATION_WEEKDAYS = [
   { value: 6, labelKey: 'settings.weekday.saturday' },
   { value: 0, labelKey: 'settings.weekday.sunday' },
 ];
+
+function accountInitial(user, language) {
+  const source = (user?.displayName || user?.email || '').trim();
+  const letter = Array.from(source)[0] || '';
+  return letter ? letter.toLocaleUpperCase(language) : '?';
+}
+
+function SettingsTimeField({ id, value, onChange }) {
+  return (
+    <div className="settings-time-field">
+      <input
+        id={id}
+        type="time"
+        className="form-control"
+        value={value}
+        onChange={onChange}
+      />
+      <Icon name="schedule" className="settings-time-icon" aria-hidden />
+    </div>
+  );
+}
+
+function SettingsSwitch({ id, label, checked, onChange, strong = false }) {
+  return (
+    <div className={`settings-switch-row${strong ? ' settings-switch-row--strong' : ''}`}>
+      <label htmlFor={id}>{label}</label>
+      <input
+        id={id}
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        onChange={onChange}
+      />
+    </div>
+  );
+}
 
 function SettingsCollapseRow({
   id,
@@ -101,9 +136,9 @@ function SettingsCollapseRow({
 }
 
 function AccountSettings() {
-  const { currentUser, deleteAccount, updateUserProfile, changeEmail, changePassword } = useAuth();
-  const { t, language, setLanguage, languages } = useTranslation();
-  const { showSuccess, showError } = useToast();
+  const { currentUser, deleteAccount, changeEmail, changePassword } = useAuth();
+  const { t, language } = useTranslation();
+  const { showSuccess } = useToast();
   const pushNotifications = usePushNotifications();
   const [openPanel, setOpenPanel] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -111,17 +146,13 @@ function AccountSettings() {
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [emailDraft, setEmailDraft] = useState(pushNotifications.pushPreferences);
-  const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
-  const [savingProfile, setSavingProfile] = useState(false);
+  const [offlinePreview, setOfflinePreview] = useState(readOfflinePreview);
   const [newEmail, setNewEmail] = useState('');
-  const [emailPassword, setEmailPassword] = useState('');
   const [changingEmail, setChangingEmail] = useState(false);
   const [emailChangeError, setEmailChangeError] = useState('');
   const [currentPasswordForChange, setCurrentPasswordForChange] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordChangeError, setPasswordChangeError] = useState('');
 
@@ -129,29 +160,20 @@ function AccountSettings() {
     (provider) => provider.providerId === 'google.com'
   );
 
-  const currentLanguageLabel =
-    languages.find((lng) => lng.code === language)?.nativeLabel || language;
-
   const closePanel = () => setOpenPanel(null);
 
   const togglePanel = (id) => {
     const current = openPanel;
     const next = current === id ? null : id;
 
-    if (next === 'name') {
-      setDisplayName(currentUser?.displayName || '');
-    }
     if (current === 'email' && next !== 'email') {
       setNewEmail('');
-      setEmailPassword('');
       setEmailChangeError('');
     }
     if (current === 'password' && next !== 'password') {
       setCurrentPasswordForChange('');
       setNewPassword('');
       setConfirmNewPassword('');
-      setShowNewPassword(false);
-      setShowConfirmNewPassword(false);
       setPasswordChangeError('');
     }
 
@@ -203,32 +225,6 @@ function AccountSettings() {
     pushNotifications.pushPreferences,
   ]);
 
-  useEffect(() => {
-    setDisplayName(currentUser?.displayName || '');
-  }, [currentUser?.displayName]);
-
-  const handleSaveProfile = async (e) => {
-    e.preventDefault();
-    if (!currentUser) return;
-    setSavingProfile(true);
-    try {
-      const newName = displayName.trim() || null;
-      await updateUserProfile({ displayName: newName });
-      pushNotifications.updatePushPreferences({
-        ...pushNotifications.pushPreferences,
-        userId: currentUser.uid,
-        userEmail: currentUser.email || pushNotifications.pushPreferences.userEmail,
-        userName: newName || currentUser.displayName,
-      });
-      showSuccess(t('settings.profileUpdated'));
-      closePanel();
-    } catch (err) {
-      showError(err.message || t('settings.profileUpdateFailed'));
-    } finally {
-      setSavingProfile(false);
-    }
-  };
-
   const handleChangeEmail = async (e) => {
     e.preventDefault();
     setEmailChangeError('');
@@ -238,17 +234,12 @@ function AccountSettings() {
       setEmailChangeError(t('settings.enterDifferentEmail'));
       return;
     }
-    if (!emailPassword) {
-      setEmailChangeError(t('settings.enterPasswordError'));
-      return;
-    }
 
     try {
       setChangingEmail(true);
-      await changeEmail(trimmedEmail, emailPassword);
+      await changeEmail(trimmedEmail);
       showSuccess(t('settings.emailChangeSent', { email: trimmedEmail }));
       setNewEmail('');
-      setEmailPassword('');
       setEmailChangeError('');
       closePanel();
     } catch (err) {
@@ -294,8 +285,6 @@ function AccountSettings() {
       setCurrentPasswordForChange('');
       setNewPassword('');
       setConfirmNewPassword('');
-      setShowNewPassword(false);
-      setShowConfirmNewPassword(false);
       setPasswordChangeError('');
       closePanel();
     } catch (err) {
@@ -345,64 +334,27 @@ function AccountSettings() {
     }
   };
 
+  const accountName = currentUser?.displayName?.trim() || '';
+
   return (
     <div className="settings-page h-100 overflow-auto">
-      <div className="settings-hero" aria-hidden="true">
-        <div className="settings-hero-clip">
-          <TomatoBackground cols={7} rows={3} maxSize={72} minSize={32} seed={42} />
-        </div>
-        <div className="settings-avatar-wrap">
-          <img
-            src={getUserAvatarSrc(currentUser)}
-            alt=""
-            className="settings-avatar"
-          />
-        </div>
-      </div>
-
       <div className="settings-body">
         <div className="settings-group">
-          <SettingsCollapseRow
-            id="name"
-            label={t('settings.name')}
-            value={currentUser?.displayName || t('settings.notSet')}
-            open={openPanel === 'name'}
-            onToggle={() => togglePanel('name')}
-          >
-            <form onSubmit={handleSaveProfile} className="settings-editor-form">
-              <input
-                id="edit-display-name"
-                type="text"
-                className="form-control"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder={t('settings.namePlaceholder')}
-                disabled={savingProfile}
-                autoFocus
-                aria-label={t('settings.name')}
-              />
-              <div className="settings-editor-actions">
-                <button
-                  type="button"
-                  className="btn settings-editor-cancel"
-                  onClick={closePanel}
-                  disabled={savingProfile}
-                >
-                  {t('common.cancel')}
-                </button>
-                <button type="submit" className="btn settings-editor-save" disabled={savingProfile}>
-                  {savingProfile ? t('common.saving') : t('common.save')}
-                </button>
-              </div>
-            </form>
-          </SettingsCollapseRow>
-        </div>
-
-        <div className="settings-group">
+          <h2 className="settings-card-title">{t('settings.accountDetails')}</h2>
+          <div className="settings-profile">
+            <span className="settings-profile-avatar" aria-hidden>
+              {accountInitial(currentUser, language)}
+            </span>
+            <div className="settings-profile-copy">
+              <div className="settings-profile-name">{accountName || currentUser?.email}</div>
+              {accountName && currentUser?.email ? (
+                <div className="settings-profile-email">{currentUser.email}</div>
+              ) : null}
+            </div>
+          </div>
           <SettingsCollapseRow
             id="email"
-            label={t('settings.email')}
-            value={currentUser?.email || ''}
+            label={t('settings.changeEmail')}
             open={openPanel === 'email'}
             onToggle={() => togglePanel('email')}
             disabled={isGoogleUser}
@@ -411,8 +363,20 @@ function AccountSettings() {
               {emailChangeError && (
                 <div className="alert alert-danger mb-0 py-2">{emailChangeError}</div>
               )}
-              <div>
-                <label htmlFor="new-email" className="form-label small mb-1">
+              <div className="settings-field">
+                <label htmlFor="current-email" className="settings-field-label">
+                  {t('settings.email')}
+                </label>
+                <input
+                  id="current-email"
+                  type="email"
+                  className="form-control"
+                  value={currentUser?.email || ''}
+                  readOnly
+                />
+              </div>
+              <div className="settings-field">
+                <label htmlFor="new-email" className="settings-field-label">
                   {t('settings.newEmail')}
                 </label>
                 <input
@@ -427,22 +391,10 @@ function AccountSettings() {
                   autoFocus
                 />
               </div>
-              <div>
-                <label htmlFor="email-change-password" className="form-label small mb-1">
-                  {t('settings.currentPassword')}
-                </label>
-                <input
-                  id="email-change-password"
-                  type="password"
-                  className="form-control"
-                  value={emailPassword}
-                  onChange={(e) => setEmailPassword(e.target.value)}
-                  placeholder={t('settings.passwordPlaceholder')}
-                  disabled={changingEmail}
-                  autoComplete="current-password"
-                />
-              </div>
               <div className="settings-editor-actions">
+                <button type="submit" className="btn settings-editor-save" disabled={changingEmail}>
+                  {changingEmail ? t('common.saving') : t('forms.update')}
+                </button>
                 <button
                   type="button"
                   className="btn settings-editor-cancel"
@@ -451,17 +403,13 @@ function AccountSettings() {
                 >
                   {t('common.cancel')}
                 </button>
-                <button type="submit" className="btn settings-editor-save" disabled={changingEmail}>
-                  {changingEmail ? t('common.saving') : t('common.save')}
-                </button>
               </div>
             </form>
           </SettingsCollapseRow>
 
           <SettingsCollapseRow
             id="password"
-            label={t('settings.password')}
-            value="••••••••"
+            label={t('settings.changePassword')}
             open={openPanel === 'password'}
             onToggle={() => togglePanel('password')}
             disabled={isGoogleUser}
@@ -470,8 +418,8 @@ function AccountSettings() {
               {passwordChangeError && (
                 <div className="alert alert-danger mb-0 py-2">{passwordChangeError}</div>
               )}
-              <div>
-                <label htmlFor="current-password-for-change" className="form-label small mb-1">
+              <div className="settings-field">
+                <label htmlFor="current-password-for-change" className="settings-field-label">
                   {t('settings.currentPassword')}
                 </label>
                 <input
@@ -480,63 +428,43 @@ function AccountSettings() {
                   className="form-control"
                   value={currentPasswordForChange}
                   onChange={(e) => setCurrentPasswordForChange(e.target.value)}
-                  placeholder={t('settings.passwordPlaceholder')}
                   disabled={changingPassword}
                   autoComplete="current-password"
                   autoFocus
                 />
               </div>
-              <div>
-                <label htmlFor="new-password" className="form-label small mb-1">
+              <div className="settings-field">
+                <label htmlFor="new-password" className="settings-field-label">
                   {t('settings.newPassword')}
                 </label>
-                <div className="input-group">
-                  <input
-                    id="new-password"
-                    type={showNewPassword ? 'text' : 'password'}
-                    className="form-control"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder={t('settings.newPasswordPlaceholder')}
-                    disabled={changingPassword}
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => setShowNewPassword((v) => !v)}
-                    tabIndex={-1}
-                  >
-                    <Icon name={showNewPassword ? 'visibility_off' : 'visibility'} />
-                  </button>
-                </div>
+                <input
+                  id="new-password"
+                  type="password"
+                  className="form-control"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={changingPassword}
+                  autoComplete="new-password"
+                />
               </div>
-              <div>
-                <label htmlFor="confirm-new-password" className="form-label small mb-1">
+              <div className="settings-field">
+                <label htmlFor="confirm-new-password" className="settings-field-label">
                   {t('settings.confirmNewPassword')}
                 </label>
-                <div className="input-group">
-                  <input
-                    id="confirm-new-password"
-                    type={showConfirmNewPassword ? 'text' : 'password'}
-                    className="form-control"
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
-                    placeholder={t('settings.confirmNewPasswordPlaceholder')}
-                    disabled={changingPassword}
-                    autoComplete="new-password"
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary"
-                    onClick={() => setShowConfirmNewPassword((v) => !v)}
-                    tabIndex={-1}
-                  >
-                    <Icon name={showConfirmNewPassword ? 'visibility_off' : 'visibility'} />
-                  </button>
-                </div>
+                <input
+                  id="confirm-new-password"
+                  type="password"
+                  className="form-control"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  disabled={changingPassword}
+                  autoComplete="new-password"
+                />
               </div>
               <div className="settings-editor-actions">
+                <button type="submit" className="btn settings-editor-save" disabled={changingPassword}>
+                  {changingPassword ? t('common.saving') : t('forms.update')}
+                </button>
                 <button
                   type="button"
                   className="btn settings-editor-cancel"
@@ -545,134 +473,55 @@ function AccountSettings() {
                 >
                   {t('common.cancel')}
                 </button>
-                <button type="submit" className="btn settings-editor-save" disabled={changingPassword}>
-                  {changingPassword ? t('common.saving') : t('common.save')}
-                </button>
               </div>
             </form>
           </SettingsCollapseRow>
+          <SettingsSwitch
+            id="offline-preview"
+            label={t('settings.offlinePreview')}
+            checked={offlinePreview}
+            onChange={(e) => {
+              const next = e.target.checked;
+              setOfflinePreview(next);
+              writeOfflinePreview(next);
+            }}
+          />
         </div>
 
         <div className="settings-group">
-          <SettingsCollapseRow
-            id="language"
-            label={t('auth.language')}
-            value={currentLanguageLabel}
-            open={openPanel === 'language'}
-            onToggle={() => togglePanel('language')}
-          >
-            {languages.map((lng) => {
-              const active = lng.code === language;
-              return (
-                <button
-                  key={lng.code}
-                  type="button"
-                  className="settings-language-option"
-                  onClick={() => {
-                    setLanguage(lng.code);
-                    closePanel();
-                  }}
-                >
-                  <span>{lng.nativeLabel}</span>
-                  {active && (
-                    <Icon name="check" className="settings-language-check" />
-                  )}
-                </button>
-              );
-            })}
-          </SettingsCollapseRow>
-        </div>
+          <h2 className="settings-card-title">{t('settings.tab.notifications')}</h2>
+          <SettingsSwitch
+            id="email-notifications"
+            label={t('settings.pushNotifications')}
+            strong
+            checked={emailDraft.enabled}
+            onChange={(e) =>
+              setEmailDraft((prev) => ({
+                ...prev,
+                enabled: e.target.checked,
+              }))
+            }
+          />
 
-        <div className="settings-group">
-          <SettingsCollapseRow
-            id="notifications"
-            label={t('settings.tab.notifications')}
-            value={emailDraft.enabled ? t('settings.on') : t('settings.off')}
-            open={openPanel === 'notifications'}
-            onToggle={() => togglePanel('notifications')}
-          >
-            <div className="form-check form-switch">
-              <input
-                className="form-check-input"
-                type="checkbox"
-                id="email-notifications"
-                checked={emailDraft.enabled}
-                onChange={(e) =>
-                  setEmailDraft((prev) => ({
-                    ...prev,
-                    enabled: e.target.checked,
-                  }))
-                }
-              />
-              <label className="form-check-label" htmlFor="email-notifications">
-                {t('settings.enablePush')}
-              </label>
-            </div>
-
-            {emailDraft.enabled && (
-              <div className="d-grid gap-3 mt-3">
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id="daily-reminder"
-                    checked={emailDraft.dailyReminder}
-                    onChange={(e) =>
-                      setEmailDraft((prev) => ({
-                        ...prev,
-                        dailyReminder: e.target.checked,
-                      }))
-                    }
-                  />
-                  <label className="form-check-label" htmlFor="daily-reminder">
-                    {t('settings.dailyRemindersOverdue')}
-                  </label>
-                </div>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id="advance-reminders"
-                    checked={emailDraft.advanceReminders}
-                    onChange={(e) =>
-                      setEmailDraft((prev) => ({
-                        ...prev,
-                        advanceReminders: e.target.checked,
-                      }))
-                    }
-                  />
-                  <label className="form-check-label" htmlFor="advance-reminders">
-                    {t('settings.advanceReminders')}
-                  </label>
-                </div>
-                <div className="form-check">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    id="weekly-summary"
-                    checked={emailDraft.weeklySummary ?? false}
-                    onChange={(e) =>
-                      setEmailDraft((prev) => ({
-                        ...prev,
-                        weeklySummary: e.target.checked,
-                      }))
-                    }
-                  />
-                  <label className="form-check-label" htmlFor="weekly-summary">
-                    {t('settings.weeklySummary')}
-                  </label>
-                </div>
-
+          {emailDraft.enabled && (
+            <>
+              <div className="settings-notify-block">
+                <SettingsSwitch
+                  id="daily-reminder"
+                  label={t('settings.dailyReminder')}
+                  strong
+                  checked={!!emailDraft.dailyReminder}
+                  onChange={(e) =>
+                    setEmailDraft((prev) => ({
+                      ...prev,
+                      dailyReminder: e.target.checked,
+                    }))
+                  }
+                />
                 {emailDraft.dailyReminder && (
-                  <div className="border rounded p-3 bg-light bg-opacity-50">
-                    <div className="fw-semibold mb-2">{t('settings.todayReminder')}</div>
-                    <label className="form-label small mb-1" htmlFor="daily-reminder-time">
-                      {t('settings.time')}
-                    </label>
-                    <input
+                  <div className="settings-notify-fields">
+                    <SettingsTimeField
                       id="daily-reminder-time"
-                      type="time"
-                      className="form-control"
                       value={
                         emailDraft.dailyReminderTime ||
                         emailDraft.reminderTime ||
@@ -688,59 +537,83 @@ function AccountSettings() {
                     />
                   </div>
                 )}
+                <p className="settings-notify-caption">{t('settings.dailyReminderCaption')}</p>
+              </div>
 
+              <div className="settings-notify-block">
+                <SettingsSwitch
+                  id="advance-reminders"
+                  label={t('settings.advanceReminder')}
+                  strong
+                  checked={!!emailDraft.advanceReminders}
+                  onChange={(e) =>
+                    setEmailDraft((prev) => ({
+                      ...prev,
+                      advanceReminders: e.target.checked,
+                    }))
+                  }
+                />
                 {emailDraft.advanceReminders && (
-                  <div className="border rounded p-3 bg-light bg-opacity-50">
-                    <div className="fw-semibold mb-2">{t('settings.advanceReminder')}</div>
-                    <label className="form-label small mb-1" htmlFor="advance-days">
-                      {t('settings.daysBeforeDue')}
-                    </label>
-                    <input
-                      id="advance-days"
-                      type="number"
-                      className="form-control mb-2"
-                      value={emailDraft.advanceDays}
-                      onChange={(e) =>
-                        setEmailDraft((prev) => ({
-                          ...prev,
-                          advanceDays: parseInt(e.target.value, 10) || 3,
-                        }))
-                      }
-                      min="1"
-                      max="30"
-                    />
-                    <label className="form-label small mb-1" htmlFor="advance-reminder-time">
-                      {t('settings.time')}
-                    </label>
-                    <input
-                      id="advance-reminder-time"
-                      type="time"
-                      className="form-control"
-                      value={
-                        emailDraft.advanceReminderTime ||
-                        emailDraft.reminderTime ||
-                        '09:00'
-                      }
-                      onChange={(e) =>
-                        setEmailDraft((prev) => ({
-                          ...prev,
-                          advanceReminderTime: e.target.value,
-                        }))
-                      }
-                    />
+                  <div className="settings-notify-fields settings-notify-fields--split">
+                    <div className="settings-notify-labeled">
+                      <label htmlFor="advance-days">{t('settings.daysBeforeDue')}</label>
+                      <input
+                        id="advance-days"
+                        type="number"
+                        className="form-control"
+                        value={emailDraft.advanceDays}
+                        onChange={(e) =>
+                          setEmailDraft((prev) => ({
+                            ...prev,
+                            advanceDays: parseInt(e.target.value, 10) || 3,
+                          }))
+                        }
+                        min="1"
+                        max="30"
+                      />
+                    </div>
+                    <div className="settings-notify-labeled">
+                      <label htmlFor="advance-reminder-time">{t('settings.time')}</label>
+                      <SettingsTimeField
+                        id="advance-reminder-time"
+                        value={
+                          emailDraft.advanceReminderTime ||
+                          emailDraft.reminderTime ||
+                          '09:00'
+                        }
+                        onChange={(e) =>
+                          setEmailDraft((prev) => ({
+                            ...prev,
+                            advanceReminderTime: e.target.value,
+                          }))
+                        }
+                      />
+                    </div>
                   </div>
                 )}
+                <p className="settings-notify-caption">{t('settings.advanceReminderCaption')}</p>
+              </div>
 
+              <div className="settings-notify-block">
+                <SettingsSwitch
+                  id="weekly-summary"
+                  label={t('settings.weeklySummary')}
+                  strong
+                  checked={!!emailDraft.weeklySummary}
+                  onChange={(e) =>
+                    setEmailDraft((prev) => ({
+                      ...prev,
+                      weeklySummary: e.target.checked,
+                    }))
+                  }
+                />
                 {emailDraft.weeklySummary && (
-                  <div className="border rounded p-3 bg-light bg-opacity-50">
-                    <div className="fw-semibold mb-2">{t('settings.weeklySummary')}</div>
-                    <label className="form-label small mb-1" htmlFor="weekly-summary-day">
-                      {t('settings.dayOfWeek')}
-                    </label>
+                  <div className="settings-notify-fields settings-notify-fields--split">
                     <select
                       id="weekly-summary-day"
-                      className="form-select mb-2"
+                      className="form-select"
                       value={emailDraft.weeklySummaryDay ?? 1}
+                      aria-label={t('settings.dayOfWeek')}
                       onChange={(e) =>
                         setEmailDraft((prev) => ({
                           ...prev,
@@ -754,13 +627,8 @@ function AccountSettings() {
                         </option>
                       ))}
                     </select>
-                    <label className="form-label small mb-1" htmlFor="weekly-summary-time">
-                      {t('settings.time')}
-                    </label>
-                    <input
+                    <SettingsTimeField
                       id="weekly-summary-time"
-                      type="time"
-                      className="form-control"
                       value={emailDraft.weeklySummaryTime || '08:00'}
                       onChange={(e) =>
                         setEmailDraft((prev) => ({
@@ -771,30 +639,27 @@ function AccountSettings() {
                     />
                   </div>
                 )}
+                <p className="settings-notify-caption">{t('settings.weeklySummaryCaption')}</p>
               </div>
-            )}
+            </>
+          )}
 
-            <div className="settings-editor-actions">
-              <button
-                className="btn settings-editor-save"
-                type="button"
-                onClick={handleSaveEmailPreferences}
-              >
-                {t('common.save')}
-              </button>
-            </div>
-          </SettingsCollapseRow>
-        </div>
-
-        <div className="settings-group">
           <button
+            className="settings-save"
             type="button"
-            className="settings-row settings-row--danger"
-            onClick={() => setShowDeleteConfirm(true)}
+            onClick={handleSaveEmailPreferences}
           >
-            <span className="settings-row-label">{t('settings.deleteAccount')}</span>
+            {t('common.save')}
           </button>
         </div>
+
+        <button
+          type="button"
+          className="settings-delete-link"
+          onClick={() => setShowDeleteConfirm(true)}
+        >
+          {t('settings.deleteAccount')}
+        </button>
       </div>
 
       <Modal show={showDeleteConfirm} onHide={resetDeleteConfirm} centered>

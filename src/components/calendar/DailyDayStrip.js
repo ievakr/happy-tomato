@@ -1,11 +1,10 @@
 import React from 'react';
-import { getDayHeaders } from '../../utils';
-import { useCalendarContext } from '../../context/CalendarContext';
+import { useEventContext } from '../../context/EventContext';
 import { useTranslation } from '../../i18n/LanguageContext';
+import Icon from '../common/Icon';
 import CategoryFilter from './CategoryFilter';
 
 export default function DailyDayStrip({
-  jumpToToday,
   bindStripScrollContainer,
   scheduleStripScrollWork,
   allDays,
@@ -17,33 +16,24 @@ export default function DailyDayStrip({
   openNewEventForDay,
   registerDayElement,
 }) {
-  const { t } = useTranslation();
-  const { setCurrentView } = useCalendarContext();
-  const dayHeaders = getDayHeaders('short');
+  const { t, language } = useTranslation();
+  const { setShowWeeklySummaryModal } = useEventContext();
 
   return (
     <>
-      <CategoryFilter />
-      <div className="daily-strip-toolbar">
+      <div className="daily-tools-row">
+        <CategoryFilter />
         <button
-          className="btn btn-sm daily-strip-toolbar-btn"
-          onClick={() => setCurrentView('month')}
           type="button"
-          title={t('layout.monthView')}
-          aria-label={t('layout.monthView')}
+          className="daily-week-ahead"
+          onClick={() => setShowWeeklySummaryModal(true)}
         >
-          {t('layout.month')}
-        </button>
-        <button
-          className="btn btn-sm daily-strip-toolbar-btn"
-          onClick={jumpToToday}
-          type="button"
-        >
-          {t('calendar.today')}
+          <Icon name="calendar_month" className="daily-week-ahead-icon" />
+          <span>{t('calendar.weekAhead')}</span>
         </button>
       </div>
 
-      <div className="daily-week-header bg-light py-2" style={{ minHeight: '60px' }}>
+      <div className="daily-week-header">
         <div
           ref={bindStripScrollContainer}
           className="d-flex daily-week-scroll"
@@ -52,9 +42,9 @@ export default function DailyDayStrip({
           onTouchEnd={scheduleStripScrollWork}
         >
           {allDays.map((day) => {
-            const dayOfWeek = (day.day() + 6) % 7;
             const dayEvents = getEventsForDay(day);
             const key = day.format('YYYY-MM-DD');
+            const letter = day.locale(language).format('dd').charAt(0).toUpperCase();
 
             return (
               <div
@@ -68,12 +58,10 @@ export default function DailyDayStrip({
                 onTouchEnd={() => handleStripDayTouchEnd(day)}
                 ref={(node) => registerDayElement(key, node)}
               >
-                <div className="day-name-mini text-muted">{dayHeaders[dayOfWeek]}</div>
-                <div className="day-number-mini fw-bold">{day.format('D')}</div>
+                <div className="day-name-mini">{letter}</div>
+                <div className="day-number-mini">{day.format('D')}</div>
                 {dayEvents.length > 0 && (
-                  <div className="events-indicator">
-                    <span className="badge bg-secondary rounded-pill">{dayEvents.length}</span>
-                  </div>
+                  <div className="daily-day-badge">{dayEvents.length}</div>
                 )}
               </div>
             );

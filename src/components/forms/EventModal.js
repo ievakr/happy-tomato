@@ -18,7 +18,7 @@ import { parseTodoFieldsFromEvent, buildCalendarEventPayload } from '../../utils
 import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function EventModal() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { daySelected } = useCalendarContext();
   const {
     setShowEventModal,
@@ -33,7 +33,6 @@ export default function EventModal() {
   } = useEventContext();
   const {
     createActionWithRecurringTodos,
-    isTodoEvent,
     updateEventWithRecurringRecalculation,
     deleteRecurringTodosForEvent,
   } = useRecurringActions();
@@ -159,60 +158,54 @@ export default function EventModal() {
     }
   }
 
-  const headerExtra = selectedEvent ? (
-    <button
-      type="button"
-      className="btn btn-sm btn-outline-danger"
-      disabled={isLoading}
-      onClick={() => setShowDeleteConfirm(true)}
-      title={isTodoEvent(selectedEvent) ? t('forms.deleteTodo') : t('forms.deleteEvent')}
-    >
-      <span className="material-icons-outlined" style={{ fontSize: '1rem' }}>
-        delete
-      </span>
-    </button>
-  ) : null;
-
   return (
     <>
       <Modal
         title={selectedEvent ? t('forms.editEvent') : t('forms.newEvent')}
-        icon="event"
         onClose={() => setShowEventModal(false)}
         className="event-modal"
-        headerExtra={headerExtra}
         footer={
-          <button
-            type="button"
-            onClick={handleSubmit}
-            className="btn btn-success w-100"
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status">
-                  <span className="visually-hidden">
-                    {loadingOperation === 'update' ? t('forms.updating') : t('forms.saving')}
+          <div className="event-modal-actions">
+            <button
+              type="button"
+              onClick={handleSubmit}
+              className="btn event-modal-save w-100"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status">
+                    <span className="visually-hidden">
+                      {loadingOperation === 'update' ? t('forms.updating') : t('forms.saving')}
+                    </span>
                   </span>
+                  {loadingOperation === 'update' ? t('forms.updating') : t('forms.saving')}
+                </>
+              ) : selectedEvent ? (
+                t('forms.update')
+              ) : (
+                t('common.save')
+              )}
+            </button>
+            {selectedEvent && (
+              <button
+                type="button"
+                className="btn btn-outline-danger event-modal-delete w-100"
+                disabled={isLoading}
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                <span className="material-icons-outlined" aria-hidden>
+                  delete
                 </span>
-                {loadingOperation === 'update' ? t('forms.updating') : t('forms.saving')}
-              </>
-            ) : selectedEvent ? (
-              t('forms.update')
-            ) : (
-              t('common.save')
+                {t('common.delete')}
+              </button>
             )}
-          </button>
+          </div>
         }
       >
-        <div className="d-grid gap-3">
-          <div>
-            <label className="form-label d-flex align-items-center gap-2">
-              <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
-                checklist
-              </span>
-              {t('forms.todo')}
-            </label>
+        <div className="event-modal-form">
+          <div className="event-modal-field">
+            <label className="form-label">{t('forms.todo')}</label>
             <TodoCombobox
               value={todoText}
               onChange={handleTodoChange}
@@ -221,13 +214,8 @@ export default function EventModal() {
             />
           </div>
 
-          <div>
-            <label className="form-label d-flex align-items-center gap-2">
-              <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
-                yard
-              </span>
-              {t('forms.plants')}
-            </label>
+          <div className="event-modal-field">
+            <label className="form-label">{t('forms.plant')}</label>
             <CustomDropdown
               title={
                 (plantNames || []).length
@@ -241,44 +229,34 @@ export default function EventModal() {
             />
           </div>
 
-          <div>
-            <label className="form-label d-flex align-items-center gap-2">
-              <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
-                schedule
-              </span>
-              {t('forms.date')}
-            </label>
-            <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
+          <div className="event-modal-field">
+            <label className="form-label" htmlFor="event-date">{t('forms.date')}</label>
+            <Localization date={new DateLocalizer({ culture: language === 'lt' ? 'lt' : 'en-GB', firstOfWeek: 1 })}>
               <DatePicker
                 value={selectedDate}
-                onChange={(date) => setSelectedDate(date)}
-                defaultValue={new Date()}
-                valueFormat={{ dateStyle: 'medium' }}
+                onChange={(date) => date && setSelectedDate(date)}
+                valueFormat={{ day: '2-digit', month: '2-digit', year: 'numeric' }}
                 className="w-100"
-                inputProps={RW_DATE_PICKER_INPUT_PROPS}
+                dropUp
+                inputProps={{ ...RW_DATE_PICKER_INPUT_PROPS, id: 'event-date' }}
               />
             </Localization>
           </div>
 
-          <RecurringConfigSection {...recurringFields} />
-
-          <div>
-            <label className="form-label d-flex align-items-center gap-2">
-              <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
-                segment
-              </span>
-              {t('forms.description')}
-            </label>
-            <input
-              type="text"
+          <div className="event-modal-field">
+            <label className="form-label" htmlFor="event-description">{t('forms.description')}</label>
+            <textarea
+              id="event-description"
               name="description"
-              placeholder={t('forms.addDescription')}
               value={description}
               required
+              rows={3}
               className="form-control"
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
+
+          <RecurringConfigSection {...recurringFields} />
         </div>
       </Modal>
 

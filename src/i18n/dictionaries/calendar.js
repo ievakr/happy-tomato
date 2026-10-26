@@ -11,6 +11,14 @@ const calendar = {
     'calendar.nextYear': 'Next year',
     'calendar.goToToday': 'Go to today',
     'calendar.today': 'Today',
+    'calendar.moon.new': 'New moon',
+    'calendar.moon.waxingCrescent': 'Waxing crescent',
+    'calendar.moon.firstQuarter': 'First quarter',
+    'calendar.moon.waxingGibbous': 'Waxing gibbous',
+    'calendar.moon.full': 'Full moon',
+    'calendar.moon.waningGibbous': 'Waning gibbous',
+    'calendar.moon.lastQuarter': 'Last quarter',
+    'calendar.moon.waningCrescent': 'Waning crescent',
 
     // Views / grids
     'calendar.monthViewLabel': 'Calendar month view',
@@ -24,12 +32,16 @@ const calendar = {
     'calendar.doneTapToView': '{count} done — tap to view',
 
     // Daily events panel
-    'calendar.noTodosForDay': 'No to-dos scheduled for this day',
-    'calendar.todosCount': "To-Do's ({count})",
+    'calendar.noTodosForDay': 'No to-dos scheduled for this day.',
+    'calendar.todosCount': 'To-dos ({count})',
     'calendar.selectAll': 'Select all',
     'calendar.move': 'Move',
+    'calendar.moveTo': 'Move to',
+    'calendar.moveTodoCountSingular': '{count} to-do',
+    'calendar.moveTodoCountPlural': '{count} to-dos',
     'calendar.bulkEdit': 'Bulk edit',
-    'calendar.addEvent': 'Add Event',
+    'calendar.done': 'Done',
+    'calendar.addEvent': 'Add event',
     'calendar.selectEventAria': 'Select {name}',
     'calendar.eventFallback': 'event',
 
@@ -52,8 +64,8 @@ const calendar = {
     'calendar.deleteFailed': 'Failed to delete some events. Please try again.',
 
     // Delete confirm modal
-    'calendar.deleteEventTitle': 'Delete Event',
-    'calendar.deleteEventConfirm': 'Delete "{name}"?',
+    'calendar.deleteEventTitle': 'Delete event?',
+    'calendar.deleteEventConfirm': '"{name}" will be removed from your calendar.',
     'calendar.deleteCannotUndo': "This action can't be undone.",
 
     // Labels / category filter
@@ -67,8 +79,9 @@ const calendar = {
     'calendar.selectCategoriesToFilter': 'Select categories to filter',
     'calendar.allCategoriesSelected': 'All categories selected',
     'calendar.allCategories': 'All categories',
-    'calendar.filterTitle': 'Filter',
-    'calendar.searchCategories': 'Search categories',
+    'calendar.filterTitle': 'Filter categories',
+    'calendar.searchCategories': 'Search',
+    'calendar.filterDone': 'Done',
     'calendar.clear': 'Clear',
     'calendar.categoriesSelectedSingular': '{count} category selected',
     'calendar.categoriesSelectedPlural': '{count} categories selected',
@@ -90,6 +103,14 @@ const calendar = {
     'calendar.nextYear': 'Kiti metai',
     'calendar.goToToday': 'Eiti į šiandieną',
     'calendar.today': 'Šiandien',
+    'calendar.moon.new': 'Jaunatis',
+    'calendar.moon.waxingCrescent': 'Augantis pjautuvas',
+    'calendar.moon.firstQuarter': 'Priešpilnis',
+    'calendar.moon.waxingGibbous': 'Augantis mėnulis',
+    'calendar.moon.full': 'Pilnatis',
+    'calendar.moon.waningGibbous': 'Dylantis mėnulis',
+    'calendar.moon.lastQuarter': 'Delčia',
+    'calendar.moon.waningCrescent': 'Dylantis pjautuvas',
 
     // Views / grids
     'calendar.monthViewLabel': 'Kalendoriaus mėnesio rodinys',
@@ -103,11 +124,15 @@ const calendar = {
     'calendar.doneTapToView': '{count} atlikta — bakstelėkite peržiūrėti',
 
     // Daily events panel
-    'calendar.noTodosForDay': 'Šiai dienai nėra suplanuotų darbų',
+    'calendar.noTodosForDay': 'Šiai dienai nėra suplanuotų darbų.',
     'calendar.todosCount': 'Darbai ({count})',
     'calendar.selectAll': 'Pažymėti visus',
     'calendar.move': 'Perkelti',
+    'calendar.moveTo': 'Perkelti į',
+    'calendar.moveTodoCountSingular': '{count} darbas',
+    'calendar.moveTodoCountPlural': '{count} darbai',
     'calendar.bulkEdit': 'Redaguoti grupę',
+    'calendar.done': 'Atlikta',
     'calendar.addEvent': 'Pridėti įvykį',
     'calendar.selectEventAria': 'Pasirinkti {name}',
     'calendar.eventFallback': 'įvykį',
@@ -131,8 +156,8 @@ const calendar = {
     'calendar.deleteFailed': 'Nepavyko ištrinti kai kurių įvykių. Bandykite dar kartą.',
 
     // Delete confirm modal
-    'calendar.deleteEventTitle': 'Ištrinti įvykį',
-    'calendar.deleteEventConfirm': 'Ištrinti „{name}“?',
+    'calendar.deleteEventTitle': 'Ištrinti įvykį?',
+    'calendar.deleteEventConfirm': '„{name}“ bus pašalintas iš jūsų kalendoriaus.',
     'calendar.deleteCannotUndo': 'Šio veiksmo negalima atšaukti.',
 
     // Labels / category filter
@@ -146,8 +171,9 @@ const calendar = {
     'calendar.selectCategoriesToFilter': 'Pasirinkite kategorijas filtravimui',
     'calendar.allCategoriesSelected': 'Pasirinktos visos kategorijos',
     'calendar.allCategories': 'Visos kategorijos',
-    'calendar.filterTitle': 'Filtras',
-    'calendar.searchCategories': 'Ieškoti kategorijų',
+    'calendar.filterTitle': 'Filtruoti kategorijas',
+    'calendar.searchCategories': 'Ieškoti',
+    'calendar.filterDone': 'Atlikta',
     'calendar.clear': 'Išvalyti',
     'calendar.categoriesSelectedSingular': 'Pasirinkta {count} kategorija',
     'calendar.categoriesSelectedPlural': 'Pasirinktos {count} kategorijos',

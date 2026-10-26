@@ -29,6 +29,8 @@ export function formatTodoLabel(evt) {
 }
 
 function compareTodosByLabel(a, b) {
+  const completedDelta = (a.completed ? 1 : 0) - (b.completed ? 1 : 0);
+  if (completedDelta !== 0) return completedDelta;
   return formatTodoLabel(a).localeCompare(formatTodoLabel(b), undefined, {
     sensitivity: 'base',
   });
@@ -50,18 +52,25 @@ export function getTodosForWeekAhead(events) {
   const overdue = [];
   const byDay = {};
 
+  const todayKey = today.format('YYYY-MM-DD');
+  if (!byDay[todayKey]) {
+    byDay[todayKey] = [];
+  }
+
   for (let d = weekStart.clone(); d.isSameOrBefore(weekEnd, 'day'); d = d.add(1, 'day')) {
     byDay[d.format('YYYY-MM-DD')] = [];
   }
 
   (events || []).forEach((evt) => {
-    if (!isTodoEvent(evt) || evt.completed) return;
+    if (!isTodoEvent(evt)) return;
     const eventDate = eventDayStart(evt);
     if (!eventDate) return;
 
     if (eventDate.isBefore(today, 'day')) {
-      overdue.push(evt);
-    } else if (!eventDate.isAfter(weekEnd, 'day')) {
+      if (!evt.completed) overdue.push(evt);
+      return;
+    }
+    if (!eventDate.isAfter(weekEnd, 'day')) {
       const key = eventDate.format('YYYY-MM-DD');
       if (byDay[key]) {
         byDay[key].push(evt);

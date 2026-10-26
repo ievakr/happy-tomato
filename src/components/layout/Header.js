@@ -4,10 +4,15 @@ import { useCalendarContext, isFullPageCalendarView } from '../../context/Calend
 import LayoutContext from '../../context/LayoutContext';
 import { useAuth } from '../../context/AuthContext';
 import { capitalizeFirst } from '../../utils';
-import { getUserAvatarSrc } from '../../utils/userAvatar';
 import { useResponsive, useResponsiveCalendarView } from '../../hooks';
 import { useTranslation } from '../../i18n/LanguageContext';
 import './Header.css';
+
+function nameInitial(user, language) {
+    const source = (user?.displayName || user?.email || '').trim();
+    const letter = Array.from(source)[0] || '';
+    return letter ? letter.toLocaleUpperCase(language) : '?';
+}
 
 export default function Header() {
     const { t, language } = useTranslation();
@@ -21,6 +26,7 @@ export default function Header() {
         setWeekIndex,
         daySelected,
         setDaySelected,
+        goToToday,
     } = useCalendarContext();
     const { showSidebar, setShowSidebar } = useContext(LayoutContext);
     const { isMobile } = useResponsive();
@@ -114,12 +120,24 @@ export default function Header() {
             ? t('calendar.nextYear')
             : t('layout.nextMonth');
 
+    const isCalendarChrome = currentView === 'daily' || currentView === 'month' || currentView === 'year';
+    const periodSide = currentView === 'month'
+        ? { label: t('layout.yearShort'), view: 'year' }
+        : { label: t('layout.month'), view: 'month' };
+
     return (
         <header className={`calendar-header position-relative border-bottom bg-white px-2 px-md-4 py-2 ${isMobile ? 'd-flex flex-column' : 'd-flex align-items-center'}`}>
             {isMobile ? (
+                <>
                 <div className="header-mobile-bar">
                     <button
-                        className={`header-menu-btn${sectionTitle ? '' : ' header-menu-btn--large'}`}
+                        className={`header-menu-btn${
+                          sectionTitle
+                            ? ''
+                            : currentView === 'daily' || currentView === 'month' || currentView === 'year'
+                              ? ' header-menu-btn--ink'
+                              : ' header-menu-btn--large'
+                        }`}
                         onClick={toggleSidebar}
                         type="button"
                         aria-label={t('layout.openMenu')}
@@ -130,6 +148,8 @@ export default function Header() {
                     </button>
                     {sectionTitle ? (
                         <h1 className="header-page-title">{sectionTitle}</h1>
+                    ) : isCalendarChrome ? (
+                        <h1 className="header-page-title">{t('layout.calendar')}</h1>
                     ) : !isGuideLikeView ? (
                         <div className="header-month-nav">
                             <button
@@ -166,13 +186,60 @@ export default function Header() {
                         aria-label={t('layout.profile')}
                         title={t('layout.profile')}
                     >
-                        <img
-                            src={getUserAvatarSrc(currentUser)}
-                            alt=""
-                            className="header-avatar"
-                        />
+                        <span className="header-avatar" aria-hidden>
+                            {nameInitial(currentUser, language)}
+                        </span>
                     </button>
                 </div>
+                {isCalendarChrome && (
+                    <div className="header-period-bar">
+                        <button
+                            type="button"
+                            className="header-period-link header-period-link--start"
+                            onClick={() => setCurrentView(periodSide.view)}
+                        >
+                            {periodSide.label}
+                        </button>
+                        <div className="header-month-nav">
+                            <button
+                                className="header-month-chevron"
+                                onClick={goPrev}
+                                aria-label={prevLabel}
+                                title={prevLabel}
+                                type="button"
+                            >
+                                <span className="material-icons-outlined" aria-hidden>
+                                    chevron_left
+                                </span>
+                            </button>
+                            <span className="header-month-label">{monthLabel}</span>
+                            <button
+                                className="header-month-chevron"
+                                onClick={goNext}
+                                aria-label={nextLabel}
+                                title={nextLabel}
+                                type="button"
+                            >
+                                <span className="material-icons-outlined" aria-hidden>
+                                    chevron_right
+                                </span>
+                            </button>
+                        </div>
+                        <button
+                            type="button"
+                            className="header-period-link header-period-link--end"
+                            onClick={() => {
+                                goToToday();
+                                if (currentView !== 'daily') {
+                                    setCurrentView('daily');
+                                }
+                            }}
+                        >
+                            {t('calendar.today')}
+                        </button>
+                    </div>
+                )}
+                </>
             ) : (
                 <>
                     {sectionTitle && (
@@ -280,11 +347,9 @@ export default function Header() {
                         aria-label={t('layout.profile')}
                         title={t('layout.profile')}
                     >
-                        <img
-                            src={getUserAvatarSrc(currentUser)}
-                            alt=""
-                            className="header-avatar"
-                        />
+                        <span className="header-avatar" aria-hidden>
+                            {nameInitial(currentUser, language)}
+                        </span>
                     </button>
                 </div>
             )}

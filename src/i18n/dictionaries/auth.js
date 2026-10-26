@@ -64,7 +64,7 @@ const auth = {
     'auth.user': 'User',
     'auth.userMenu': 'User menu',
     'auth.accountSettings': 'Account Settings',
-    'auth.signOut': 'Sign Out',
+    'auth.signOut': 'Sign out',
   },
   lt: {
     'auth.welcomeHeading': 'Sveiki!',

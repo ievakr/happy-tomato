@@ -17,6 +17,13 @@ export function eventTodoOrTitleText(event) {
   return t != null ? String(t) : '';
 }
 
+/** Month-grid label: the action only, without the stored "TO DO:" prefix. */
+export function eventActionText(event) {
+  const full = eventTodoOrTitleText(event);
+  const action = full.replace(/^TO DO:\s*/i, '').trim();
+  return action || full;
+}
+
 /**
  * Individual event item component for calendar display
  */

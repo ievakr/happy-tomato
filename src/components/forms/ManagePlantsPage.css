@@ -1,3 +1,7 @@
+.plants-page-scroll {
+  background: #faf8f4;
+}
+
 .plants-page {
   max-width: 560px;
   margin: 0 auto;
@@ -5,52 +9,77 @@
 }
 
 .plant-create-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
   margin-bottom: 16px;
-  border-radius: 8px;
-  font-weight: 600;
-  padding: 12px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.plant-create-btn:active {
+  background: #c82333;
+}
+
+.plant-create-icon {
+  font-size: 1.35rem !important;
 }
 
 .plant-list {
-  background: #fff;
-  border: 1px solid #e5e5ea;
-  border-radius: 14px;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.plant-row,
-.plant-editor {
-  border-bottom: 1px solid #e5e5ea;
-}
-
-.plant-row:last-child,
-.plant-editor:last-child {
-  border-bottom: 0;
-}
-
-.plant-row {
+.plant-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  width: 100%;
-  padding: 14px 16px;
-  border-left: 0;
-  border-right: 0;
-  border-top: 0;
+  gap: 12px;
+  padding: 14px;
   background: #fff;
-  text-align: left;
-  color: inherit;
+  border-radius: 16px;
 }
 
-.plant-row-icon {
+.plant-card--editing {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+}
+
+.plant-card-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-bottom: 1px solid #ececef;
+}
+
+.plant-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #e7f6ec;
+  color: #2f9e44;
   flex: 0 0 auto;
-  width: 28px;
-  color: #1c1c1e;
-  font-size: 1.45rem;
+}
+
+.plant-card-icon .fi {
+  font-size: 1.35rem;
   line-height: 1;
 }
 
-.plant-row-text {
+.plant-card-text {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
@@ -58,82 +87,222 @@
   gap: 2px;
 }
 
-.plant-row-name {
-  font-weight: 700;
+.plant-card-name {
+  font-size: 1.05rem;
+  font-weight: 800;
   color: #1c1c1e;
   line-height: 1.2;
 }
 
-.plant-row-variety {
+.plant-card-variety {
   color: #8e8e93;
   font-size: 0.95rem;
+  font-weight: 500;
   line-height: 1.2;
 }
 
-.plant-row-chevron {
-  flex: 0 0 auto;
-  margin-left: auto;
-  color: #c7c7cc;
-  font-size: 1.35rem !important;
-}
-
-.plant-editor {
-  display: grid;
-  gap: 14px;
-  padding: 16px;
-}
-
-.plant-editor-label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 0.875rem;
-  color: #1c1c1e;
-}
-
-.plant-icon-picker {
+.plant-card-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
-.plant-icon-option {
+.plant-card-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
+  margin: 0;
   padding: 0;
-  border: 1px solid #d8d8de;
-  border-radius: 8px;
+  border: 0;
+  background: transparent;
+  color: #8e8e93;
+}
+
+.plant-card-action .material-icons-outlined {
+  font-size: 1.35rem;
+}
+
+.plant-card-action--delete {
+  color: #dc3545;
+}
+
+.plant-editor-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 14px 14px;
+}
+
+.plant-editor-field {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.plant-editor-field > span {
+  color: #8e8e93;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.plant-editor-field input {
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 14px;
+  border: 1px solid #e4e4e7;
+  border-radius: 12px;
+  background: #fff;
+  color: #1c1c1e;
+  font-size: 1rem;
+  box-shadow: none;
+}
+
+.plant-editor-field input::placeholder {
+  color: #c7c7cc;
+}
+
+.plant-editor-field input:focus {
+  outline: none;
+  border-color: #c7c7cc;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.12);
+}
+
+.plant-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.plant-icon-choice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e6e6ea;
+  border-radius: 12px;
   background: #fff;
   color: #1c1c1e;
 }
 
-.plant-icon-option.is-selected {
-  border-color: #dc3545;
+.plant-icon-choice .fi {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.plant-icon-choice.is-selected {
+  border-color: #f3b4bc;
+  background: #fde8ea;
   color: #dc3545;
 }
 
-.plant-editor-actions {
+.plant-editor-save {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.plant-editor-save:disabled {
+  opacity: 0.65;
+}
+
+.plant-delete-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1060;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.plant-delete-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 8px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+  animation: plant-delete-up 0.28s ease-out both;
+}
+
+@keyframes plant-delete-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.plant-delete-grabber {
+  width: 36px;
+  height: 4px;
+  margin: 4px auto 14px;
+  border-radius: 999px;
+  background: #e4e4e8;
+}
+
+.plant-delete-header {
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.plant-editor-actions .btn {
-  min-width: 88px;
-  border-radius: 8px;
-  font-weight: 600;
+.plant-delete-header h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #1c1c1e;
+  line-height: 1.25;
 }
 
-.plant-editor-delete {
+.plant-delete-close {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  justify-self: start;
-  padding-left: 0;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #1c1c1e;
+  flex: 0 0 auto;
 }
 
-.plant-editor-delete-icon {
-  font-size: 1.1rem !important;
+.plant-delete-close .material-icons-outlined {
+  font-size: 1.6rem;
+}
+
+.plant-delete-message {
+  margin: 0 0 18px;
+  color: #8e8e93;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.plant-delete-confirm {
+  width: 100%;
+  min-height: 52px;
+  border: 0;
+  border-radius: 12px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.plant-delete-confirm:disabled {
+  opacity: 0.65;
 }

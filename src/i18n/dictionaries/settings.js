@@ -9,6 +9,8 @@ const settings = {
     // Account information
     'settings.accountInformation': 'Account Information',
     'settings.accountDetails': 'Account details',
+    'settings.offlinePreview': 'Offline preview',
+    'settings.pushNotifications': 'Push notifications',
     'settings.name': 'Name',
     'settings.namePlaceholder': 'Your name',
     'settings.notSet': 'Not set',
@@ -20,7 +22,7 @@ const settings = {
     'settings.changeEmail': 'Change email',
     'settings.emailManagedByGoogle': "Your email is managed by your Google account and can't be changed here.",
     'settings.newEmail': 'New email',
-    'settings.newEmailPlaceholder': 'you@example.com',
+    'settings.newEmailPlaceholder': 'name@example.com',
     'settings.currentPassword': 'Current password',
     'settings.emailChangeSent': 'Verification email sent to {email}. Click the link there to finish changing your email.',
     'settings.enterDifferentEmail': 'Enter a different email than your current one',
@@ -40,7 +42,7 @@ const settings = {
     'settings.passwordChangeFailed': 'Failed to update password. Please try again.',
 
     // Account management / deletion
-    'settings.deleteAccount': 'Delete Account',
+    'settings.deleteAccount': 'Delete account',
     'settings.warning': 'Warning:',
     'settings.cannotUndo': "This action can't be undone.",
     'settings.deleteBullet1': 'Permanently delete all your events and data',
@@ -98,6 +100,9 @@ const settings = {
     'settings.signInToSync': 'Sign in to sync reminders',
     'settings.accountSyncHelp': 'Preferences sync to Firestore using your account email',
     'settings.dailyReminder': 'Daily reminder',
+    'settings.dailyReminderCaption': "Today's and overdue tasks.",
+    'settings.advanceReminderCaption': 'A heads-up before tasks are due.',
+    'settings.weeklySummaryCaption': 'A look at the week ahead.',
     'settings.dailyReminderHelp': 'Push at your chosen time with pending TODOs (today and overdue)',
     'settings.todayReminderTime': 'Today reminder time',
     'settings.todayReminderTimeHelp1':
@@ -140,6 +145,8 @@ const settings = {
     // Account information
     'settings.accountInformation': 'Paskyros informacija',
     'settings.accountDetails': 'Paskyros duomenys',
+    'settings.offlinePreview': 'Peržiūra neprisijungus',
+    'settings.pushNotifications': 'Tiesioginiai pranešimai',
     'settings.name': 'Vardas',
     'settings.namePlaceholder': 'Jūsų vardas',
     'settings.notSet': 'Nenustatyta',
@@ -232,6 +239,9 @@ const settings = {
     'settings.accountSyncHelp':
       'Nustatymai sinchronizuojami su „Firestore“ naudojant jūsų paskyros el. paštą',
     'settings.dailyReminder': 'Kasdienis priminimas',
+    'settings.dailyReminderCaption': 'Šiandienos ir pradelstos užduotys.',
+    'settings.advanceReminderCaption': 'Priminimas prieš užduočių terminą.',
+    'settings.weeklySummaryCaption': 'Žvilgsnis į artėjančią savaitę.',
     'settings.dailyReminderHelp':
       'Pranešimas jūsų pasirinktu laiku su laukiančiomis užduotimis (šiandienos ir pradelstomis)',
     'settings.todayReminderTime': 'Šiandienos priminimo laikas',

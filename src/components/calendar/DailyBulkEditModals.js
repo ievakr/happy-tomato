@@ -1,16 +1,21 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import { ConfirmModal, Modal } from '../common';
-import DatePicker from 'react-widgets/DatePicker';
-import { Localization } from 'react-widgets';
-import { DateLocalizer } from 'react-widgets/IntlLocalizer';
-import 'react-widgets/styles.css';
-import { RW_DATE_PICKER_INPUT_PROPS } from '../../constants/datePicker';
+import Icon from '../common/Icon';
 import { EVENT_ACTIONS } from '../../constants';
 import { useToast } from '../../context/ToastContext';
 import { useEventContext } from '../../context/EventContext';
 import { useRecurringActions } from '../../hooks';
+import { capitalizeFirst } from '../../utils';
 import { useTranslation } from '../../i18n/LanguageContext';
+
+function monthCells(monthAnchor) {
+  const start = monthAnchor.startOf('month');
+  const offset = (start.day() + 6) % 7;
+  const count = Math.ceil((offset + monthAnchor.daysInMonth()) / 7) * 7;
+  const first = start.subtract(offset, 'day');
+  return Array.from({ length: count }, (_, i) => first.add(i, 'day'));
+}
 
 export default function DailyBulkEditModals({
   showBulkMoveModal,
@@ -22,11 +27,39 @@ export default function DailyBulkEditModals({
   bulkSelectedEventIds,
   setBulkEditMode,
 }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { showError } = useToast();
   const { filteredEvents, dispatchCallEvent, dispatchBulkCallEvents, isLoading, loadingOperation } =
     useEventContext();
   const { deleteRecurringTodosForEvent } = useRecurringActions();
+  const selected = dayjs(bulkMoveDate);
+  const [monthCursor, setMonthCursor] = useState(() => selected.startOf('month'));
+
+  useEffect(() => {
+    if (showBulkMoveModal) {
+      setMonthCursor(dayjs(bulkMoveDate).startOf('month'));
+    }
+  }, [showBulkMoveModal, bulkMoveDate]);
+
+  const weekLetters = useMemo(
+    () => Array.from({ length: 7 }, (_, i) =>
+      dayjs('2024-01-01').locale(language).add(i, 'day').format('dd').charAt(0).toUpperCase(),
+    ),
+    [language],
+  );
+  const days = useMemo(() => monthCells(monthCursor), [monthCursor]);
+  const selectedCount = bulkSelectedEventIds.length;
+
+  const selectDay = (day) => {
+    setBulkMoveDate(day.toDate());
+    if (!day.isSame(monthCursor, 'month')) setMonthCursor(day.startOf('month'));
+  };
+
+  const jumpToToday = () => {
+    const today = dayjs();
+    setBulkMoveDate(today.toDate());
+    setMonthCursor(today.startOf('month'));
+  };
 
   const confirmBulkMove = async () => {
     const dayMs = dayjs(bulkMoveDate).startOf('day').valueOf();
@@ -76,62 +109,76 @@ export default function DailyBulkEditModals({
     <>
       {showBulkMoveModal && (
         <Modal
-          title={t(
-            bulkSelectedEventIds.length !== 1
-              ? 'calendar.moveEventsTitlePlural'
-              : 'calendar.moveEventsTitleSingular',
-            { count: bulkSelectedEventIds.length },
-          )}
-          icon="event"
+          className="bulk-move-modal"
+          title={t('calendar.move')}
           onClose={() => setShowBulkMoveModal(false)}
-          size="sm"
-          className="event-modal"
-          footer={
-            <div className="d-flex gap-2 w-100">
+        >
+          <p className="bulk-move-count">
+            {t(
+              selectedCount === 1
+                ? 'calendar.moveTodoCountSingular'
+                : 'calendar.moveTodoCountPlural',
+              { count: selectedCount },
+            )}
+          </p>
+          <p className="bulk-move-label">{t('calendar.moveTo')}</p>
+          <div className="bulk-move-calendar">
+            <div className="bulk-move-month">
               <button
                 type="button"
-                className="btn btn-outline-secondary flex-grow-1"
-                onClick={() => setShowBulkMoveModal(false)}
-                disabled={isLoading}
+                className="bulk-move-chevron"
+                onClick={() => setMonthCursor((current) => current.subtract(1, 'month'))}
+                aria-label={t('layout.previousMonth')}
               >
-                {t('common.cancel')}
+                <Icon name="chevron_left" />
               </button>
+              <span>{capitalizeFirst(monthCursor.locale(language).format('MMMM YYYY'))}</span>
               <button
                 type="button"
-                className="btn btn-success flex-grow-1"
-                onClick={confirmBulkMove}
-                disabled={isLoading}
+                className="bulk-move-chevron"
+                onClick={() => setMonthCursor((current) => current.add(1, 'month'))}
+                aria-label={t('layout.nextMonth')}
               >
-                {isLoading && loadingOperation === 'update' ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" />
-                    {t('calendar.moving')}
-                  </>
-                ) : (
-                  t('calendar.move')
-                )}
+                <Icon name="chevron_right" />
               </button>
             </div>
-          }
-        >
-          <div>
-            <label className="form-label d-flex align-items-center gap-2">
-              <span className="material-icons-outlined text-muted" style={{ fontSize: '1rem' }}>
-                schedule
-              </span>
-              {t('calendar.newDate')}
-            </label>
-            <Localization date={new DateLocalizer({ firstOfWeek: 1 })}>
-              <DatePicker
-                value={bulkMoveDate}
-                onChange={(date) => date && setBulkMoveDate(date)}
-                defaultValue={new Date()}
-                valueFormat={{ dateStyle: 'medium' }}
-                className="w-100"
-                inputProps={RW_DATE_PICKER_INPUT_PROPS}
-              />
-            </Localization>
+            <div className="bulk-move-weekdays">
+              {weekLetters.map((letter, index) => (
+                <span key={`${letter}-${index}`}>{letter}</span>
+              ))}
+            </div>
+            <div className="bulk-move-grid">
+              {days.map((day) => {
+                const key = day.format('YYYY-MM-DD');
+                const isSelected = day.isSame(selected, 'day');
+                const inMonth = day.isSame(monthCursor, 'month');
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`bulk-move-day${isSelected ? ' is-selected' : ''}${inMonth ? '' : ' is-outside'}`}
+                    onClick={() => selectDay(day)}
+                  >
+                    {day.date()}
+                  </button>
+                );
+              })}
+            </div>
           </div>
+          <div className="bulk-move-selected-row">
+            <span>{capitalizeFirst(selected.locale(language).format('dddd, MMMM D'))}</span>
+            <button type="button" className="bulk-move-today" onClick={jumpToToday}>
+              {t('calendar.today')}
+            </button>
+          </div>
+          <button
+            type="button"
+            className="bulk-move-confirm"
+            onClick={confirmBulkMove}
+            disabled={isLoading}
+          >
+            {isLoading && loadingOperation === 'update' ? t('calendar.moving') : t('calendar.move')}
+          </button>
         </Modal>
       )}
 

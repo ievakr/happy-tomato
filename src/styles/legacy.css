@@ -385,6 +385,10 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
     padding-top: calc(0.5rem + env(safe-area-inset-top, 0px)) !important;
   }
 
+  .calendar-header:has(.header-period-bar) {
+    padding-bottom: 0.3rem !important;
+  }
+
   /* Do not strip env(safe-area-inset-top) on Capacitor — ios.contentInset "never" relies on CSS env(). */
 
   .calendar-header h1 {
@@ -476,11 +480,24 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   
 
   
-  /* Modal responsive */
+  /* New/edit event: bottom sheet */
   .event-modal {
-    width: 90% !important;
-    max-width: 400px !important;
-    margin: 1rem !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .event-modal .modal-dialog {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+
+  .event-modal .modal-content {
+    border: 0;
+    border-radius: 22px 22px 0 0;
   }
   
   .custom-dropdown {
@@ -541,8 +558,8 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   }
   
   .event-modal {
-    width: 40% !important;
-    max-width: 500px !important;
+    width: 100% !important;
+    max-width: none !important;
   }
   
   .calendar-event-box {
@@ -617,6 +634,73 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   
   .fs-5 {
     font-size: 1rem !important;
+  }
+}
+
+/* Event modal sits on the bottom edge, like the category filter sheet.
+   .d-block is display:block !important, which cancels align-items. */
+.event-modal.modal {
+  display: flex !important;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: stretch !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.event-modal .modal-dialog,
+.event-modal .modal-dialog-centered {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  max-height: min(92dvh, 820px);
+  min-height: 0 !important;
+  margin: 0;
+}
+
+.modal.event-modal .modal-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: auto;
+  border: 0;
+  border-radius: 20px 20px 0 0;
+  max-height: min(92dvh, 820px);
+  overflow: hidden !important;
+  animation: event-sheet-up 0.28s ease-out;
+}
+
+.modal.event-modal .modal-header,
+.modal.event-modal .modal-footer {
+  flex: 0 0 auto;
+}
+
+.modal.event-modal .modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+@keyframes event-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal.event-modal .modal-content {
+    animation: none;
   }
 }
 

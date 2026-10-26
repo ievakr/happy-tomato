@@ -88,17 +88,31 @@ export default function CategoryFilter() {
               aria-labelledby="category-filter-title"
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 id="category-filter-title" className="category-filter-title">
-                {t('calendar.filterTitle')}
-              </h2>
-              <input
-                type="search"
-                className="category-filter-search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('calendar.searchCategories')}
-                aria-label={t('calendar.searchCategories')}
-              />
+              <div className="category-filter-grabber" aria-hidden="true" />
+              <div className="category-filter-header">
+                <h2 id="category-filter-title" className="category-filter-title">
+                  {t('calendar.filterTitle')}
+                </h2>
+                <button
+                  type="button"
+                  className="category-filter-close"
+                  onClick={close}
+                  aria-label={t('common.close')}
+                >
+                  <Icon name="close" />
+                </button>
+              </div>
+              <label className="category-filter-search-wrap">
+                <Icon name="search" className="category-filter-search-icon" />
+                <input
+                  type="search"
+                  className="category-filter-search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t('calendar.searchCategories')}
+                  aria-label={t('calendar.searchCategories')}
+                />
+              </label>
               <div className="category-filter-bulk">
                 <button type="button" className="category-filter-bulk-btn" onClick={selectAll}>
                   {t('calendar.selectAllCategories')}
@@ -125,6 +139,9 @@ export default function CategoryFilter() {
                   );
                 })}
               </ul>
+              <button type="button" className="category-filter-done" onClick={close}>
+                {t('calendar.filterDone')}
+              </button>
             </div>
           </div>,
           document.body,

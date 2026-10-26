@@ -1,4 +1,4 @@
-import React, { useEffect, Suspense, lazy } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { createPortal } from 'react-dom';
 import { Capacitor } from '@capacitor/core';
 import './App.css';
@@ -11,6 +11,7 @@ import { useEventContext } from './context/EventContext';
 import { useLayoutContext } from './context/LayoutContext';
 import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay, LoadingSpinner, IntroSplash, OfflineBanner, ServiceWorkerUpdateBanner } from './components/common';
 import errorLogger from './utils/errorLogger';
+import { readOfflinePreview, subscribeOfflinePreview } from './utils/offlinePreview';
 import { useAuth } from './context/AuthContext';
 import { useTranslation } from './i18n/LanguageContext';
 import { usePushNotifications } from './hooks/usePushNotifications';
@@ -57,6 +58,8 @@ function App() {
 
   const pushNotifications = usePushNotifications();
   const isOnline = useOnlineStatus();
+  const [offlinePreview, setOfflinePreview] = useState(readOfflinePreview);
+  useEffect(() => subscribeOfflinePreview(setOfflinePreview), []);
   const { updateReady, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
 
   const handleError = (error, errorInfo) => {
@@ -225,7 +228,6 @@ function App() {
             className="d-flex flex-column vh-100 app-shell" 
             style={{ overflow: 'hidden' }}
           >
-            {!isOnline && <OfflineBanner />}
             {updateReady && (
               <ServiceWorkerUpdateBanner
                 onReload={applyUpdate}
@@ -240,6 +242,7 @@ function App() {
                 <Header />
               </ComponentErrorBoundary>
             </Suspense>
+            {(!isOnline || offlinePreview) && <OfflineBanner />}
             
             {/* Main content area */}
             <main 
