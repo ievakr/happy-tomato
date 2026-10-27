@@ -1,40 +1,25 @@
-import React, { useEffect, useState, Suspense, lazy } from 'react';
-import { createPortal } from 'react-dom';
-import { Capacitor } from '@capacitor/core';
+import React, { useEffect, useState, lazy } from 'react';
 import './App.css';
 import { useCalendar } from './hooks/useCalendar';
 import useOnlineStatus from './hooks/useOnlineStatus';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
-import { useCalendarContext, isFullPageCalendarView } from './context/CalendarContext';
+import useAppNotifications from './hooks/useAppNotifications';
 import { useResponsive, useResponsiveCalendarView } from './hooks';
 import { useEventContext } from './context/EventContext';
 import { useLayoutContext } from './context/LayoutContext';
-import { ErrorBoundary, ComponentErrorBoundary, LoadingOverlay, LoadingSpinner, IntroSplash, OfflineBanner, ServiceWorkerUpdateBanner } from './components/common';
+import { useCalendarContext } from './context/CalendarContext';
+import { ErrorBoundary, LoadingSpinner, IntroSplash, OfflineBanner, ServiceWorkerUpdateBanner } from './components/common';
 import errorLogger from './utils/errorLogger';
 import { readOfflinePreview, subscribeOfflinePreview } from './utils/offlinePreview';
 import { useAuth } from './context/AuthContext';
 import { useTranslation } from './i18n/LanguageContext';
-import { usePushNotifications } from './hooks/usePushNotifications';
-import notificationService from './services/notificationService';
-import { getFirebaseMessaging } from './firebase';
-import 'react-tooltip/dist/react-tooltip.css';
-
+import LazyBoundary from './components/common/LazyBoundary';
+import AppOverlays from './components/layout/AppOverlays';
+import MainView from './components/layout/MainView';
 import AuthWrapper from './components/auth/AuthWrapper';
+
 const Header = lazy(() => import('./components/layout/Header'));
 const Sidebar = lazy(() => import('./components/layout/Sidebar'));
-const CalendarHeader = lazy(() => import('./components/calendar/CalendarHeader'));
-const CalendarGrid = lazy(() => import('./components/calendar/CalendarGrid'));
-const WeeklyView = lazy(() => import('./components/calendar/WeeklyView'));
-const DailyView = lazy(() => import('./components/calendar/DailyView'));
-const YearlyView = lazy(() => import('./components/calendar/YearlyView'));
-const EventModal = lazy(() => import('./components/forms/EventModal'));
-const CreatePlantModal = lazy(() => import('./components/forms/CreatePlantModal'));
-const ManagePlantsPage = lazy(() => import('./components/forms/ManagePlantsPage'));
-const ManageTodoPage = lazy(() => import('./components/forms/ManageTodoPage'));
-const WeeklySummaryTodoModal = lazy(() => import('./components/calendar/WeeklySummaryTodoModal'));
-const VegetableGuideView = lazy(() => import('./components/guide/VegetableGuideView'));
-const DiseaseGuideView = lazy(() => import('./components/guide/DiseaseGuideView'));
-const AccountSettings = lazy(() => import('./components/settings/AccountSettings'));
 
 /**
  * Main application component with responsive layout
@@ -55,8 +40,8 @@ function App() {
   const { currentView } = useCalendarContext();
   const { isMobile } = useResponsive();
   useResponsiveCalendarView();
+  useAppNotifications();
 
-  const pushNotifications = usePushNotifications();
   const isOnline = useOnlineStatus();
   const [offlinePreview, setOfflinePreview] = useState(readOfflinePreview);
   useEffect(() => subscribeOfflinePreview(setOfflinePreview), []);
@@ -66,112 +51,13 @@ function App() {
     errorLogger.logError(error, errorInfo, 'App Component');
   };
 
-  // Initialize notification service
-  useEffect(() => {
-    if (pushNotifications.pushPreferences.enabled) {
-      notificationService.start(pushNotifications);
-    } else {
-      notificationService.stop();
-    }
-
-    return () => {
-      notificationService.stop();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pushNotifications.pushPreferences.enabled]);
-
-  useEffect(() => {
-    if (notificationService.isRunning) {
-      notificationService.updateReminderHook(pushNotifications);
-    }
-  }, [pushNotifications]);
-
-  // Foreground FCM: show a system notification when the tab is active
-  useEffect(() => {
-    let unsubscribe;
-    (async () => {
-      const messaging = await getFirebaseMessaging();
-      if (!messaging) return;
-      const { onMessage } = await import('firebase/messaging');
-      unsubscribe = onMessage(messaging, (payload) => {
-        if (
-          typeof document !== 'undefined' &&
-          document.visibilityState === 'visible' &&
-          payload?.notification?.title
-        ) {
-          try {
-            const openDay = payload?.data?.openDay ? String(payload.data.openDay) : '';
-            const kind = payload?.data?.kind ? String(payload.data.kind) : '';
-            const notificationData =
-              openDay || kind ? { ...(openDay ? { openDay } : {}), ...(kind ? { kind } : {}) } : undefined;
-            // eslint-disable-next-line no-new
-            const n = new Notification(payload.notification.title, {
-              body: payload.notification.body || '',
-              icon: '/logo192.png',
-              data: notificationData,
-            });
-            n.onclick = () => {
-              window.focus();
-              if (openDay) {
-                window.dispatchEvent(
-                  new CustomEvent('happy-tomato-open-day', { detail: { day: openDay, kind } }),
-                );
-              }
-              n.close();
-            };
-          } catch (e) {
-            // Ignore duplicate or blocked notifications
-          }
-        }
-      });
-    })();
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, []);
-
-  // iOS/Android: open the calendar day when the user taps a push notification
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) {
-      return undefined;
-    }
-    let handle;
-    const pending = (async () => {
-      try {
-        const { FirebaseMessaging } = await import('@capacitor-firebase/messaging');
-        handle = await FirebaseMessaging.addListener('notificationActionPerformed', (event) => {
-          const raw = event.notification?.data;
-          const openDay =
-            raw && typeof raw === 'object' && raw !== null && 'openDay' in raw
-              ? String(raw.openDay)
-              : '';
-          const kind =
-            raw && typeof raw === 'object' && raw !== null && 'kind' in raw ? String(raw.kind) : '';
-          if (openDay && /^\d{4}-\d{2}-\d{2}$/.test(openDay)) {
-            window.dispatchEvent(
-              new CustomEvent('happy-tomato-open-day', { detail: { day: openDay, kind } }),
-            );
-          }
-        });
-      } catch (e) {
-        // Plugin unavailable
-      }
-    })();
-    return () => {
-      pending
-        .then(() => handle?.remove?.())
-        .catch(() => {});
-    };
-  }, []);
-
   const inlineFallback = (
     <div className="d-flex justify-content-center p-3">
       <LoadingSpinner size="md" text={t('messages.loadingData')} />
     </div>
   );
 
-  const showBootSplash =
-    bootLoading || (!!currentUser && isInitialLoading);
+  const showBootSplash = bootLoading || (!!currentUser && isInitialLoading);
 
   return (
     <ErrorBoundary
@@ -180,52 +66,23 @@ function App() {
       onError={handleError}
     >
       <AuthWrapper>
-          {/* Single column wrapper so .app-shell is a flex child and fills the screen on iOS WKWebView */}
-          <div className="app-viewport-root">
+        {/* Single column wrapper so .app-shell is a flex child and fills the screen on iOS WKWebView */}
+        <div className="app-viewport-root">
           {showBootSplash && (
             <IntroSplash label={t('messages.loadingApp')} />
           )}
 
-          {/* Event modal overlay - render in portal to escape overflow constraints */}
-          {showEventModal && createPortal(
-            <Suspense fallback={<LoadingOverlay text={t('messages.loadingEventDetails')} backdrop={true} />}>
-              <ComponentErrorBoundary
-                componentName="EventModal"
-                onError={handleError}
-              >
-                <EventModal />
-              </ComponentErrorBoundary>
-            </Suspense>,
-            document.body
-          )}
-          
-          {/* Create Plant modal overlay */}
-          {showPlantModal && (
-            <Suspense fallback={<LoadingOverlay text={t('messages.loadingData')} backdrop={true} />}>
-              <ComponentErrorBoundary
-                componentName="CreatePlantModal"
-                onError={handleError}
-              >
-                <CreatePlantModal />
-              </ComponentErrorBoundary>
-            </Suspense>
-          )}
-          
-          {showWeeklySummaryModal && createPortal(
-            <Suspense fallback={<LoadingOverlay text={t('messages.loadingData')} backdrop={true} />}>
-              <ComponentErrorBoundary componentName="WeeklySummaryTodoModal" onError={handleError}>
-                <WeeklySummaryTodoModal
-                  events={filteredEvents}
-                  onClose={() => setShowWeeklySummaryModal(false)}
-                />
-              </ComponentErrorBoundary>
-            </Suspense>,
-            document.body
-          )}
-          
-          {/* Main application layout */}
-          <div 
-            className="d-flex flex-column vh-100 app-shell" 
+          <AppOverlays
+            showEventModal={showEventModal}
+            showPlantModal={showPlantModal}
+            showWeeklySummaryModal={showWeeklySummaryModal}
+            filteredEvents={filteredEvents}
+            onCloseWeeklySummary={() => setShowWeeklySummaryModal(false)}
+            onError={handleError}
+          />
+
+          <div
+            className="d-flex flex-column vh-100 app-shell"
             style={{ overflow: 'hidden' }}
           >
             {updateReady && (
@@ -234,178 +91,45 @@ function App() {
                 onDismiss={dismissUpdate}
               />
             )}
-            <Suspense fallback={inlineFallback}>
-              <ComponentErrorBoundary
-                componentName="Header"
-                onError={handleError}
-              >
-                <Header />
-              </ComponentErrorBoundary>
-            </Suspense>
+            <LazyBoundary name="Header" fallback={inlineFallback} onError={handleError}>
+              <Header />
+            </LazyBoundary>
             {(!isOnline || offlinePreview) && <OfflineBanner />}
-            
-            {/* Main content area */}
-            <main 
-              className='d-flex flex-grow-1 position-relative' 
-              style={{ 
+
+            <main
+              className="d-flex flex-grow-1 position-relative"
+              style={{
                 minHeight: 0,
-                overflow: 'hidden'
+                overflow: 'hidden',
               }}
             >
-              {/* Desktop sidebar — h-100 so the border column matches calendar height */}
               <div className={`d-none d-md-block h-100 ${showSidebar ? 'd-block' : ''}`}>
-                <Suspense fallback={inlineFallback}>
-                  <ComponentErrorBoundary
-                    componentName="Sidebar"
-                    onError={handleError}
-                  >
-                    <Sidebar />
-                  </ComponentErrorBoundary>
-                </Suspense>
+                <LazyBoundary name="Sidebar" fallback={inlineFallback} onError={handleError}>
+                  <Sidebar />
+                </LazyBoundary>
               </div>
-              
-              {/* Mobile sidebar overlay */}
+
               {showSidebar && (
                 <div className="d-md-none">
-                  <Suspense fallback={inlineFallback}>
-                    <ComponentErrorBoundary
-                      componentName="Sidebar (Mobile)"
-                      onError={handleError}
-                    >
-                      <Sidebar />
-                    </ComponentErrorBoundary>
-                  </Suspense>
+                  <LazyBoundary name="Sidebar (Mobile)" fallback={inlineFallback} onError={handleError}>
+                    <Sidebar />
+                  </LazyBoundary>
                 </div>
               )}
-              
-              {/* Calendar area */}
-              <section 
-                className={`flex-grow-1 d-flex flex-column${currentView === 'daily' ? ' calendar-section-daily' : ''}`}
-                style={{ 
-                  minHeight: 0,
-                  overflow: isFullPageCalendarView(currentView) ? 'auto' : 'hidden',
-                }}
-                aria-label={
-                  currentView === 'guide'
-                    ? t('layout.vegetableGuide')
-                    : currentView === 'disease-guide'
-                      ? t('layout.diseaseGuide')
-                      : currentView === 'settings'
-                        ? t('settings.title')
-                        : currentView === 'manage-plants'
-                          ? t('layout.plantManagement')
-                          : currentView === 'manage-todo'
-                            ? t('layout.todoManagement')
-                            : t('layout.calendarView')
-                }
-              >
-                {currentView === 'guide' ? (
-                  <Suspense fallback={inlineFallback}>
-                    <ComponentErrorBoundary
-                      componentName="VegetableGuideView"
-                      onError={handleError}
-                    >
-                      <VegetableGuideView />
-                    </ComponentErrorBoundary>
-                  </Suspense>
-                ) : currentView === 'disease-guide' ? (
-                  <Suspense fallback={inlineFallback}>
-                    <ComponentErrorBoundary
-                      componentName="DiseaseGuideView"
-                      onError={handleError}
-                    >
-                      <DiseaseGuideView />
-                    </ComponentErrorBoundary>
-                  </Suspense>
-                ) : currentView === 'settings' ? (
-                  <Suspense fallback={inlineFallback}>
-                    <ComponentErrorBoundary
-                      componentName="AccountSettings"
-                      onError={handleError}
-                    >
-                      <AccountSettings />
-                    </ComponentErrorBoundary>
-                  </Suspense>
-                ) : currentView === 'manage-plants' ? (
-                  <Suspense fallback={inlineFallback}>
-                    <ComponentErrorBoundary
-                      componentName="ManagePlantsPage"
-                      onError={handleError}
-                    >
-                      <ManagePlantsPage />
-                    </ComponentErrorBoundary>
-                  </Suspense>
-                ) : currentView === 'manage-todo' ? (
-                  <Suspense fallback={inlineFallback}>
-                    <ComponentErrorBoundary
-                      componentName="ManageTodoPage"
-                      onError={handleError}
-                    >
-                      <ManageTodoPage />
-                    </ComponentErrorBoundary>
-                  </Suspense>
-                ) : (
-                  <>
-                    {/* Show day headers for month grid (including desktop fallback when view is year) */}
-                    {(currentView === 'month' || (currentView === 'year' && !isMobile)) && (
-                      <Suspense fallback={inlineFallback}>
-                        <ComponentErrorBoundary
-                          componentName="CalendarHeader"
-                          onError={handleError}
-                        >
-                          <CalendarHeader />
-                        </ComponentErrorBoundary>
-                      </Suspense>
-                    )}
-                    
-                    {/* Switch between month, year (mobile), week, and daily views */}
-                    {currentView === 'year' && isMobile ? (
-                      <Suspense fallback={inlineFallback}>
-                        <ComponentErrorBoundary
-                          componentName="YearlyView"
-                          onError={handleError}
-                        >
-                          <YearlyView />
-                        </ComponentErrorBoundary>
-                      </Suspense>
-                    ) : currentView === 'month' || (currentView === 'year' && !isMobile) ? (
-                      <Suspense fallback={inlineFallback}>
-                        <ComponentErrorBoundary
-                          componentName="CalendarGrid"
-                          onError={handleError}
-                        >
-                          <CalendarGrid month={currentMonth} />
-                        </ComponentErrorBoundary>
-                      </Suspense>
-                    ) : currentView === 'week' ? (
-                      <Suspense fallback={inlineFallback}>
-                        <ComponentErrorBoundary
-                          componentName="WeeklyView"
-                          onError={handleError}
-                        >
-                          <WeeklyView />
-                        </ComponentErrorBoundary>
-                      </Suspense>
-                    ) : (
-                      <Suspense fallback={inlineFallback}>
-                        <ComponentErrorBoundary
-                          componentName="DailyView"
-                          onError={handleError}
-                        >
-                          <DailyView />
-                        </ComponentErrorBoundary>
-                      </Suspense>
-                    )}
-                  </>
-                )}
 
-              </section>
+              <MainView
+                currentView={currentView}
+                isMobile={isMobile}
+                currentMonth={currentMonth}
+                fallback={inlineFallback}
+                onError={handleError}
+              />
             </main>
           </div>
-          </div>
-        </AuthWrapper>
+        </div>
+      </AuthWrapper>
     </ErrorBoundary>
   );
 }
 
-export default App; 
+export default App;

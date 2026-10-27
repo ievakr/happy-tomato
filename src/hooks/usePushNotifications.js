@@ -627,11 +627,5 @@ export const usePushNotifications = () => {
     getTodoSummary,
     isPushServiceReady,
     getPushServiceStatus,
-    emailPreferences: pushPreferences,
-    updateEmailPreferences: updatePushPreferences,
-    resetEmailPreferences: resetPushPreferences,
-    testEmailConfiguration: testPushConfiguration,
-    isEmailServiceReady: isPushServiceReady,
-    getEmailServiceStatus: getPushServiceStatus,
   };
 };

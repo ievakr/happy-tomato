@@ -16,4 +16,5 @@ export { default as BaseErrorBoundary } from './BaseErrorBoundary';
 export { default as ErrorBoundary } from './ErrorBoundary';
 export { default as AsyncErrorBoundary } from './AsyncErrorBoundary';
 export { default as ContextErrorBoundary } from './ContextErrorBoundary';
-export { default as ComponentErrorBoundary } from './ComponentErrorBoundary'; 
+export { default as ComponentErrorBoundary } from './ComponentErrorBoundary';
+export { default as LazyBoundary } from './LazyBoundary'; 
