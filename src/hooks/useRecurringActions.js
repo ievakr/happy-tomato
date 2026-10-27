@@ -27,11 +27,13 @@ import { updateEventWithRecurringRecalculation as recalculateRecurringEvent } fr
  * Custom hook for managing recurring actions and TO DO completion
  */
 export const useRecurringActions = () => {
-  const { dispatchCallEvent, filteredEvents } = useEventContext();
+  const { dispatchCallEvent, filteredEvents, savedEvents } = useEventContext();
+  const allEvents =
+    Array.isArray(savedEvents) && savedEvents.length > 0 ? savedEvents : filteredEvents;
   const { currentUser } = useAuth();
 
   const createActionWithRecurringTodos = async (actionEvent) =>
-    createActionWithRecurringTodosService(actionEvent, { dispatchCallEvent, filteredEvents });
+    createActionWithRecurringTodosService(actionEvent, { dispatchCallEvent, filteredEvents: allEvents });
 
   /**
    * Complete a TO DO event and convert it to an action
@@ -96,7 +98,7 @@ export const useRecurringActions = () => {
   const updateEventWithRecurringRecalculation = async (updatedEvent, originalEvent) =>
     recalculateRecurringEvent(updatedEvent, originalEvent, {
       dispatchCallEvent,
-      filteredEvents,
+      filteredEvents: allEvents,
       deleteRecurringTodosForEvent,
     });
 

@@ -1,5 +1,10 @@
 import { useCallback, useState } from 'react';
 import dayjs from 'dayjs';
+import { useTranslation } from '../i18n/LanguageContext';
+import {
+  MAX_RECURRING_OCCURRENCES,
+  validateUserRecurringConfig,
+} from '../utils/recurringSchedule';
 
 const DEFAULT_UNTIL_OFFSET_MONTHS = 1;
 
@@ -13,6 +18,7 @@ function defaultUntilDate(fromDate) {
  * Recurring-series form state for EventModal.
  */
 export function useEventRecurringConfig() {
+  const { t } = useTranslation();
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringInterval, setRecurringInterval] = useState(7);
   const [recurringMaxOccurrences, setRecurringMaxOccurrences] = useState(2);
@@ -67,11 +73,11 @@ export function useEventRecurringConfig() {
       if (!toDoValue || !isRecurring) return null;
       return {
         enabled: true,
-        interval: Number(recurringInterval) || 7,
+        interval: Number(recurringInterval),
         unit: 'days',
         endType: recurringEndType,
         ...(recurringEndType === 'count'
-          ? { maxOccurrences: Number(recurringMaxOccurrences) || 2 }
+          ? { maxOccurrences: Number(recurringMaxOccurrences) }
           : { untilDate: dayjs(recurringUntilDate).endOf('day').valueOf() }),
       };
     },
@@ -82,23 +88,23 @@ export function useEventRecurringConfig() {
     (toDoValue, selectedDate, showError) => {
       if (!toDoValue || !isRecurring) return true;
 
-      if (recurringEndType === 'count') {
-        const n = Number(recurringMaxOccurrences);
-        if (!Number.isFinite(n) || n < 1) {
-          showError('Enter a valid number of occurrences (at least 1).');
-          return false;
-        }
-      } else {
-        const startDay = dayjs(selectedDate).startOf('day');
-        const untilDay = dayjs(recurringUntilDate).startOf('day');
-        if (untilDay.isBefore(startDay)) {
-          showError('The end date must be on or after the event date.');
-          return false;
-        }
+      const result = validateUserRecurringConfig(
+        {
+          enabled: true,
+          interval: recurringInterval,
+          endType: recurringEndType,
+          maxOccurrences: recurringMaxOccurrences,
+          untilDate: recurringUntilDate,
+        },
+        selectedDate
+      );
+      if (!result.ok) {
+        showError(t(result.errorKey, { max: MAX_RECURRING_OCCURRENCES }));
+        return false;
       }
       return true;
     },
-    [isRecurring, recurringEndType, recurringMaxOccurrences, recurringUntilDate]
+    [isRecurring, recurringEndType, recurringInterval, recurringMaxOccurrences, recurringUntilDate, t]
   );
 
   return {

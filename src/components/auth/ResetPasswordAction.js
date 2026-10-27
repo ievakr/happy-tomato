@@ -6,6 +6,7 @@ import Icon from '../common/Icon';
 import TomatoBackground from './TomatoBackground';
 import logo from '../../assets/logo.png';
 import { MIN_PASSWORD_LENGTH } from '../../utils/authValidation';
+import { useAuthError } from './useAuthError';
 import './Auth.css';
 
 const STATUS = {
@@ -29,7 +30,7 @@ function ResetPasswordAction({ oobCode, onDone }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState('');
+  const error = useAuthError();
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -62,30 +63,30 @@ function ResetPasswordAction({ oobCode, onDone }) {
     e.preventDefault();
 
     if (!password || !confirmPassword) {
-      setError(t('auth.fillAllFields'));
+      error.set('auth.fillAllFields');
       return;
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(t('auth.passwordTooShort', { min: MIN_PASSWORD_LENGTH }));
+      error.set('auth.passwordTooShort', { min: MIN_PASSWORD_LENGTH });
       return;
     }
     if (password !== confirmPassword) {
-      setError(t('auth.passwordsNoMatch'));
+      error.set('auth.passwordsNoMatch');
       return;
     }
 
     try {
-      setError('');
+      error.clear();
       setSubmitting(true);
       await confirmReset(oobCode, password);
       setStatus(STATUS.SUCCESS);
     } catch (err) {
       if (err.code === 'auth/weak-password') {
-        setError(t('auth.weakPassword'));
+        error.set('auth.weakPassword');
       } else if (err.code === 'auth/expired-action-code' || err.code === 'auth/invalid-action-code') {
         setStatus(STATUS.INVALID);
       } else {
-        setError(t('auth.resetFailed'));
+        error.set('auth.resetFailed');
       }
     } finally {
       setSubmitting(false);
@@ -97,6 +98,9 @@ function ResetPasswordAction({ oobCode, onDone }) {
       <TomatoBackground />
       <div className="auth-card card shadow-lg border-0">
         <div className="card-body">
+          <div className="auth-welcome-top">
+            <LanguageSwitcher variant="segment" />
+          </div>
           <div className="auth-brand">
             <img src={logo} alt="" />
             <span>Happy Tomato</span>
@@ -128,7 +132,7 @@ function ResetPasswordAction({ oobCode, onDone }) {
                 <p className="auth-subtitle mb-0">{t('auth.newPasswordFor', { email })}</p>
               </div>
 
-              {error && <div className="auth-error alert alert-danger">{error}</div>}
+              {error.message && <div className="auth-error alert alert-danger">{error.message}</div>}
 
               <form onSubmit={handleSubmit} className="auth-form d-grid gap-3">
                 <div className="auth-field">
@@ -208,9 +212,6 @@ function ResetPasswordAction({ oobCode, onDone }) {
             </>
           )}
 
-          <div className="d-flex justify-content-center mt-4">
-            <LanguageSwitcher variant="dropdown" abbreviateEnglish className="auth-language-dropdown" />
-          </div>
         </div>
       </div>
     </div>

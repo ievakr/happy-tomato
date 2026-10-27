@@ -1,4 +1,6 @@
 import dayjs from 'dayjs';
+import { MAX_RECURRING_OCCURRENCES } from './recurringSchedule';
+import { eventMatchesAction, labelsMatch } from './recurringTodos';
 
 /** Match display after manual "Complete" — same as useRecurringActions.completeTodo */
 function stripTodoPrefixForCompleted(title) {
@@ -15,14 +17,17 @@ function stripTodoPrefixForCompleted(title) {
 export const parseRecurringInterval = (dosageText, userRecurringConfig = null) => {
   // Priority 1: Use user-defined configuration if available
   if (userRecurringConfig && userRecurringConfig.enabled) {
-    const interval = userRecurringConfig.interval || 7;
+    const rawInterval = userRecurringConfig.interval;
+    const interval = rawInterval == null || rawInterval === '' ? 7 : Number(rawInterval);
     const unit = userRecurringConfig.unit || 'days';
+    const rawCount = userRecurringConfig.maxOccurrences;
+    const maxOccurrences = rawCount == null || rawCount === '' ? 12 : Number(rawCount);
     if (userRecurringConfig.endType === 'count') {
       return {
         interval,
         unit,
         endType: 'count',
-        maxOccurrences: userRecurringConfig.maxOccurrences || 12,
+        maxOccurrences,
       };
     }
     if (
@@ -41,7 +46,7 @@ export const parseRecurringInterval = (dosageText, userRecurringConfig = null) =
       interval,
       unit,
       endType: 'count',
-      maxOccurrences: userRecurringConfig.maxOccurrences || 12,
+      maxOccurrences,
     };
   }
   
@@ -122,24 +127,11 @@ export const generateRecurringToDos = (
   const today = dayjs();
   const futureRecurringTodos = existingEvents.filter(evt => {
     if (!evt.isRecurringTodo || evt.completed) return false;
-    
+
     const eventDate = dayjs(evt.day);
     if (!eventDate.isAfter(today)) return false;
-    
-    // Check if this is the same action/todo
-    const hasMatchingAction = actionToMatch && (
-      (evt.actions && evt.actions.includes(actionToMatch)) ||
-      (evt.toDo && evt.toDo.includes(actionToMatch)) ||
-      evt.title.includes(actionToMatch)
-    );
-    
-    // Check if labels match (flexible matching)
-    const hasMatchingLabels = 
-      (!actionEvent.labels || actionEvent.labels.length === 0) ||
-      (!evt.labels || evt.labels.length === 0) ||
-      (actionEvent.labels && evt.labels && actionEvent.labels.some(label => evt.labels.includes(label)));
-    
-    return hasMatchingAction && hasMatchingLabels;
+
+    return eventMatchesAction(evt, actionToMatch) && labelsMatch(actionEvent.labels || [], evt.labels || []);
   });
   
   // If this action is older than a recurring interval and has no future TODOs,
@@ -147,11 +139,12 @@ export const generateRecurringToDos = (
   const actionDate = dayjs(actionEvent.day);
   const expectedNextDate = actionDate.add(recurringInfo.interval, recurringInfo.unit);
   if (
+    !generateAllOccurrences &&
     !ignoreSeriesCancellation &&
     expectedNextDate.isBefore(today) &&
     futureRecurringTodos.length === 0
   ) {
-    return []; // Don't regenerate cancelled series
+    return []; // Don't regenerate a cancelled legacy series
   }
   
   const todos = [];
@@ -186,12 +179,19 @@ export const generateRecurringToDos = (
   let currentDate;
   let todosToGenerate;
 
+  const userCap = isUserConfig ? MAX_RECURRING_OCCURRENCES : Number.POSITIVE_INFINITY;
   if (generateAllOccurrences) {
     currentDate = startDate;
-    todosToGenerate = untilMode ? 5000 : recurringInfo.maxOccurrences;
+    todosToGenerate = Math.min(
+      untilMode ? MAX_RECURRING_OCCURRENCES : recurringInfo.maxOccurrences,
+      userCap
+    );
   } else {
     currentDate = startDate.add(recurringInfo.interval, recurringInfo.unit);
-    todosToGenerate = untilMode ? 5000 : recurringInfo.maxOccurrences - 1;
+    todosToGenerate = Math.min(
+      untilMode ? MAX_RECURRING_OCCURRENCES : recurringInfo.maxOccurrences - 1,
+      userCap
+    );
   }
 
   let todosCreated = 0;
@@ -205,26 +205,19 @@ export const generateRecurringToDos = (
       ? actionEvent.actions[0] 
       : (Array.isArray(actionEvent.toDo) ? actionEvent.toDo[0] : actionEvent.toDo);
     
-    const existingTodoForDate = existingEvents.find(evt => {
-      if (!evt.isRecurringTodo || evt.completed) return false;
-      
-      const eventDateStr = dayjs(evt.day).format("DD-MM-YY");
+    const existingTodoForDate = existingEvents.find((evt) => {
+      const eventDateStr = dayjs(evt.day).format('DD-MM-YY');
       if (eventDateStr !== currentDateStr) return false;
-      
-      // Check if action/todo matches
-      const hasMatchingAction = actionToMatch && (
-        (evt.actions && evt.actions.includes(actionToMatch)) ||
-        (evt.toDo && evt.toDo.includes(actionToMatch)) ||
-        (evt.title && evt.title.includes(actionToMatch))
+      if (!eventMatchesAction(evt, actionToMatch)) return false;
+      if (!labelsMatch(actionEvent.labels || [], evt.labels || [])) return false;
+      // A finished to-do still occupies the day, so creating the series again cannot duplicate it.
+      return Boolean(
+        evt.isRecurringTodo ||
+        evt.createdFromAction ||
+        evt.userRecurringConfig?.enabled ||
+        (typeof evt.toDo === 'string' && evt.toDo.trim()) ||
+        (typeof evt.title === 'string' && evt.title.startsWith('TO DO:'))
       );
-      
-      // Check if labels match (if both have labels)
-      const hasMatchingLabels = 
-        (!actionEvent.labels || actionEvent.labels.length === 0) ||
-        (!evt.labels || evt.labels.length === 0) ||
-        (actionEvent.labels && evt.labels && actionEvent.labels.some(label => evt.labels.includes(label)));
-      
-      return hasMatchingAction && hasMatchingLabels;
     });
     
     // Only create TODO if one doesn't already exist for this date
@@ -269,9 +262,9 @@ export const generateRecurringToDos = (
       }
       
       todos.push(todoEvent);
-      todosCreated++;
     }
-    
+
+    todosCreated++;
     currentDate = currentDate.add(recurringInfo.interval, recurringInfo.unit);
   }
   return todos;

@@ -4,6 +4,16 @@ import { Localization } from 'react-widgets';
 import { DateLocalizer } from 'react-widgets/IntlLocalizer';
 import { RW_DATE_PICKER_INPUT_PROPS } from '../../constants/datePicker';
 import { useTranslation } from '../../i18n/LanguageContext';
+import {
+  MAX_RECURRING_OCCURRENCES,
+  validateUserRecurringConfig,
+} from '../../utils/recurringSchedule';
+
+function typedNumber(value) {
+  if (value === '') return '';
+  const n = Number(value);
+  return Number.isNaN(n) ? '' : n;
+}
 
 export default function RecurringConfigSection({
   isRecurring,
@@ -16,10 +26,23 @@ export default function RecurringConfigSection({
   setRecurringMaxOccurrences,
   recurringUntilDate,
   setRecurringUntilDate,
+  selectedDate,
 }) {
   const { t, language } = useTranslation();
   const dateCulture = language === 'lt' ? 'lt' : 'en-GB';
   const panelRef = useRef(null);
+  const preview = isRecurring
+    ? validateUserRecurringConfig(
+        {
+          enabled: true,
+          interval: recurringInterval,
+          endType: recurringEndType,
+          maxOccurrences: recurringMaxOccurrences,
+          untilDate: recurringUntilDate,
+        },
+        selectedDate
+      )
+    : null;
 
   useEffect(() => {
     if (!isRecurring) return;
@@ -51,10 +74,7 @@ export default function RecurringConfigSection({
               min="1"
               max="365"
               value={recurringInterval === '' ? '' : recurringInterval}
-              onChange={(e) => {
-                const val = e.target.value;
-                setRecurringInterval(val === '' ? '' : parseInt(val, 10) || 7);
-              }}
+              onChange={(e) => setRecurringInterval(typedNumber(e.target.value))}
             />
           </div>
           <div className="event-recur-ends" role="group" aria-label={t('forms.howRecurringEnds')}>
@@ -85,10 +105,7 @@ export default function RecurringConfigSection({
               min="1"
               max="50"
               value={recurringMaxOccurrences === '' ? '' : recurringMaxOccurrences}
-              onChange={(e) => {
-                const val = e.target.value;
-                setRecurringMaxOccurrences(val === '' ? '' : parseInt(val, 10) || 12);
-              }}
+              onChange={(e) => setRecurringMaxOccurrences(typedNumber(e.target.value))}
             />
           ) : (
             <Localization date={new DateLocalizer({ culture: dateCulture, firstOfWeek: 1 })}>
@@ -105,6 +122,16 @@ export default function RecurringConfigSection({
                 }}
               />
             </Localization>
+          )}
+          {preview && (
+            <p
+              className={`event-recur-note${preview.ok ? '' : ' is-error'}`}
+              role={preview.ok ? 'status' : 'alert'}
+            >
+              {preview.ok
+                ? t('forms.recurringWillCreate', { count: preview.count })
+                : t(preview.errorKey, { max: MAX_RECURRING_OCCURRENCES })}
+            </p>
           )}
         </div>
       )}

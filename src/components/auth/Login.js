@@ -4,6 +4,7 @@ import { useTranslation } from '../../i18n/LanguageContext';
 import Icon from '../common/Icon';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import logo from '../../assets/logo.png';
+import { useAuthError } from './useAuthError';
 import './Auth.css';
 
 function Login({ onForgotPassword, onBack }) {
@@ -12,23 +13,23 @@ function Login({ onForgotPassword, onBack }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const error = useAuthError();
   const { login, loginWithGoogle } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email || !password) {
-      setError(t('auth.fillAllFields'));
+      error.set('auth.fillAllFields');
       return;
     }
 
     try {
-      setError('');
+      error.clear();
       setLoading(true);
       await login(email, password);
     } catch {
-      setError(t('auth.signInFailed'));
+      error.set('auth.signInFailed');
     } finally {
       setLoading(false);
     }
@@ -36,11 +37,11 @@ function Login({ onForgotPassword, onBack }) {
 
   const handleGoogleSignIn = async () => {
     try {
-      setError('');
+      error.clear();
       setLoading(true);
       await loginWithGoogle();
     } catch {
-      setError(t('auth.googleFailed'));
+      error.set('auth.googleFailed');
     } finally {
       setLoading(false);
     }
@@ -60,7 +61,7 @@ function Login({ onForgotPassword, onBack }) {
         <img src={logo} alt="" className="auth-signup-logo" />
         <h1 className="auth-signup-title">{t('auth.signIn')}</h1>
 
-        {error && <div className="auth-error alert alert-danger">{error}</div>}
+        {error.message && <div className="auth-error alert alert-danger">{error.message}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form auth-signup-form">
           <div className="auth-field">

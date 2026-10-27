@@ -109,7 +109,7 @@ const auth = {
     'auth.enterEmail': 'Įveskite el. pašto adresą',
     // Reset password action (link from email)
     'auth.verifyingLink': 'Tikrinama nuoroda...',
-    'auth.resetLinkInvalid': 'Ši slaptažodžio atkūrimo nuoroda negalioja arba nebegalioja. Užsisakykite naują.',
+    'auth.resetLinkInvalid': 'Ši slaptažodžio atkūrimo nuoroda negalioja arba jos galiojimo laikas pasibaigė. Užsisakykite naują.',
     'auth.setNewPassword': 'Nustatykite naują slaptažodį',
     'auth.newPasswordFor': 'Pasirinkite naują slaptažodį paskyrai {email}',
     'auth.updatePassword': 'Atnaujinti slaptažodį',
@@ -119,7 +119,7 @@ const auth = {
     'auth.continueToSignIn': 'Tęsti prie prisijungimo',
     // Email change action (link from email)
     'auth.emailLinkInvalidTitle': 'Nuoroda negalioja',
-    'auth.emailLinkInvalid': 'Ši nuoroda negalioja arba nebegalioja. Bandykite dar kartą paskyros nustatymuose.',
+    'auth.emailLinkInvalid': 'Ši nuoroda negalioja arba jos galiojimo laikas pasibaigė. Bandykite dar kartą paskyros nustatymuose.',
     'auth.emailChanged': 'El. paštas atnaujintas',
     'auth.emailChangedDesc': 'Jūsų el. paštas pakeistas į {email}.',
     'auth.emailChangedDescGeneric': 'Jūsų el. paštas pakeistas.',

@@ -750,6 +750,58 @@ describe('useRecurringActions', () => {
         payload: updatedEvent
       });
     });
+
+    test('rebuilds a series from the full saved list when a category filter hides part of it', async () => {
+      const start = dayjs().add(14, 'day').startOf('day');
+      const config = {
+        enabled: true,
+        interval: 7,
+        unit: 'days',
+        endType: 'count',
+        maxOccurrences: 2,
+      };
+      const original = {
+        id: 'shown',
+        title: 'TO DO: Water',
+        toDo: 'TO DO: Water',
+        labels: ['basil'],
+        day: start.valueOf(),
+        isRecurringTodo: true,
+        completed: false,
+        userRecurringConfig: config,
+      };
+      const hiddenSibling = {
+        ...original,
+        id: 'hidden',
+        day: start.add(7, 'day').valueOf(),
+      };
+      const updated = {
+        ...original,
+        userRecurringConfig: { ...config, interval: 14 },
+      };
+      const { generateRecurringToDos } = require('../utils/recurringActions');
+      generateRecurringToDos.mockReturnValue([
+        { ...updated, day: start.valueOf(), completed: false },
+        { ...updated, day: start.add(14, 'day').valueOf(), completed: false },
+      ]);
+
+      const { result } = renderHook(() => useRecurringActions(), {
+        wrapper: createWrapper({
+          dispatchCallEvent: mockDispatch,
+          filteredEvents: [original],
+          savedEvents: [original, hiddenSibling],
+        }),
+      });
+
+      await act(async () => {
+        await result.current.updateEventWithRecurringRecalculation(updated, original);
+      });
+
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: EVENT_ACTIONS.DELETE,
+        payload: hiddenSibling,
+      });
+    });
   });
 });
 

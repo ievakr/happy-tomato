@@ -103,6 +103,21 @@ export function getRecurringSeriesEvents(events, actionName, labels) {
     .sort((a, b) => a.day - b.day);
 }
 
+/**
+ * User-created series members, including a date the user already marked done.
+ * Completed events keep userRecurringConfig and drop isRecurringTodo.
+ */
+export function isUserRecurringSeriesMember(evt, actionName, labels) {
+  if (!evt?.userRecurringConfig?.enabled) return false;
+  return eventMatchesAction(evt, actionName) && labelsMatch(labels || [], evt.labels || []);
+}
+
+export function getUserRecurringSeriesEvents(events, actionName, labels) {
+  return (events || [])
+    .filter((evt) => isUserRecurringSeriesMember(evt, actionName, labels))
+    .sort((a, b) => a.day - b.day);
+}
+
 /** Related events for max-occurrence counting when regenerating a legacy series. */
 export function filterRelatedEventsForCount(events, { sourceItem, labels, excludeId }) {
   return events.filter((evt) => {

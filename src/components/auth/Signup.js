@@ -5,6 +5,7 @@ import Icon from '../common/Icon';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import logo from '../../assets/logo.png';
 import { MIN_PASSWORD_LENGTH } from '../../utils/authValidation';
+import { useAuthError } from './useAuthError';
 import './Auth.css';
 
 function Signup({ onBack }) {
@@ -14,35 +15,35 @@ function Signup({ onBack }) {
   const [displayName, setDisplayName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const error = useAuthError();
   const { signup, loginWithGoogle } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!email || !password || !displayName) {
-      setError(t('auth.fillAllFields'));
+      error.set('auth.fillAllFields');
       return;
     }
 
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(t('auth.passwordTooShort', { min: MIN_PASSWORD_LENGTH }));
+      error.set('auth.passwordTooShort', { min: MIN_PASSWORD_LENGTH });
       return;
     }
 
     try {
-      setError('');
+      error.clear();
       setLoading(true);
       await signup(email, password, displayName);
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
-        setError(t('auth.emailInUse'));
+        error.set('auth.emailInUse');
       } else if (err.code === 'auth/invalid-email') {
-        setError(t('auth.invalidEmail'));
+        error.set('auth.invalidEmail');
       } else if (err.code === 'auth/weak-password') {
-        setError(t('auth.weakPassword'));
+        error.set('auth.weakPassword');
       } else {
-        setError(t('auth.createFailed'));
+        error.set('auth.createFailed');
       }
     } finally {
       setLoading(false);
@@ -51,11 +52,11 @@ function Signup({ onBack }) {
 
   const handleGoogleSignIn = async () => {
     try {
-      setError('');
+      error.clear();
       setLoading(true);
       await loginWithGoogle();
     } catch (err) {
-      setError(t('auth.googleFailed'));
+      error.set('auth.googleFailed');
     } finally {
       setLoading(false);
     }
@@ -75,7 +76,7 @@ function Signup({ onBack }) {
         <img src={logo} alt="" className="auth-signup-logo" />
         <h1 className="auth-signup-title">{t('auth.signUp')}</h1>
 
-        {error && <div className="auth-error alert alert-danger">{error}</div>}
+        {error.message && <div className="auth-error alert alert-danger">{error.message}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form auth-signup-form">
           <div className="auth-field">

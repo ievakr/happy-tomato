@@ -766,6 +766,17 @@
   color: #8e8e93;
 }
 
+.event-recur-note {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: #636366;
+}
+
+.event-recur-note.is-error {
+  color: #dc3545;
+}
+
 .event-recur-ends {
   display: grid;
   grid-template-columns: 1fr 1fr;

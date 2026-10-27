@@ -256,7 +256,7 @@ export default function EventModal() {
             />
           </div>
 
-          <RecurringConfigSection {...recurringFields} />
+          <RecurringConfigSection {...recurringFields} selectedDate={selectedDate} />
         </div>
       </Modal>
 

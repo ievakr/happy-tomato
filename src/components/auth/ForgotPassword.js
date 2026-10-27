@@ -3,13 +3,14 @@ import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../i18n/LanguageContext';
 import LanguageSwitcher from '../common/LanguageSwitcher';
 import Icon from '../common/Icon';
+import { useAuthError } from './useAuthError';
 import './Auth.css';
 
 function ForgotPassword({ onBackToLogin }) {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const error = useAuthError();
   const [success, setSuccess] = useState(false);
   const { resetPassword } = useAuth();
 
@@ -17,12 +18,12 @@ function ForgotPassword({ onBackToLogin }) {
     e.preventDefault();
 
     if (!email) {
-      setError(t('auth.enterEmail'));
+      error.set('auth.enterEmail');
       return;
     }
 
     try {
-      setError('');
+      error.clear();
       setSuccess(false);
       setLoading(true);
       await resetPassword(email);
@@ -34,9 +35,9 @@ function ForgotPassword({ onBackToLogin }) {
         // response is indistinguishable from the real thing.
         setSuccess(true);
       } else if (err.code === 'auth/invalid-email') {
-        setError(t('auth.invalidEmail'));
+        error.set('auth.invalidEmail');
       } else {
-        setError(t('auth.resetFailed'));
+        error.set('auth.resetFailed');
       }
     } finally {
       setLoading(false);
@@ -56,7 +57,7 @@ function ForgotPassword({ onBackToLogin }) {
 
         <h1 className="auth-signup-title">{t('auth.resetPassword')}</h1>
 
-        {error && <div className="auth-error alert alert-danger">{error}</div>}
+        {error.message && <div className="auth-error alert alert-danger">{error.message}</div>}
         {success && (
           <div className="auth-success alert alert-success">{t('auth.resetEmailSent')}</div>
         )}

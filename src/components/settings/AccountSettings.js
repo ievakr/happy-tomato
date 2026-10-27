@@ -8,6 +8,7 @@ import { usePushNotifications } from '../../hooks/usePushNotifications';
 import pushService from '../../services/pushService';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { readOfflinePreview, writeOfflinePreview } from '../../utils/offlinePreview';
+import { useAuthError } from '../auth/useAuthError';
 import { SettingsCollapseRow, SettingsSwitch } from './settingsControls';
 import NotificationSettingsGroup from './NotificationSettingsGroup';
 import DeleteAccountModal from './DeleteAccountModal';
@@ -27,18 +28,18 @@ function AccountSettings() {
   const [openPanel, setOpenPanel] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const deleteError = useAuthError();
   const [deleting, setDeleting] = useState(false);
   const [emailDraft, setEmailDraft] = useState(pushNotifications.pushPreferences);
   const [offlinePreview, setOfflinePreview] = useState(readOfflinePreview);
   const [newEmail, setNewEmail] = useState('');
   const [changingEmail, setChangingEmail] = useState(false);
-  const [emailChangeError, setEmailChangeError] = useState('');
+  const emailChangeError = useAuthError();
   const [currentPasswordForChange, setCurrentPasswordForChange] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
-  const [passwordChangeError, setPasswordChangeError] = useState('');
+  const passwordChangeError = useAuthError();
 
   const isGoogleUser = currentUser?.providerData.some(
     (provider) => provider.providerId === 'google.com'
@@ -52,13 +53,13 @@ function AccountSettings() {
 
     if (current === 'email' && next !== 'email') {
       setNewEmail('');
-      setEmailChangeError('');
+      emailChangeError.clear();
     }
     if (current === 'password' && next !== 'password') {
       setCurrentPasswordForChange('');
       setNewPassword('');
       setConfirmNewPassword('');
-      setPasswordChangeError('');
+      passwordChangeError.clear();
     }
 
     setOpenPanel(next);
@@ -67,7 +68,7 @@ function AccountSettings() {
   const resetDeleteConfirm = () => {
     setShowDeleteConfirm(false);
     setPassword('');
-    setError('');
+    deleteError.clear();
   };
 
   const handleSaveEmailPreferences = async () => {
@@ -111,11 +112,11 @@ function AccountSettings() {
 
   const handleChangeEmail = async (e) => {
     e.preventDefault();
-    setEmailChangeError('');
+    emailChangeError.clear();
 
     const trimmedEmail = newEmail.trim();
     if (!trimmedEmail || trimmedEmail.toLowerCase() === (currentUser?.email || '').toLowerCase()) {
-      setEmailChangeError(t('settings.enterDifferentEmail'));
+      emailChangeError.set('settings.enterDifferentEmail');
       return;
     }
 
@@ -124,21 +125,21 @@ function AccountSettings() {
       await changeEmail(trimmedEmail);
       showSuccess(t('settings.emailChangeSent', { email: trimmedEmail }));
       setNewEmail('');
-      setEmailChangeError('');
+      emailChangeError.clear();
       closePanel();
     } catch (err) {
       if (err.code === 'auth/wrong-password') {
-        setEmailChangeError(t('settings.incorrectPassword'));
+        emailChangeError.set('settings.incorrectPassword');
       } else if (err.code === 'auth/requires-recent-login') {
-        setEmailChangeError(t('settings.requiresRecentLogin'));
+        emailChangeError.set('settings.requiresRecentLogin');
       } else if (err.code === 'auth/email-already-in-use') {
-        setEmailChangeError(t('settings.emailInUse'));
+        emailChangeError.set('settings.emailInUse');
       } else if (err.code === 'auth/invalid-email') {
-        setEmailChangeError(t('settings.invalidEmail'));
+        emailChangeError.set('settings.invalidEmail');
       } else if (err.message?.includes('popup')) {
-        setEmailChangeError(t('settings.allowPopups'));
+        emailChangeError.set('settings.allowPopups');
       } else {
-        setEmailChangeError(t('settings.emailChangeFailed'));
+        emailChangeError.set('settings.emailChangeFailed');
       }
     } finally {
       setChangingEmail(false);
@@ -147,18 +148,18 @@ function AccountSettings() {
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    setPasswordChangeError('');
+    passwordChangeError.clear();
 
     if (!currentPasswordForChange || !newPassword || !confirmNewPassword) {
-      setPasswordChangeError(t('auth.fillAllFields'));
+      passwordChangeError.set('auth.fillAllFields');
       return;
     }
     if (newPassword.length < MIN_PASSWORD_LENGTH) {
-      setPasswordChangeError(t('auth.passwordTooShort', { min: MIN_PASSWORD_LENGTH }));
+      passwordChangeError.set('auth.passwordTooShort', { min: MIN_PASSWORD_LENGTH });
       return;
     }
     if (newPassword !== confirmNewPassword) {
-      setPasswordChangeError(t('auth.passwordsNoMatch'));
+      passwordChangeError.set('auth.passwordsNoMatch');
       return;
     }
 
@@ -169,17 +170,17 @@ function AccountSettings() {
       setCurrentPasswordForChange('');
       setNewPassword('');
       setConfirmNewPassword('');
-      setPasswordChangeError('');
+      passwordChangeError.clear();
       closePanel();
     } catch (err) {
       if (err.code === 'auth/wrong-password') {
-        setPasswordChangeError(t('settings.incorrectPassword'));
+        passwordChangeError.set('settings.incorrectPassword');
       } else if (err.code === 'auth/requires-recent-login') {
-        setPasswordChangeError(t('settings.requiresRecentLogin'));
+        passwordChangeError.set('settings.requiresRecentLogin');
       } else if (err.code === 'auth/weak-password') {
-        setPasswordChangeError(t('auth.weakPassword'));
+        passwordChangeError.set('auth.weakPassword');
       } else {
-        setPasswordChangeError(t('settings.passwordChangeFailed'));
+        passwordChangeError.set('settings.passwordChangeFailed');
       }
     } finally {
       setChangingPassword(false);
@@ -188,13 +189,13 @@ function AccountSettings() {
 
   const handleDeleteAccount = async () => {
     if (!isGoogleUser && !password) {
-      setError(t('settings.enterPasswordError'));
+      deleteError.set('settings.enterPasswordError');
       return;
     }
 
     try {
       setDeleting(true);
-      setError('');
+      deleteError.clear();
 
       await deleteAllUserData(currentUser.uid, {
         userEmail: currentUser.email ?? undefined,
@@ -205,13 +206,13 @@ function AccountSettings() {
       await deleteAccount(isGoogleUser ? null : password);
     } catch (err) {
       if (err.code === 'auth/wrong-password') {
-        setError(t('settings.incorrectPassword'));
+        deleteError.set('settings.incorrectPassword');
       } else if (err.code === 'auth/requires-recent-login') {
-        setError(t('settings.requiresRecentLogin'));
+        deleteError.set('settings.requiresRecentLogin');
       } else if (err.message?.includes('popup')) {
-        setError(t('settings.allowPopups'));
+        deleteError.set('settings.allowPopups');
       } else {
-        setError(t('settings.deleteFailed', { message: err.message }));
+        deleteError.set('settings.deleteFailed', { message: err.message });
       }
 
       setDeleting(false);
@@ -244,8 +245,8 @@ function AccountSettings() {
             disabled={isGoogleUser}
           >
             <form onSubmit={handleChangeEmail} className="settings-editor-form">
-              {emailChangeError && (
-                <div className="alert alert-danger mb-0 py-2">{emailChangeError}</div>
+              {emailChangeError.message && (
+                <div className="alert alert-danger mb-0 py-2">{emailChangeError.message}</div>
               )}
               <div className="settings-field">
                 <label htmlFor="current-email" className="settings-field-label">
@@ -299,8 +300,8 @@ function AccountSettings() {
             disabled={isGoogleUser}
           >
             <form onSubmit={handleChangePassword} className="settings-editor-form">
-              {passwordChangeError && (
-                <div className="alert alert-danger mb-0 py-2">{passwordChangeError}</div>
+              {passwordChangeError.message && (
+                <div className="alert alert-danger mb-0 py-2">{passwordChangeError.message}</div>
               )}
               <div className="settings-field">
                 <label htmlFor="current-password-for-change" className="settings-field-label">
@@ -392,7 +393,7 @@ function AccountSettings() {
         show={showDeleteConfirm}
         onHide={resetDeleteConfirm}
         deleting={deleting}
-        error={error}
+        error={deleteError.message}
         password={password}
         onPasswordChange={(e) => setPassword(e.target.value)}
         isGoogleUser={isGoogleUser}
