@@ -30,12 +30,70 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid;
     }
     
-    // emailPreferences: read/delete — email must match; userId must match when present (legacy docs may omit userId)
-    function canReadEmailPrefs(doc) {
+    function boundedString(data, key, max) {
+      return !(key in data) || data[key] == null ||
+        (data[key] is string && data[key].size() <= max);
+    }
+
+    function boundedList(data, key, max) {
+      return !(key in data) || data[key] == null ||
+        (data[key] is list && data[key].size() <= max);
+    }
+
+    // A calendar event is a short record. The cap stops one account from writing megabyte documents.
+    function eventWriteOk() {
+      let data = request.resource.data;
+      return request.resource.size() < 32768 &&
+        data.keys().size() <= 40 &&
+        (data.day is number || (data.day is string && data.day.size() <= 40)) &&
+        boundedString(data, 'title', 300) &&
+        boundedString(data, 'description', 4000) &&
+        boundedString(data, 'toDo', 300) &&
+        boundedList(data, 'labels', 30) &&
+        boundedList(data, 'actions', 20);
+    }
+
+    // Icon keys are CSS class suffixes, so they stay a single token.
+    function plantWriteOk() {
+      let data = request.resource.data;
+      return request.resource.size() < 8192 &&
+        data.keys().size() <= 12 &&
+        boundedString(data, 'category', 120) &&
+        boundedString(data, 'variety', 120) &&
+        boundedString(data, 'name', 120) &&
+        data.icon is string &&
+        data.icon.size() > 0 &&
+        data.icon.size() <= 40 &&
+        data.icon.matches('^[a-z0-9-]+$');
+    }
+
+    function prefsWriteOk() {
+      let data = request.resource.data;
+      return request.resource.size() < 32768 &&
+        data.keys().size() <= 40 &&
+        boundedString(data, 'userEmail', 320) &&
+        boundedString(data, 'userName', 200) &&
+        boundedString(data, 'reminderTimeZone', 100) &&
+        boundedList(data, 'fcmTokens', 20) &&
+        boundedList(data, 'reminderIncludedCategories', 80);
+    }
+
+    // Own docs are listed by userId. Legacy docs have no userId and are read by email.
+    function emailPrefsOwnedByUid(doc) {
       return isAuthenticated() &&
+        doc.userId is string &&
+        doc.userId == request.auth.uid;
+    }
+
+    function emailPrefsLegacyByEmail(doc) {
+      return isAuthenticated() &&
+        !('userId' in doc) &&
         doc.userEmail is string &&
-        doc.userEmail == request.auth.token.email &&
-        (!('userId' in doc) || (doc.userId is string && doc.userId == request.auth.uid));
+        doc.userEmail == request.auth.token.email;
+    }
+
+    function canReadEmailPrefs(doc) {
+      return emailPrefsOwnedByUid(doc) || emailPrefsLegacyByEmail(doc);
     }
     
     // emailPreferences: new docs must bind both email and uid
@@ -46,9 +104,10 @@ service cloud.firestore {
         doc.userId == request.auth.uid;
     }
     
-    function emailPrefsEmailUnchanged() {
+    // The stored address may change only to the address on the current sign-in token.
+    function emailPrefsEmailIsCaller() {
       return request.resource.data.userEmail is string &&
-        request.resource.data.userEmail == resource.data.userEmail;
+        request.resource.data.userEmail == request.auth.token.email;
     }
     
     function emailPrefsUserIdUnchanged() {
@@ -68,9 +127,10 @@ service cloud.firestore {
                       isSettingOwnUserId() &&
                       request.resource.data.keys().hasAll(['userId', 'day']) &&
                       request.resource.data.userId is string &&
-                      (request.resource.data.day is string || request.resource.data.day is number);
+                      (request.resource.data.day is string || request.resource.data.day is number) &&
+                      eventWriteOk();
       
-      allow update: if ownsEvent() && userIdNotChanged();
+      allow update: if ownsEvent() && userIdNotChanged() && eventWriteOk();
       
       allow delete: if ownsEvent();
     }
@@ -91,9 +151,10 @@ service cloud.firestore {
                         request.resource.data.category is string &&
                         request.resource.data.variety is string) ||
                        (request.resource.data.keys().hasAny(['name']) &&
-                        request.resource.data.name is string));
+                        request.resource.data.name is string)) &&
+                      plantWriteOk();
       
-      allow update: if ownsPlant() && userIdNotChanged();
+      allow update: if ownsPlant() && userIdNotChanged() && plantWriteOk();
       
       allow delete: if ownsPlant();
     }
@@ -106,12 +167,14 @@ service cloud.firestore {
       allow read: if canReadEmailPrefs(resource.data);
       
       allow create: if isAuthenticated() &&
-                       emailPrefsIdentityValid(request.resource.data);
+                       emailPrefsIdentityValid(request.resource.data) &&
+                       prefsWriteOk();
       
       allow update: if isAuthenticated() &&
                        canReadEmailPrefs(resource.data) &&
-                       emailPrefsEmailUnchanged() &&
-                       emailPrefsUserIdUnchanged();
+                       emailPrefsEmailIsCaller() &&
+                       emailPrefsUserIdUnchanged() &&
+                       prefsWriteOk();
       
       allow delete: if canReadEmailPrefs(resource.data);
     }
@@ -121,7 +184,10 @@ service cloud.firestore {
     // ========================================
     
     match /savedTodos/{userId} {
-      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      allow read, delete: if isAuthenticated() && request.auth.uid == userId;
+      allow create, update: if isAuthenticated() &&
+                               request.auth.uid == userId &&
+                               request.resource.size() < 32768;
     }
     
     // ========================================

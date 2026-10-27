@@ -7,11 +7,15 @@ const {
   assertFails
 } = require('@firebase/rules-unit-testing');
 const {
+  collection,
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
+  query,
   setDoc,
-  updateDoc
+  updateDoc,
+  where
 } = require('firebase/firestore');
 
 const RULES_PATH = path.join(__dirname, '..', '..', 'firestore.rules');
@@ -253,6 +257,17 @@ describe('Firestore security rules', () => {
       await assertFails(deleteDoc(doc(db, 'events', 'event-delete-legacy')));
     });
 
+    test('denies an event whose text is larger than a calendar entry', async () => {
+      const db = getAuthedDb('user-1');
+      await assertFails(
+        setDoc(doc(db, 'events', 'event-huge'), {
+          userId: 'user-1',
+          day: '2026-01-15',
+          title: 'x'.repeat(50000)
+        })
+      );
+    });
+
     test('denies delete of other users event', async () => {
       await seedDoc('events', 'event-delete-other', {
         userId: 'user-2',
@@ -462,6 +477,40 @@ describe('Firestore security rules', () => {
       await assertSucceeds(deleteDoc(doc(db, 'emailPreferences', 'pref-delete')));
     });
 
+    test('allows the stored email to change to the signed-in email', async () => {
+      await seedDoc('emailPreferences', 'user-1', {
+        userEmail: 'old@example.com',
+        userId: 'user-1',
+        enabled: true
+      });
+
+      const db = getAuthedDb('user-1', 'new@example.com');
+      await assertSucceeds(
+        updateDoc(doc(db, 'emailPreferences', 'user-1'), {
+          userEmail: 'new@example.com'
+        })
+      );
+    });
+
+    test('allows listing preference documents by the signed-in account id', async () => {
+      await seedDoc('emailPreferences', 'user-1', {
+        userEmail: 'user@example.com',
+        userId: 'user-1',
+        enabled: true
+      });
+      await seedDoc('emailPreferences', 'someone-else', {
+        userEmail: 'other@example.com',
+        userId: 'user-2',
+        enabled: true
+      });
+
+      const db = getAuthedDb('user-1', 'user@example.com');
+      const snap = await assertSucceeds(
+        getDocs(query(collection(db, 'emailPreferences'), where('userId', '==', 'user-1')))
+      );
+      expect(snap.docs.map((item) => item.id)).toEqual(['user-1']);
+    });
+
     test('denies delete of other users preferences', async () => {
       await seedDoc('emailPreferences', 'pref-delete-other', {
         userEmail: 'other@example.com',
@@ -567,6 +616,18 @@ describe('Firestore security rules', () => {
       await assertFails(
         updateDoc(doc(db, 'plants', 'plant-update-other'), {
           variety: 'Blocked'
+        })
+      );
+    });
+
+    test('denies a plant icon that is not a single class token', async () => {
+      const db = getAuthedDb('user-1');
+      await assertFails(
+        setDoc(doc(db, 'plants', 'plant-bad-icon'), {
+          userId: 'user-1',
+          category: 'Tomato',
+          variety: 'Cherry',
+          icon: 'tomato other'
         })
       );
     });

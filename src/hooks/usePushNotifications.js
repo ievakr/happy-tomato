@@ -5,7 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import pushService from '../services/pushService';
 import dayjs from 'dayjs';
 import { db } from '../firebase';
-import { doc, setDoc, getDoc, arrayUnion } from 'firebase/firestore';
+import { doc, setDoc, arrayUnion } from 'firebase/firestore';
+import { emailPreferencesDocId } from '../utils/emailPreferencesDoc';
+import { readEmailPreferences } from '../utils/deleteUserData';
 import { reminderWallParts } from '../utils/reminderTime';
 import {
   PUSH_PREFS_STORAGE_KEY as STORAGE_KEY,
@@ -71,7 +73,8 @@ export const usePushNotifications = () => {
         const emailForDoc = prefsEmail(normalized);
         if (!emailForDoc) return;
 
-        const docId = emailForDoc.replace(/[.#$[\]]/g, '_');
+        const docId = emailPreferencesDocId(currentUser?.uid);
+        if (!docId) return;
         const payload = {
           ...normalized,
           userId: currentUser?.uid || normalized.userId,
@@ -110,12 +113,10 @@ export const usePushNotifications = () => {
     if (!email) return;
 
     try {
-      const docId = email.replace(/[.#$[\]]/g, '_');
-      const docRef = doc(db, 'emailPreferences', docId);
-      const docSnap = await getDoc(docRef);
+      const loaded = await readEmailPreferences(currentUser?.uid, email);
 
-      if (docSnap.exists()) {
-        const firestorePrefs = docSnap.data();
+      if (loaded) {
+        const firestorePrefs = loaded.data;
         const localUpdated = localPrefs.updatedAt || 0;
         const firestoreUpdated = firestorePrefs.updatedAt || 0;
 
@@ -158,7 +159,7 @@ export const usePushNotifications = () => {
     } catch (error) {
       // Non-fatal
     }
-  }, [syncPreferencesToFirestore, prefsEmail]);
+  }, [syncPreferencesToFirestore, prefsEmail, currentUser?.uid]);
 
   useEffect(() => {
     loadFromFirestore();
@@ -183,7 +184,8 @@ export const usePushNotifications = () => {
           return;
         }
       }
-      const docId = email.replace(/[.#$[\]]/g, '_');
+      const docId = emailPreferencesDocId(currentUser.uid);
+      if (!docId) return;
       await pushService.ensureFcmTokenRegistered(db, docId, currentUser.uid, email);
     };
     run();
@@ -202,7 +204,8 @@ export const usePushNotifications = () => {
           const em = nativeSyncEmailRef.current;
           const uid = nativeSyncUidRef.current;
           if (!em || !uid || !event?.token) return;
-          const docId = em.replace(/[.#$[\]]/g, '_');
+          const docId = emailPreferencesDocId(uid);
+          if (!docId) return;
           try {
             await setDoc(
               doc(db, 'emailPreferences', docId),
@@ -375,12 +378,6 @@ export const usePushNotifications = () => {
     });
   };
 
-  const firestoreDocIdForPrefs = () => {
-    const email = prefsEmail(pushPreferences);
-    if (!email) return null;
-    return email.replace(/[.#$[\]]/g, '_');
-  };
-
   const sendDailyReminder = async (isAutomatic = false) => {
     const email = prefsEmail(pushPreferences);
     if (!pushPreferences.enabled || !email || !currentUser?.uid) {
@@ -390,18 +387,12 @@ export const usePushNotifications = () => {
     // Skip duplicate automated sends only; manual sends from Settings should always run.
     if (isAutomatic) {
       try {
-        const docId = firestoreDocIdForPrefs();
-        if (docId) {
-          const docSnap = await getDoc(doc(db, 'emailPreferences', docId));
-          if (docSnap.exists()) {
-            const fs = docSnap.data();
-            const lastSent = fs.lastAutoReminderSent;
-            if (lastSent) {
-              const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
-              if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
-                return true;
-              }
-            }
+        const loaded = await readEmailPreferences(currentUser.uid, email);
+        const lastSent = loaded?.data?.lastAutoReminderSent;
+        if (lastSent) {
+          const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
+          if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
+            return true;
           }
         }
       } catch (e) {
@@ -451,18 +442,12 @@ export const usePushNotifications = () => {
 
     if (isAutomatic) {
       try {
-        const docId = firestoreDocIdForPrefs();
-        if (docId) {
-          const docSnap = await getDoc(doc(db, 'emailPreferences', docId));
-          if (docSnap.exists()) {
-            const fs = docSnap.data();
-            const lastSent = fs.lastAutoAdvanceReminderSent;
-            if (lastSent) {
-              const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
-              if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
-                return true;
-              }
-            }
+        const loaded = await readEmailPreferences(currentUser.uid, email);
+        const lastSent = loaded?.data?.lastAutoAdvanceReminderSent;
+        if (lastSent) {
+          const lastSentDate = lastSent?.toDate ? lastSent.toDate() : new Date(lastSent);
+          if (dayjs(lastSentDate).isSame(dayjs(), 'day')) {
+            return true;
           }
         }
       } catch (e) {
@@ -537,8 +522,10 @@ export const usePushNotifications = () => {
       throw new Error('Your account needs an email address to sync notification settings');
     }
     if (Capacitor.isNativePlatform()) {
-      const docId = email.replace(/[.#$[\]]/g, '_');
-      await pushService.ensureFcmTokenRegistered(db, docId, currentUser.uid, email);
+      const docId = emailPreferencesDocId(currentUser.uid);
+      if (docId) {
+        await pushService.ensureFcmTokenRegistered(db, docId, currentUser.uid, email);
+      }
     }
     return pushService.testPushConfiguration();
   };

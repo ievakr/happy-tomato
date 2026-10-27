@@ -17,6 +17,65 @@ dayjs.tz.setDefault("Europe/Vilnius");
 
 admin.initializeApp();
 
+/**
+ * Ask Firebase Auth to reject new passwords shorter than 8 characters.
+ * Existing passwords keep working. Failures are logged and do not
+ * stop reminders.
+ */
+function ensurePasswordPolicy() {
+  if (ensurePasswordPolicy.started) return;
+  ensurePasswordPolicy.started = true;
+  admin.auth().projectConfigManager().updateProjectConfig({
+    passwordPolicyConfig: {
+      enforcementState: "ENFORCE",
+      forceUpgradeOnSignin: false,
+      constraints: {
+        requireUppercase: false,
+        requireLowercase: false,
+        requireNonAlphanumeric: false,
+        requireNumeric: false,
+        minLength: 8,
+        maxLength: 128,
+      },
+    },
+  }).catch((err) => {
+    const message = err && err.message ? err.message : String(err);
+    console.error("Password policy was not updated:", message);
+  });
+}
+ensurePasswordPolicy();
+
+/**
+ * Log label that does not include the person's email address.
+ * @param {Object} prefs
+ * @return {string}
+ */
+function prefsLabel(prefs) {
+  if (prefs && typeof prefs.userId === "string" && prefs.userId) {
+    return "user " + prefs.userId;
+  }
+  return "user without id";
+}
+
+const CALLABLE_PUSH_INTERVAL_MS = 15000;
+
+/**
+ * Stop one account from calling the push functions in a loop.
+ * @param {string} userId
+ * @return {Promise<boolean>} true when the call may proceed
+ */
+async function allowCallablePush(userId) {
+  const ref = admin.firestore().collection("pushRateLimits").doc(userId);
+  const snap = await ref.get();
+  const now = Date.now();
+  const last = snap.exists ? snap.get("at") : 0;
+  if (typeof last === "number" && now - last < CALLABLE_PUSH_INTERVAL_MS) {
+    return false;
+  }
+  await ref.set({at: now});
+  return true;
+}
+
 const {
   coerceReminderTimeHm,
   reminderWallParts,
@@ -240,16 +299,6 @@ async function getPlantMapsForUser(userId) {
 }
 
 /**
- * Fetch user's plants and build plantId -> displayName map
- * @param {string} userId - User ID
- * @return {Promise<Object>} Map of plantId to display name
- */
-async function getPlantIdToDisplayName(userId) {
-  const {plantIdToDisplayName} = await getPlantMapsForUser(userId);
-  return plantIdToDisplayName;
-}
-
-/**
  * Same rules as client filteredEvents: unlabeled events always show; labeled
  * events only if their plant category is checked in the sidebar.
  * @param {Array} events - User events
@@ -441,7 +490,7 @@ async function getFcmTokensForUser(userId) {
       });
     }
   });
-  return [...tokens];
+  return [...tokens].slice(0, 20);
 }
 
 /**
@@ -716,30 +765,89 @@ const sendTodoReminderPushHandler = async (data, context) => {
     );
   }
 
-  const {todos, reminderType} = data || {};
   const userId = context.auth.uid;
-
-  if (!todos || !Array.isArray(todos) || todos.length === 0) {
-    throw new functions.https.HttpsError(
-        "invalid-argument",
-        "todos array with at least one item required",
-    );
+  if (!(await allowCallablePush(userId))) {
+    return {success: false, failureReason: "rate_limited"};
   }
 
   const reminderTypeStr =
-    typeof reminderType === "string" && reminderType.trim() ?
-      reminderType.trim() :
-      "TODO Reminder";
+    data && typeof data.reminderType === "string" && data.reminderType.trim() ?
+      data.reminderType.trim() :
+      "";
+  const advanceMatch = /^(\d{1,2})-Day Advance Garden Reminder$/.exec(
+      reminderTypeStr,
+  );
+  const isTest = reminderTypeStr === "Push test" ||
+    reminderTypeStr === "TODO Reminder";
+  const isDaily = reminderTypeStr === "Daily Garden Reminder";
+  if (!isTest && !isDaily && !advanceMatch) {
+    throw new functions.https.HttpsError(
+        "invalid-argument",
+        "Unsupported reminder type",
+    );
+  }
 
-  const plantIdToDisplayName = await getPlantIdToDisplayName(userId);
+  if (isTest) {
+    const result = await sendWebPushToUser(
+        userId,
+        "Happy Tomato",
+        "Push notifications are working.",
+        {kind: "push_test"},
+    );
+    if (result.ok) return {success: true};
+    return {
+      success: false,
+      failureReason: result.reason,
+      failureDetail: result.detail,
+    };
+  }
+
+  const eventsSnapshot = await admin.firestore()
+      .collection("events")
+      .where("userId", "==", userId)
+      .get();
+  const userEvents = eventsSnapshot.docs.map((d) => ({
+    id: d.id,
+    ...d.data(),
+  }));
   const prefSnap = await admin.firestore()
       .collection("emailPreferences")
       .where("userId", "==", userId)
       .limit(1)
       .get();
-  const tz = prefSnap.empty ?
-    DEFAULT_REMINDER_TZ :
-    getReminderIanaTimeZone(prefSnap.docs[0].data());
+  const prefs = prefSnap.empty ? {} : prefSnap.docs[0].data();
+  const tz = getReminderIanaTimeZone(prefs);
+  const {plantIdToDisplayName, plantIdToCategory} =
+    await getPlantMapsForUser(userId);
+  const visibleEvents = filterEventsForReminderCalendar(
+      userEvents,
+      plantIdToCategory,
+      Array.isArray(prefs.reminderIncludedCategories) ?
+        prefs.reminderIncludedCategories :
+        null,
+  );
+
+  let todos = [];
+  if (isDaily) {
+    todos = filterDailyTodosByReminderPrefs(
+        getDueAndOverdueTodos(visibleEvents, tz),
+        prefs,
+        tz,
+    );
+  } else {
+    const days = parseInt(advanceMatch[1], 10);
+    if (days < 1 || days > 30) {
+      throw new functions.https.HttpsError(
+          "invalid-argument",
+          "Advance reminders cover 1 to 30 days",
+      );
+    }
+    todos = getTodosInAdvance(visibleEvents, days, tz);
+  }
+
+  if (!todos.length) {
+    return {success: false, failureReason: "no_todos"};
+  }
 
   const {title, body} = buildTodoReminderPush(
       todos, reminderTypeStr, plantIdToDisplayName, {timeZone: tz},
@@ -776,6 +884,9 @@ const sendWeeklySummaryPushHandler = async (_data, context) => {
   }
 
   const userId = context.auth.uid;
+  if (!(await allowCallablePush(userId))) {
+    return {success: false, sent: false, failureReason: "rate_limited"};
+  }
 
   const eventsSnapshot = await admin.firestore()
       .collection("events")
@@ -871,7 +982,7 @@ exports.sendDailyReminders = functions.pubsub
           const tz = getReminderIanaTimeZone(prefs);
           const userNow = dayjs.tz(new Date(), tz);
 
-          console.log(`\n👤 Checking daily reminder: ${prefs.userEmail}`);
+          console.log(`\n👤 Checking daily reminder: ${prefsLabel(prefs)}`);
           const dailyTime = effectiveDailyReminderTime(prefs);
           console.log(
               `   Settings: dailyReminderTime=${dailyTime}, ` +
@@ -901,7 +1012,7 @@ exports.sendDailyReminders = functions.pubsub
 
           if (!userId) {
             console.log(
-                `No userId stored for ${prefs.userEmail}. ` +
+                `No userId stored for ${prefsLabel(prefs)}. ` +
                 `Ask user to re-save notification settings.`,
             );
             continue;
@@ -929,7 +1040,7 @@ exports.sendDailyReminders = functions.pubsub
           );
 
           console.log(
-              `Found ${userEvents.length} events for ${prefs.userEmail} ` +
+              `Found ${userEvents.length} events for ${prefsLabel(prefs)} ` +
               `(${visibleEvents.length} visible for reminders)`,
           );
 
@@ -943,13 +1054,13 @@ exports.sendDailyReminders = functions.pubsub
 
           if (dueTodos.length === 0) {
             console.log(
-                `No due TODOs for ${prefs.userEmail} ` +
+                `No due TODOs for ${prefsLabel(prefs)} ` +
                 `(after due-today/overdue prefs)`,
             );
             continue;
           }
 
-          console.log(`🔔 Sending daily push to ${prefs.userEmail} ` +
+          console.log(`🔔 Sending daily push to ${prefsLabel(prefs)} ` +
             `(${dueTodos.length} TODOs)`);
           const {title, body} = buildTodoReminderPush(
               dueTodos,
@@ -1019,7 +1130,7 @@ exports.sendAdvanceReminders = functions.pubsub
           const userNow = dayjs.tz(new Date(), tz);
 
           console.log(
-              `\n👤 Checking user: ${prefs.userEmail}`,
+              `\n👤 Checking user: ${prefsLabel(prefs)}`,
           );
           const advanceTime = effectiveAdvanceReminderTime(prefs);
 
@@ -1059,7 +1170,7 @@ exports.sendAdvanceReminders = functions.pubsub
 
           if (!userId) {
             console.log(
-                `   ⚠️  No userId stored for ${prefs.userEmail}. ` +
+                `   ⚠️  No userId stored for ${prefsLabel(prefs)}. ` +
                 `Ask user to re-save notification settings.`,
             );
             continue;
@@ -1087,7 +1198,7 @@ exports.sendAdvanceReminders = functions.pubsub
           );
 
           console.log(
-              `Found ${userEvents.length} events for ${prefs.userEmail} ` +
+              `Found ${userEvents.length} events for ${prefsLabel(prefs)} ` +
               `(${visibleEvents.length} visible for reminders)`,
           );
 
@@ -1146,7 +1257,7 @@ exports.sendAdvanceReminders = functions.pubsub
           );
           console.log(
               `🔔 Sending ${advanceDays}-day advance push to ` +
-              `${prefs.userEmail}`,
+              `${prefsLabel(prefs)}`,
           );
 
           const {title, body} = buildTodoReminderPush(
@@ -1230,7 +1341,7 @@ exports.sendWeeklySummary = functions.pubsub
           );
           if (lastSent && lastSent.isSame(userNow, "isoWeek")) {
             console.log(
-                `Already sent weekly summary to ${prefs.userEmail} ` +
+                `Already sent weekly summary to ${prefsLabel(prefs)} ` +
                 `this ISO week`,
             );
             continue;
@@ -1238,7 +1349,7 @@ exports.sendWeeklySummary = functions.pubsub
 
           if (!userId) {
             console.log(
-                `No userId for ${prefs.userEmail}, skipping weekly summary`,
+                `No userId for ${prefsLabel(prefs)}, skipping weekly summary`,
             );
             continue;
           }
@@ -1268,12 +1379,12 @@ exports.sendWeeklySummary = functions.pubsub
                 (sum, arr) => sum + arr.length, 0);
 
           if (totalCount === 0) {
-            console.log(`No TODOs for week ahead for ${prefs.userEmail}`);
+            console.log(`No TODOs for week ahead for ${prefsLabel(prefs)}`);
             continue;
           }
 
           console.log(
-              `🔔 Sending weekly summary push to ${prefs.userEmail} ` +
+              `🔔 Sending weekly summary push to ${prefsLabel(prefs)} ` +
               `(${totalCount} tasks)`,
           );
 

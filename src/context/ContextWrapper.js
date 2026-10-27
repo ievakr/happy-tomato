@@ -14,6 +14,7 @@ import { useToast } from './ToastContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
+import { emailPreferencesDocId } from '../utils/emailPreferencesDoc';
 
 function CalendarDeepLinkListener({ onOpenWeeklySummary }) {
   useCalendarDeepLinks({ onOpenWeeklySummary });
@@ -66,7 +67,8 @@ export default function ContextWrapper(props) {
       const reminderIncludedCategories = labels
         .filter((l) => l.checked)
         .map((l) => l.label);
-      const docId = currentUser.email.replace(/[.#$[\]]/g, '_');
+      const docId = emailPreferencesDocId(currentUser.uid);
+      if (!docId) return;
       setDoc(
         doc(db, 'emailPreferences', docId),
         {

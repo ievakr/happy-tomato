@@ -78,6 +78,9 @@ class PushService {
     if (!data || data.success === true) {
       return '';
     }
+    if (data.failureReason === 'rate_limited') {
+      return 'A notification was just sent. Wait a few seconds and try again.';
+    }
     if (data.failureReason === 'no_fcm_tokens') {
       return (
         'No device token saved for your account yet. Turn on push in Settings → Notifications, ' +

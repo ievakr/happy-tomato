@@ -9,56 +9,135 @@ import {
   doc,
   deleteDoc,
 } from 'firebase/firestore';
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
+import {
+  emailPreferencesDocId,
+  legacyEmailPreferencesDocId,
+} from './emailPreferencesDoc';
 
 const BATCH_SIZE = 500;
 
-/** Doc id used for emailPreferences (matches usePushNotifications / ContextWrapper). */
+/** @deprecated Use legacyEmailPreferencesDocId. Kept for callers that still import this name. */
 export function emailPreferencesDocIdFromEmail(email) {
-  if (!email || typeof email !== 'string') return null;
-  const trimmed = email.trim();
-  if (!trimmed) return null;
-  return trimmed.replace(/[.#$[\]]/g, '_');
+  return legacyEmailPreferencesDocId(email);
+}
+
+function prefsBelongToCaller(data, userId, email) {
+  if (!data || typeof data !== 'object') return false;
+  const ownerId = typeof data.userId === 'string' ? data.userId : '';
+  if (ownerId) return ownerId === userId;
+  const ownerEmail = typeof data.userEmail === 'string' ? data.userEmail.trim().toLowerCase() : '';
+  const callerEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+  return Boolean(ownerEmail && callerEmail && ownerEmail === callerEmail);
+}
+
+function uniqueTokens(...groups) {
+  const tokens = [];
+  groups.flat().forEach((token) => {
+    if (typeof token === 'string' && token && !tokens.includes(token)) {
+      tokens.push(token);
+    }
+  });
+  return tokens.slice(0, 20);
 }
 
 /**
- * Move the emailPreferences doc (push tokens, reminder settings) from the old
- * email-derived id to the new one after a completed email change, so notification
- * settings carry over instead of silently resetting. Best-effort: callers should
- * treat failures here as non-fatal, since the email change itself already succeeded.
- *
- * Firestore security rules key reads/writes off the caller's ID-token email claim,
- * which still reflects the OLD email right after an email-change action code is applied
- * (tokens don't refresh automatically). So the old doc must be read+deleted first (while
- * the token still matches it), then `onBeforeWrite` should refresh that token, and only
- * then can the new doc — stamped with the new email — be created.
+ * Move notification settings onto the account id, and onto the new email, after an email change.
+ * The sign-in token still has the old email until `onBeforeWrite` refreshes it, so the old
+ * document is read and removed first.
  * @param {string} oldEmail
  * @param {string} newEmail
- * @param {{ onBeforeWrite?: () => Promise<void> }} [options]
- * @returns {Promise<boolean>} whether a doc was migrated
+ * @param {{ onBeforeWrite?: () => Promise<void>, userId?: string }} [options]
+ * @returns {Promise<boolean>} whether a document was migrated
  */
 export async function migrateEmailPreferencesDoc(oldEmail, newEmail, options = {}) {
   const { onBeforeWrite } = options;
-  const oldDocId = emailPreferencesDocIdFromEmail(oldEmail);
-  const newDocId = emailPreferencesDocIdFromEmail(newEmail);
-  if (!oldDocId || !newDocId || oldDocId === newDocId) return false;
+  const oldId = legacyEmailPreferencesDocId(oldEmail);
+  const newId = legacyEmailPreferencesDocId(newEmail);
+  const uid = options.userId || auth.currentUser?.uid || null;
+  const accountId = emailPreferencesDocId(uid);
 
-  const oldRef = doc(db, 'emailPreferences', oldDocId);
-  const oldSnap = await getDoc(oldRef);
-  if (!oldSnap.exists()) return false;
+  let carried = null;
+  if (oldId) {
+    const oldSnap = await getDoc(doc(db, 'emailPreferences', oldId));
+    if (oldSnap.exists() && prefsBelongToCaller(oldSnap.data(), uid, oldEmail)) {
+      carried = oldSnap.data();
+    }
+  }
 
-  const data = oldSnap.data();
-  await deleteDoc(oldRef);
+  let accountData = null;
+  if (accountId) {
+    const accountSnap = await getDoc(doc(db, 'emailPreferences', accountId));
+    if (accountSnap.exists()) accountData = accountSnap.data();
+  }
+
+  if (!carried && !accountData) return false;
+
+  if (oldId && carried) {
+    await deleteDoc(doc(db, 'emailPreferences', oldId));
+  }
 
   if (onBeforeWrite) await onBeforeWrite();
 
-  const newRef = doc(db, 'emailPreferences', newDocId);
+  const tokens = uniqueTokens(accountData?.fcmTokens, carried?.fcmTokens);
+  const targetId = accountId || newId;
+  if (!targetId) return false;
+
   await setDoc(
-    newRef,
-    { ...data, userEmail: newEmail, updatedAt: new Date().toISOString() },
+    doc(db, 'emailPreferences', targetId),
+    {
+      ...(carried || {}),
+      ...(accountData || {}),
+      ...(uid ? { userId: uid } : {}),
+      userEmail: newEmail,
+      updatedAt: new Date().toISOString(),
+      ...(tokens.length ? { fcmTokens: tokens } : {}),
+    },
     { merge: true },
   );
+
+  if (accountId && newId && newId !== accountId) {
+    await deleteDocIfExists(doc(db, 'emailPreferences', newId));
+  }
   return true;
+}
+
+/**
+ * Read settings from the account document. If they still live under the old email id, move them.
+ * @param {string} userId
+ * @param {string} email
+ * @returns {Promise<{id: string, data: Object}|null>}
+ */
+export async function readEmailPreferences(userId, email) {
+  const accountId = emailPreferencesDocId(userId);
+  if (!accountId) return null;
+
+  const accountRef = doc(db, 'emailPreferences', accountId);
+  const accountSnap = await getDoc(accountRef);
+  if (accountSnap.exists()) {
+    return { id: accountId, data: accountSnap.data() };
+  }
+
+  const legacyId = legacyEmailPreferencesDocId(email);
+  if (!legacyId || legacyId === accountId) return null;
+
+  const legacySnap = await getDoc(doc(db, 'emailPreferences', legacyId));
+  if (!legacySnap.exists() || !prefsBelongToCaller(legacySnap.data(), userId, email)) {
+    return null;
+  }
+
+  const data = {
+    ...legacySnap.data(),
+    userId,
+    userEmail: typeof email === 'string' && email.trim() ? email.trim() : legacySnap.data().userEmail,
+    updatedAt: new Date().toISOString(),
+  };
+  if (Array.isArray(data.fcmTokens)) {
+    data.fcmTokens = uniqueTokens(data.fcmTokens);
+  }
+  await setDoc(accountRef, data);
+  await deleteDocIfExists(doc(db, 'emailPreferences', legacyId));
+  return { id: accountId, data };
 }
 
 async function deleteDocSnapshots(docSnapshots) {
@@ -111,27 +190,35 @@ export async function deleteUserPlants(userId) {
 
 /**
  * Delete notification preference docs (FCM tokens, reminder settings).
+ * Known documents are removed before the userId query, so a rejected query cannot
+ * run after the calendar has already been deleted.
  * @param {string} userId
  * @param {string} [userEmail]
  * @returns {Promise<number>}
  */
 export async function deleteUserEmailPreferences(userId, userEmail) {
   const refs = new Map();
+  const accountId = emailPreferencesDocId(userId);
+  if (accountId) refs.set(accountId, doc(db, 'emailPreferences', accountId));
+  const legacyId = legacyEmailPreferencesDocId(userEmail);
+  if (legacyId) refs.set(legacyId, doc(db, 'emailPreferences', legacyId));
+
+  let deleted = 0;
+  for (const [id, ref] of refs) {
+    try {
+      deleted += await deleteDocIfExists(ref);
+    } catch (error) {
+      // A colliding email id can belong to someone else. Leave it, and keep going.
+      if (id === legacyId && error?.code === 'permission-denied') continue;
+      throw error;
+    }
+  }
 
   const byUserId = await getDocs(
     query(collection(db, 'emailPreferences'), where('userId', '==', userId))
   );
-  byUserId.docs.forEach((snap) => refs.set(snap.id, snap.ref));
-
-  const emailDocId = emailPreferencesDocIdFromEmail(userEmail);
-  if (emailDocId) {
-    refs.set(emailDocId, doc(db, 'emailPreferences', emailDocId));
-  }
-
-  let deleted = 0;
-  for (const ref of refs.values()) {
-    deleted += await deleteDocIfExists(ref);
-  }
+  const extras = byUserId.docs.filter((snap) => !refs.has(snap.id));
+  deleted += await deleteDocSnapshots(extras);
   return deleted;
 }
 
@@ -146,6 +233,7 @@ export async function deleteUserSavedTodos(userId) {
 
 /**
  * Delete all Firestore data associated with a user (call before Firebase Auth deleteUser).
+ * Notification settings go first. If that step fails, events and plants are still there.
  * @param {string} userId
  * @param {{ userEmail?: string }} [options]
  * @returns {Promise<Object>}
@@ -157,10 +245,10 @@ export async function deleteAllUserData(userId, options = {}) {
 
   const { userEmail } = options;
 
-  const eventsDeleted = await deleteUserEvents(userId);
-  const plantsDeleted = await deleteUserPlants(userId);
   const emailPreferencesDeleted = await deleteUserEmailPreferences(userId, userEmail);
   const savedTodosDeleted = await deleteUserSavedTodos(userId);
+  const eventsDeleted = await deleteUserEvents(userId);
+  const plantsDeleted = await deleteUserPlants(userId);
 
   return {
     eventsDeleted,
