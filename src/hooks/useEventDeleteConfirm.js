@@ -1,7 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useEventContext } from '../context/EventContext';
 import { EVENT_ACTIONS } from '../constants';
 import { getUserRecurringSeriesForEvent } from '../utils/recurringTodos';
+
+const EMPTY_SERIES = [];
 
 /**
  * Shared delete-confirmation flow for calendar views.
@@ -32,10 +34,10 @@ export function useEventDeleteConfirm() {
     }
   }, [eventToDelete, dispatchCallEvent, cancelDelete]);
 
-  const seriesEvents =
-    eventToDelete && showDeleteConfirm
-      ? getUserRecurringSeriesForEvent(filteredEvents, eventToDelete)
-      : [];
+  const seriesEvents = useMemo(() => {
+    if (!eventToDelete || !showDeleteConfirm) return EMPTY_SERIES;
+    return getUserRecurringSeriesForEvent(filteredEvents, eventToDelete);
+  }, [eventToDelete, showDeleteConfirm, filteredEvents]);
   const seriesCount = seriesEvents.length > 1 ? seriesEvents.length : 0;
 
   const confirmDeleteSeries = useCallback(async () => {
