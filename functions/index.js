@@ -522,6 +522,79 @@ async function removeInvalidFcmTokens(userId, invalidTokens) {
 const PUSH_LINK = "https://happytomato-c4fed.web.app";
 
 /**
+ * One scheduler run should deliver each reminder once, even when an account
+ * has two settings documents or two function runs overlap.
+ * @param {string} userId
+ * @param {string} kind
+ * @param {string} dayKey - YYYY-MM-DD in the user's zone
+ * @return {Promise<boolean>} true when this run should send
+ */
+async function claimReminderSend(userId, kind, dayKey) {
+  const ref = admin.firestore()
+      .collection("reminderSendLocks")
+      .doc(`${userId}_${kind}`);
+  try {
+    return await admin.firestore().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (snap.exists && snap.get("day") === dayKey) {
+        return false;
+      }
+      tx.set(ref, {
+        day: dayKey,
+        at: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      return true;
+    });
+  } catch (err) {
+    console.error("claimReminderSend failed", err);
+    return false;
+  }
+}
+
+/**
+ * Allow a later attempt when the push itself failed.
+ * @param {string} userId
+ * @param {string} kind
+ * @param {string} dayKey
+ * @return {Promise<void>}
+ */
+async function releaseReminderSend(userId, kind, dayKey) {
+  const ref = admin.firestore()
+      .collection("reminderSendLocks")
+      .doc(`${userId}_${kind}`);
+  const snap = await ref.get();
+  if (snap.exists && snap.get("day") === dayKey) {
+    await ref.delete();
+  }
+}
+
+/**
+ * Stamp every settings document for this account so a second copy cannot send.
+ * @param {string} userId
+ * @param {string} prefDocId
+ * @param {string} field
+ * @return {Promise<void>}
+ */
+async function stampReminderSent(userId, prefDocId, field) {
+  const snap = await admin.firestore()
+      .collection("emailPreferences")
+      .where("userId", "==", userId)
+      .limit(20)
+      .get();
+  const batch = admin.firestore().batch();
+  const value = admin.firestore.FieldValue.serverTimestamp();
+  const ids = new Set(snap.docs.map((d) => d.id));
+  if (prefDocId) ids.add(prefDocId);
+  ids.forEach((id) => {
+    batch.update(
+        admin.firestore().collection("emailPreferences").doc(id),
+        {[field]: value},
+    );
+  });
+  if (ids.size > 0) await batch.commit();
+}
+
+/**
  * Calendar day (YYYY-MM-DD) in the user's IANA zone for deep links
  * @param {number} offsetDays - Days after today (0 = today)
  * @param {string} ianaTimeZone - IANA zone
@@ -597,23 +670,36 @@ async function sendWebPushToUser(userId, title, body, dataPayload = {}) {
     apnsPayload.openDay = openDayStr;
   }
 
+  // No top-level `notification`. That field makes the browser show the push
+  // itself, and the service worker shows it again. Web reads title/body from
+  // data. Android and iOS still get one system notification. The tag replaces
+  // a second delivery of the same reminder instead of stacking it.
+  const collapseId = (
+    dataStrings.kind ?
+      (openDayStr ? `${dataStrings.kind}:${openDayStr}` : dataStrings.kind) :
+      "happy-tomato"
+  ).slice(0, 64);
+  dataStrings.title = String(title || "");
+  dataStrings.body = String(body || "");
+
   const message = {
     tokens,
-    notification: {title, body},
     data: dataStrings,
     android: {
       priority: "high",
-      notification: {title, body},
+      collapseKey: collapseId,
+      notification: {title, body, tag: collapseId},
     },
     apns: {
       headers: {
         "apns-priority": "10",
+        "apns-collapse-id": collapseId,
       },
       payload: apnsPayload,
     },
     webpush: {
       fcmOptions: {link: webLink},
-      notification: {title, body},
+      headers: {Urgency: "high"},
     },
   };
 
@@ -1068,20 +1154,28 @@ exports.sendDailyReminders = functions.pubsub
               plantIdToDisplayName,
               {timeZone: tz},
           );
+          const dayKey = userNow.format("YYYY-MM-DD");
+          const claimed = await claimReminderSend(
+              userId, "daily_reminder", dayKey,
+          );
+          if (!claimed) {
+            console.log(
+                `   ⚠️  Daily reminder already claimed today ` +
+                `for ${prefsLabel(prefs)}`,
+            );
+            continue;
+          }
           const result = await sendWebPushToUser(userId, title, body, {
             kind: "daily_reminder",
             openDay: openDayInTz(0, tz),
           });
 
           if (result.ok) {
-            // Update last sent timestamp
-            await admin.firestore()
-                .collection("emailPreferences")
-                .doc(prefDoc.id)
-                .update({
-                  lastAutoReminderSent: admin.firestore
-                      .FieldValue.serverTimestamp(),
-                });
+            await stampReminderSent(
+                userId, prefDoc.id, "lastAutoReminderSent",
+            );
+          } else {
+            await releaseReminderSend(userId, "daily_reminder", dayKey);
           }
         }
 
@@ -1265,20 +1359,28 @@ exports.sendAdvanceReminders = functions.pubsub
               `${advanceDays}-Day Advance Garden Reminder`,
               plantIdToDisplayName,
           );
+          const dayKey = userNow.format("YYYY-MM-DD");
+          const claimed = await claimReminderSend(
+              userId, "advance_reminder", dayKey,
+          );
+          if (!claimed) {
+            console.log(
+                `   ⚠️  Advance reminder already claimed today ` +
+                `for ${prefsLabel(prefs)}`,
+            );
+            continue;
+          }
           const result = await sendWebPushToUser(userId, title, body, {
             kind: "advance_reminder",
             openDay: openDayInTz(advanceDays, tz),
           });
 
           if (result.ok) {
-            // Update last sent timestamp
-            await admin.firestore()
-                .collection("emailPreferences")
-                .doc(prefDoc.id)
-                .update({
-                  lastAutoAdvanceReminderSent: admin.firestore
-                      .FieldValue.serverTimestamp(),
-                });
+            await stampReminderSent(
+                userId, prefDoc.id, "lastAutoAdvanceReminderSent",
+            );
+          } else {
+            await releaseReminderSend(userId, "advance_reminder", dayKey);
           }
         }
 
@@ -1391,19 +1493,28 @@ exports.sendWeeklySummary = functions.pubsub
           const title = "Your week ahead";
           const body = `You have ${totalCount} garden task${
             totalCount !== 1 ? "s" : ""} this week. Open the app to view them.`;
+          const dayKey = userNow.format("YYYY-MM-DD");
+          const claimed = await claimReminderSend(
+              userId, "weekly_summary", dayKey,
+          );
+          if (!claimed) {
+            console.log(
+                `Weekly summary already claimed today for ` +
+                `${prefsLabel(prefs)}`,
+            );
+            continue;
+          }
           const result = await sendWebPushToUser(userId, title, body, {
             kind: "weekly_summary",
             openDay: openDayInTz(0, tz),
           });
 
           if (result.ok) {
-            await admin.firestore()
-                .collection("emailPreferences")
-                .doc(prefDoc.id)
-                .update({
-                  lastWeeklySummarySent: admin.firestore
-                      .FieldValue.serverTimestamp(),
-                });
+            await stampReminderSent(
+                userId, prefDoc.id, "lastWeeklySummarySent",
+            );
+          } else {
+            await releaseReminderSend(userId, "weekly_summary", dayKey);
           }
         }
 

@@ -1,12 +1,14 @@
 import { useCallback, useState } from 'react';
 import { useEventContext } from '../context/EventContext';
 import { EVENT_ACTIONS } from '../constants';
+import { getUserRecurringSeriesForEvent } from '../utils/recurringTodos';
 
 /**
  * Shared delete-confirmation flow for calendar views.
  */
 export function useEventDeleteConfirm() {
-  const { dispatchCallEvent, isLoading, loadingOperation } = useEventContext();
+  const { dispatchCallEvent, dispatchBulkCallEvents, filteredEvents, isLoading, loadingOperation } =
+    useEventContext();
   const [eventToDelete, setEventToDelete] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -30,6 +32,26 @@ export function useEventDeleteConfirm() {
     }
   }, [eventToDelete, dispatchCallEvent, cancelDelete]);
 
+  const seriesEvents =
+    eventToDelete && showDeleteConfirm
+      ? getUserRecurringSeriesForEvent(filteredEvents, eventToDelete)
+      : [];
+  const seriesCount = seriesEvents.length > 1 ? seriesEvents.length : 0;
+
+  const confirmDeleteSeries = useCallback(async () => {
+    if (seriesEvents.length < 2) return;
+    try {
+      await dispatchBulkCallEvents(
+        seriesEvents
+          .filter((evt) => evt?.id)
+          .map((evt) => ({ type: EVENT_ACTIONS.DELETE, payload: evt }))
+      );
+      cancelDelete();
+    } catch {
+      // Toast already shown by dispatchBulkCallEvents
+    }
+  }, [seriesEvents, dispatchBulkCallEvents, cancelDelete]);
+
   const handleQuickDelete = useCallback(
     (evt, e) => {
       e.stopPropagation();
@@ -41,9 +63,11 @@ export function useEventDeleteConfirm() {
   return {
     eventToDelete,
     showDeleteConfirm,
+    seriesCount,
     requestDeleteConfirm,
     cancelDelete,
     confirmDelete,
+    confirmDeleteSeries,
     handleQuickDelete,
     isDeleting: isLoading && loadingOperation === 'delete',
   };

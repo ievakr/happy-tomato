@@ -1,10 +1,7 @@
 import { useCallback, useState } from 'react';
 import dayjs from 'dayjs';
 import { useTranslation } from '../i18n/LanguageContext';
-import {
-  MAX_RECURRING_OCCURRENCES,
-  validateUserRecurringConfig,
-} from '../utils/recurringSchedule';
+import { validateUserRecurringConfig } from '../utils/recurringSchedule';
 
 const DEFAULT_UNTIL_OFFSET_MONTHS = 1;
 
@@ -14,16 +11,65 @@ function defaultUntilDate(fromDate) {
     .toDate();
 }
 
+function recurringStateFromEvent(selectedEvent) {
+  const untilFromEvent = defaultUntilDate(selectedEvent?.day);
+  const empty = {
+    isRecurring: false,
+    recurringInterval: 7,
+    recurringMaxOccurrences: 2,
+    recurringEndType: 'count',
+    recurringUntilDate: untilFromEvent,
+  };
+
+  if (!selectedEvent?.userRecurringConfig) {
+    if (selectedEvent?.recurringInterval) {
+      return {
+        ...empty,
+        isRecurring: true,
+        recurringInterval: selectedEvent.recurringInterval || 7,
+      };
+    }
+    return empty;
+  }
+
+  const cfg = selectedEvent.userRecurringConfig;
+  const useUntil =
+    cfg.endType === 'count'
+      ? false
+      : cfg.endType === 'until'
+        ? cfg.untilDate != null
+        : cfg.untilDate != null;
+
+  if (useUntil && cfg.untilDate != null) {
+    return {
+      isRecurring: true,
+      recurringInterval: cfg.interval || 7,
+      recurringMaxOccurrences: 2,
+      recurringEndType: 'until',
+      recurringUntilDate: new Date(cfg.untilDate),
+    };
+  }
+
+  return {
+    isRecurring: true,
+    recurringInterval: cfg.interval || 7,
+    recurringMaxOccurrences: cfg.maxOccurrences || 2,
+    recurringEndType: 'count',
+    recurringUntilDate: untilFromEvent,
+  };
+}
+
 /**
  * Recurring-series form state for EventModal.
  */
-export function useEventRecurringConfig() {
+export function useEventRecurringConfig(selectedEvent) {
   const { t } = useTranslation();
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringInterval, setRecurringInterval] = useState(7);
-  const [recurringMaxOccurrences, setRecurringMaxOccurrences] = useState(2);
-  const [recurringEndType, setRecurringEndType] = useState('count');
-  const [recurringUntilDate, setRecurringUntilDate] = useState(() => defaultUntilDate());
+  const initial = recurringStateFromEvent(selectedEvent);
+  const [isRecurring, setIsRecurring] = useState(initial.isRecurring);
+  const [recurringInterval, setRecurringInterval] = useState(initial.recurringInterval);
+  const [recurringMaxOccurrences, setRecurringMaxOccurrences] = useState(initial.recurringMaxOccurrences);
+  const [recurringEndType, setRecurringEndType] = useState(initial.recurringEndType);
+  const [recurringUntilDate, setRecurringUntilDate] = useState(initial.recurringUntilDate);
 
   const resetForNewEvent = useCallback((daySelected) => {
     setIsRecurring(false);
@@ -33,40 +79,14 @@ export function useEventRecurringConfig() {
     setRecurringUntilDate(defaultUntilDate(daySelected?.toDate?.() || daySelected));
   }, []);
 
-  const applyFromEvent = useCallback((selectedEvent) => {
-    if (!selectedEvent?.userRecurringConfig) {
-      if (selectedEvent?.recurringInterval) {
-        setIsRecurring(true);
-        setRecurringInterval(selectedEvent.recurringInterval || 7);
-        setRecurringEndType('count');
-        setRecurringMaxOccurrences(2);
-        setRecurringUntilDate(defaultUntilDate(selectedEvent.day));
-      } else {
-        resetForNewEvent(selectedEvent.day);
-      }
-      return;
-    }
-
-    setIsRecurring(true);
-    const cfg = selectedEvent.userRecurringConfig;
-    setRecurringInterval(cfg.interval || 7);
-
-    const useUntil =
-      cfg.endType === 'count'
-        ? false
-        : cfg.endType === 'until'
-          ? cfg.untilDate != null
-          : cfg.untilDate != null;
-
-    if (useUntil && cfg.untilDate != null) {
-      setRecurringEndType('until');
-      setRecurringUntilDate(new Date(cfg.untilDate));
-    } else {
-      setRecurringEndType('count');
-      setRecurringMaxOccurrences(cfg.maxOccurrences || 2);
-      setRecurringUntilDate(defaultUntilDate(selectedEvent.day));
-    }
-  }, [resetForNewEvent]);
+  const applyFromEvent = useCallback((event) => {
+    const next = recurringStateFromEvent(event);
+    setIsRecurring(next.isRecurring);
+    setRecurringInterval(next.recurringInterval);
+    setRecurringMaxOccurrences(next.recurringMaxOccurrences);
+    setRecurringEndType(next.recurringEndType);
+    setRecurringUntilDate(next.recurringUntilDate);
+  }, []);
 
   const buildUserRecurringConfig = useCallback(
     (toDoValue) => {
@@ -99,7 +119,7 @@ export function useEventRecurringConfig() {
         selectedDate
       );
       if (!result.ok) {
-        showError(t(result.errorKey, { max: MAX_RECURRING_OCCURRENCES }));
+        showError(t(result.errorKey));
         return false;
       }
       return true;

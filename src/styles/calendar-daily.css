@@ -341,7 +341,7 @@
 }
 
 .daily-task-swipe .daily-task-card {
-  border-radius: 14px 0 0 14px;
+  border-radius: 14px;
 }
 
 .daily-task-swipe-delete {
@@ -363,6 +363,29 @@
 }
 
 .daily-task-swipe-delete .material-icons-outlined {
+  font-size: 1.25rem;
+  color: #fff;
+}
+
+.daily-task-swipe-done {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0 10px;
+  background: #198754;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.daily-task-swipe-done .material-icons-outlined {
   font-size: 1.25rem;
   color: #fff;
 }
@@ -611,6 +634,17 @@
 
 .bulk-move-confirm:disabled {
   opacity: 0.6;
+}
+
+.daily-task-complete-zone {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+  margin: -12px -8px -12px -10px;
+  padding: 12px 8px 12px 10px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .daily-task-icon {

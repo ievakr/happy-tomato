@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import { isSameCalendarDay } from './eventDates';
+import { listUserRecurringDates } from './recurringSchedule';
 
 /** True if the event carries a to-do (field or legacy title-only). */
 export function eventHasTodoContent(evt) {
@@ -116,6 +117,72 @@ export function getUserRecurringSeriesEvents(events, actionName, labels) {
   return (events || [])
     .filter((evt) => isUserRecurringSeriesMember(evt, actionName, labels))
     .sort((a, b) => a.day - b.day);
+}
+
+function recurringSeriesActionName(event) {
+  if (event?.actions?.length) return event.actions[0];
+  if (Array.isArray(event?.toDo)) return event.toDo[0];
+  if (event?.toDo) return event.toDo;
+  return event?.title || '';
+}
+
+/** Dates this save would occupy. A one-off event is just its own day. */
+function occurrenceDatesForSave(candidate) {
+  const config = candidate?.userRecurringConfig;
+  if (!config?.enabled) return [dayjs(candidate.day).startOf('day')];
+  return listUserRecurringDates({
+    startDate: candidate.day,
+    interval: config.interval,
+    endType: config.endType || 'count',
+    maxOccurrences: config.maxOccurrences,
+    untilDate: config.untilDate,
+  });
+}
+
+/**
+ * First date in this save that already has the same to-do and plants.
+ * ignoreIds skips the series being edited, so updating it is not a conflict.
+ */
+export function findRecurringScheduleConflict(events, candidate, ignoreIds = new Set()) {
+  if (!candidate) return null;
+  for (const date of occurrenceDatesForSave(candidate)) {
+    const match = findSameDayMatchingEvent(events, {
+      ...candidate,
+      id: undefined,
+      day: date.valueOf(),
+    });
+    if (match && !ignoreIds.has(match.id)) {
+      return { event: match, day: date };
+    }
+  }
+  return null;
+}
+
+/** Same to-do and plants already saved on this calendar day, if any. */
+export function findSameDayMatchingEvent(events, candidate) {
+  if (!candidate) return null;
+  const actionName = recurringSeriesActionName(candidate);
+  if (!actionName) return null;
+  return (
+    (events || []).find((evt) => {
+      if (!evt || (candidate.id && evt.id === candidate.id)) return false;
+      if (!isSameCalendarDay(evt.day, candidate.day)) return false;
+      if (!labelsMatch(candidate.labels || [], evt.labels || [])) return false;
+      return eventMatchesAction(evt, actionName);
+    }) || null
+  );
+}
+
+/** Every date in this event's repeat, including dates already marked done. */
+export function getUserRecurringSeriesForEvent(events, event) {
+  if (!event?.userRecurringConfig?.enabled) return [];
+  const actionName = recurringSeriesActionName(event);
+  if (!actionName) return [];
+  const members = getUserRecurringSeriesEvents(events, actionName, event.labels || []);
+  if (event.id && !members.some((evt) => evt.id === event.id)) {
+    return [...members, event].sort((a, b) => (a.day || 0) - (b.day || 0));
+  }
+  return members;
 }
 
 /** Related events for max-occurrence counting when regenerating a legacy series. */

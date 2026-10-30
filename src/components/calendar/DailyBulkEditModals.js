@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
-import { ConfirmModal, Modal } from '../common';
+import { Modal } from '../common';
+import EventDeleteConfirmModal from './EventDeleteConfirmModal';
 import Icon from '../common/Icon';
 import { EVENT_ACTIONS } from '../../constants';
 import { useToast } from '../../context/ToastContext';
@@ -182,27 +183,20 @@ export default function DailyBulkEditModals({
         </Modal>
       )}
 
-      {showBulkDeleteConfirm && (
-        <ConfirmModal
-          title={t('calendar.deleteEventsTitle')}
-          message={
-            <p className="mb-0">
-              {t(
-                bulkSelectedEventIds.length !== 1
-                  ? 'calendar.deleteEventsConfirmPlural'
-                  : 'calendar.deleteEventsConfirmSingular',
-                { count: bulkSelectedEventIds.length },
-              )}
-            </p>
-          }
-          confirmLabel={t('calendar.deleteAll')}
-          variant="danger"
-          onConfirm={confirmBulkDelete}
-          onCancel={() => setShowBulkDeleteConfirm(false)}
-          isLoading={isLoading && loadingOperation === 'delete'}
-          zIndex={1060}
-        />
-      )}
+      <EventDeleteConfirmModal
+        show={showBulkDeleteConfirm}
+        title={t('calendar.deleteEventsTitle')}
+        message={t(
+          bulkSelectedEventIds.length !== 1
+            ? 'calendar.deleteEventsConfirmPlural'
+            : 'calendar.deleteEventsConfirmSingular',
+          { count: bulkSelectedEventIds.length },
+        )}
+        confirmLabel={t('calendar.deleteAll')}
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setShowBulkDeleteConfirm(false)}
+        isLoading={isLoading && loadingOperation === 'delete'}
+      />
     </>
   );
 }

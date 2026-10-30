@@ -15,6 +15,7 @@ import RecurringConfigSection from './RecurringConfigSection';
 import { RW_DATE_PICKER_INPUT_PROPS } from '../../constants/datePicker';
 import { EVENT_ACTIONS } from '../../constants';
 import { parseTodoFieldsFromEvent, buildCalendarEventPayload } from '../../utils/eventForm';
+import { findRecurringScheduleConflict, getUserRecurringSeriesForEvent } from '../../utils/recurringTodos';
 import { useTranslation } from '../../i18n/LanguageContext';
 
 export default function EventModal() {
@@ -23,6 +24,9 @@ export default function EventModal() {
   const {
     setShowEventModal,
     dispatchCallEvent,
+    dispatchBulkCallEvents,
+    filteredEvents,
+    savedEvents,
     selectedEvent,
     setDosage,
     isLoading,
@@ -37,14 +41,14 @@ export default function EventModal() {
     deleteRecurringTodosForEvent,
   } = useRecurringActions();
   const { savedItems: savedTodoItems, addItem: addSavedTodo } = useSavedTodos();
-  const { showError } = useToast();
+  const { showError, showWarning } = useToast();
   const {
     applyFromEvent,
     resetForNewEvent,
     buildUserRecurringConfig,
     validateRecurringConfig,
     ...recurringFields
-  } = useEventRecurringConfig();
+  } = useEventRecurringConfig(selectedEvent);
 
   const [description, setDescription] = useState('');
   const [selectedLabels, setSelectedLabels] = useState([]);
@@ -111,6 +115,27 @@ export default function EventModal() {
     }
   }
 
+  async function handleDeleteSeries() {
+    if (!selectedEvent) return;
+    const members = getUserRecurringSeriesForEvent(filteredEvents, selectedEvent);
+    if (members.length < 2) return;
+    try {
+      await dispatchBulkCallEvents(
+        members
+          .filter((evt) => evt?.id)
+          .map((evt) => ({ type: EVENT_ACTIONS.DELETE, payload: evt }))
+      );
+      setShowDeleteConfirm(false);
+      setShowEventModal(false);
+    } catch {
+      // Toast already shown
+    }
+  }
+
+  const seriesCount = selectedEvent
+    ? getUserRecurringSeriesForEvent(filteredEvents, selectedEvent).length
+    : 0;
+
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -132,6 +157,24 @@ export default function EventModal() {
       userRecurringConfig,
       displayNameToPlantId,
     });
+
+    const ignoreIds = new Set(
+      selectedEvent
+        ? getUserRecurringSeriesForEvent(savedEvents, selectedEvent).map((evt) => evt.id)
+        : []
+    );
+    if (selectedEvent?.id) ignoreIds.add(selectedEvent.id);
+    const conflict = findRecurringScheduleConflict(savedEvents, calendarEvent, ignoreIds);
+    if (conflict) {
+      const todoName = (rawTodo || calendarEvent.title || '').replace(/^TO DO:\s*/i, '').trim();
+      const plant = (selectedLabels || []).filter(Boolean).join(', ');
+      const name = plant ? `${todoName} | ${plant}` : todoName;
+      showWarning(t('forms.eventAlreadyOnDay', {
+        name,
+        date: conflict.day.format('DD/MM/YYYY'),
+      }));
+      return;
+    }
 
     try {
       if (selectedEvent) {
@@ -263,7 +306,9 @@ export default function EventModal() {
       <EventDeleteConfirmModal
         show={showDeleteConfirm}
         event={selectedEvent}
+        seriesCount={seriesCount}
         onConfirm={handleDelete}
+        onDeleteSeries={seriesCount > 1 ? handleDeleteSeries : undefined}
         onCancel={() => setShowDeleteConfirm(false)}
         isLoading={isLoading && loadingOperation === 'delete'}
       />

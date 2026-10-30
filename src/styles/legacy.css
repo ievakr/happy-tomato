@@ -673,7 +673,7 @@ header.calendar-header .d-flex.align-items-center.justify-content-center.mt-2 {
   border-radius: 20px 20px 0 0;
   max-height: min(92dvh, 820px);
   overflow: hidden !important;
-  animation: event-sheet-up 0.28s ease-out;
+  animation: event-sheet-up 0.28s ease-out both;
 }
 
 .modal.event-modal .modal-header,

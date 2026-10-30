@@ -1,5 +1,5 @@
 import dayjs from 'dayjs';
-import { MAX_RECURRING_OCCURRENCES } from './recurringSchedule';
+import { MAX_RECURRING_YEARS } from './recurringSchedule';
 import { eventMatchesAction, labelsMatch } from './recurringTodos';
 
 /** Match display after manual "Complete" — same as useRecurringActions.completeTodo */
@@ -164,12 +164,12 @@ export const generateRecurringToDos = (
   let generationEnd;
   if (untilMode) {
     generationEnd = dayjs(recurringInfo.untilDate).endOf('day');
-    const cap = startDate.add(10, 'year');
+    const cap = startDate.add(MAX_RECURRING_YEARS, 'year');
     if (generationEnd.isAfter(cap)) {
       generationEnd = cap;
     }
   } else if (isUserConfig) {
-    generationEnd = startDate.add(10, 'year');
+    generationEnd = startDate.add(MAX_RECURRING_YEARS, 'year');
   } else {
     generationEnd = startDate.add(futureMonths, 'months');
   }
@@ -179,19 +179,12 @@ export const generateRecurringToDos = (
   let currentDate;
   let todosToGenerate;
 
-  const userCap = isUserConfig ? MAX_RECURRING_OCCURRENCES : Number.POSITIVE_INFINITY;
   if (generateAllOccurrences) {
     currentDate = startDate;
-    todosToGenerate = Math.min(
-      untilMode ? MAX_RECURRING_OCCURRENCES : recurringInfo.maxOccurrences,
-      userCap
-    );
+    todosToGenerate = untilMode ? Number.POSITIVE_INFINITY : recurringInfo.maxOccurrences;
   } else {
     currentDate = startDate.add(recurringInfo.interval, recurringInfo.unit);
-    todosToGenerate = Math.min(
-      untilMode ? MAX_RECURRING_OCCURRENCES : recurringInfo.maxOccurrences - 1,
-      userCap
-    );
+    todosToGenerate = untilMode ? Number.POSITIVE_INFINITY : recurringInfo.maxOccurrences - 1;
   }
 
   let todosCreated = 0;

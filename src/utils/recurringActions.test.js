@@ -123,7 +123,7 @@ describe('generateRecurringToDos user series', () => {
     ]);
   });
 
-  test('an until range stops at 50 events', () => {
+  test('an until range is not stopped at 50 events', () => {
     const todos = generateRecurringToDos(
       seriesEvent(start, {
         userRecurringConfig: {
@@ -137,7 +137,7 @@ describe('generateRecurringToDos user series', () => {
       [],
       true
     );
-    expect(todos).toHaveLength(50);
+    expect(todos).toHaveLength(201);
   });
 
   test('a past start is saved already completed and later dates stay open', () => {

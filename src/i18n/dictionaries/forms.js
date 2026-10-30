@@ -53,6 +53,7 @@ const forms = {
     'forms.addDescription': 'Add a description',
     'forms.updateEventMissingId': 'Cannot update event - missing ID. Please try refreshing the page.',
     'forms.saveEventFailed': 'Failed to save event. Please try again.',
+    'forms.eventAlreadyOnDay': '"{name}" is already on {date}.',
 
     // Recurring config section
     'forms.recurringEvent': 'This is a recurring event',
@@ -67,10 +68,8 @@ const forms = {
     'forms.repeatUntil': 'Repeat until',
     'forms.repeatUntilHelp': 'Last occurrence falls on this date or earlier',
     'forms.recurringInvalidInterval': 'Enter a number of days from 1 to 365.',
-    'forms.recurringInvalidCount': 'Enter a number of occurrences from 1 to 50.',
+    'forms.recurringInvalidCount': 'Enter a whole number of occurrences of at least 1.',
     'forms.recurringEndBeforeStart': 'The end date must be on or after the event date.',
-    'forms.recurringTooMany':
-      'A series can have at most {max} events. Shorten the date range or repeat less often.',
     'forms.recurringWillCreate': 'This will create {count} events.',
   },
   lt: {
@@ -126,6 +125,7 @@ const forms = {
     'forms.addDescription': 'Pridėkite aprašymą',
     'forms.updateEventMissingId': 'Nepavyko atnaujinti įvykio – trūksta ID. Pabandykite perkrauti puslapį.',
     'forms.saveEventFailed': 'Nepavyko išsaugoti įvykio. Bandykite dar kartą.',
+    'forms.eventAlreadyOnDay': '„{name}“ jau yra {date}.',
 
     // Recurring config section
     'forms.recurringEvent': 'Tai pasikartojantis įvykis',
@@ -140,10 +140,8 @@ const forms = {
     'forms.repeatUntil': 'Kartoti iki',
     'forms.repeatUntilHelp': 'Paskutinis pasikartojimas įvyks šią dieną arba anksčiau',
     'forms.recurringInvalidInterval': 'Įveskite dienų skaičių nuo 1 iki 365.',
-    'forms.recurringInvalidCount': 'Įveskite pasikartojimų skaičių nuo 1 iki 50.',
+    'forms.recurringInvalidCount': 'Įveskite bent 1 sveiką pasikartojimų skaičių.',
     'forms.recurringEndBeforeStart': 'Pabaigos data turi būti įvykio dieną arba vėliau.',
-    'forms.recurringTooMany':
-      'Serijoje gali būti ne daugiau kaip {max} įvykių. Sutrumpinkite laikotarpį arba kartokite rečiau.',
     'forms.recurringWillCreate': 'Bus sukurta įvykių: {count}.',
   },
 };

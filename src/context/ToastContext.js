@@ -1,13 +1,14 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import Icon from '../components/common/Icon';
+import '../styles/toast.css';
 
 const ToastContext = createContext();
 
-const SEVERITY_CLASSES = {
-  success: 'bg-success text-white',
-  error: 'bg-danger text-white',
-  warning: 'bg-warning text-dark',
-  info: 'bg-info text-white',
+const TOAST_ICONS = {
+  success: 'check',
+  warning: 'priority_high',
+  error: 'priority_high',
+  info: 'info',
 };
 
 /**
@@ -75,28 +76,12 @@ export function ToastProvider({ children }) {
     <ToastContext.Provider value={{ showToast, showSuccess, showError, showWarning, showInfo }}>
       {children}
       {toast.open && (
-        <div
-          className="position-fixed start-50 translate-middle-x p-3"
-          style={{
-            zIndex: 9999,
-            bottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
-          }}
-        >
-          <div
-            className={`d-flex align-items-center rounded shadow-sm ${SEVERITY_CLASSES[toast.severity]}`}
-            role="alert"
-            style={{ minWidth: '300px', maxWidth: '90vw' }}
-          >
-            <div className="flex-grow-1 p-3">{toast.message}</div>
-            <button
-              type="button"
-              className="btn btn-link p-2 text-reset border-0"
-              onClick={handleClose}
-              aria-label="Close"
-              style={{ opacity: 0.9 }}
-            >
-              <Icon name="close" style={{ fontSize: '1.25rem' }} />
-            </button>
+        <div className={`app-toast app-toast--${toast.severity}`}>
+          <div className="app-toast__card" role="alert">
+            <span className="app-toast__icon" aria-hidden>
+              <Icon name={TOAST_ICONS[toast.severity] || TOAST_ICONS.info} />
+            </span>
+            <span>{toast.message}</span>
           </div>
         </div>
       )}

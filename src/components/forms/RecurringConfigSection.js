@@ -4,10 +4,7 @@ import { Localization } from 'react-widgets';
 import { DateLocalizer } from 'react-widgets/IntlLocalizer';
 import { RW_DATE_PICKER_INPUT_PROPS } from '../../constants/datePicker';
 import { useTranslation } from '../../i18n/LanguageContext';
-import {
-  MAX_RECURRING_OCCURRENCES,
-  validateUserRecurringConfig,
-} from '../../utils/recurringSchedule';
+import { validateUserRecurringConfig } from '../../utils/recurringSchedule';
 
 function typedNumber(value) {
   if (value === '') return '';
@@ -31,6 +28,7 @@ export default function RecurringConfigSection({
   const { t, language } = useTranslation();
   const dateCulture = language === 'lt' ? 'lt' : 'en-GB';
   const panelRef = useRef(null);
+  const shown = useRef({ isRecurring, recurringEndType });
   const preview = isRecurring
     ? validateUserRecurringConfig(
         {
@@ -45,7 +43,11 @@ export default function RecurringConfigSection({
     : null;
 
   useEffect(() => {
-    if (!isRecurring) return;
+    const previous = shown.current;
+    shown.current = { isRecurring, recurringEndType };
+    const changed =
+      previous.isRecurring !== isRecurring || previous.recurringEndType !== recurringEndType;
+    if (!changed || !isRecurring) return;
     panelRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }, [isRecurring, recurringEndType]);
   return (
@@ -103,7 +105,6 @@ export default function RecurringConfigSection({
               id="recurringMaxOccurrences"
               aria-label={t('forms.numberOfOccurrences')}
               min="1"
-              max="50"
               value={recurringMaxOccurrences === '' ? '' : recurringMaxOccurrences}
               onChange={(e) => setRecurringMaxOccurrences(typedNumber(e.target.value))}
             />
@@ -130,7 +131,7 @@ export default function RecurringConfigSection({
             >
               {preview.ok
                 ? t('forms.recurringWillCreate', { count: preview.count })
-                : t(preview.errorKey, { max: MAX_RECURRING_OCCURRENCES })}
+                : t(preview.errorKey)}
             </p>
           )}
         </div>

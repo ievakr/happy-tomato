@@ -66,6 +66,10 @@ const calendar = {
     // Delete confirm modal
     'calendar.deleteEventTitle': 'Delete event?',
     'calendar.deleteEventConfirm': '"{name}" will be removed from your calendar.',
+    'calendar.deleteRecurringTitle': 'Delete recurring event?',
+    'calendar.deleteRecurringConfirm': '"{name}" repeats on {count} dates.',
+    'calendar.deleteThisDate': 'Delete this date',
+    'calendar.deleteAllDates': 'Delete all dates ({count})',
     'calendar.deleteCannotUndo': "This action can't be undone.",
 
     // Labels / category filter
@@ -158,6 +162,10 @@ const calendar = {
     // Delete confirm modal
     'calendar.deleteEventTitle': 'Ištrinti įvykį?',
     'calendar.deleteEventConfirm': '„{name}“ bus pašalintas iš jūsų kalendoriaus.',
+    'calendar.deleteRecurringTitle': 'Ištrinti pasikartojantį įvykį?',
+    'calendar.deleteRecurringConfirm': '„{name}“ kartojasi {count} kartų.',
+    'calendar.deleteThisDate': 'Ištrinti šią datą',
+    'calendar.deleteAllDates': 'Ištrinti visas datas ({count})',
     'calendar.deleteCannotUndo': 'Šio veiksmo negalima atšaukti.',
 
     // Labels / category filter

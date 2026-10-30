@@ -902,6 +902,22 @@
   opacity: 0.7;
 }
 
+.delete-event-confirm--series {
+  background: #dc3545;
+  color: #fff;
+}
+
+.delete-event-confirm--series:hover,
+.delete-event-confirm--series:focus,
+.delete-event-confirm--series:active {
+  background: #c82333;
+  color: #fff;
+}
+
+.delete-event-this-date {
+  margin-top: 8px;
+}
+
 .delete-event-cancel {
   min-height: 48px;
   margin-top: 4px;

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { doc, getDoc, setDoc, getDocFromCache } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../i18n/LanguageContext';
 
 const STORAGE_KEY = 'saved-todo-items';
 const MAX_ITEMS = 50;
@@ -34,8 +35,13 @@ async function saveSavedTodosToFirestore(userId, items) {
   await setDoc(ref, { userId, items }, { merge: true });
 }
 
+function compareTodoText(a, b, language) {
+  return String(a).localeCompare(String(b), language, { sensitivity: 'base' });
+}
+
 export function useSavedTodos() {
   const { currentUser } = useAuth();
+  const { language } = useTranslation();
   const queryClient = useQueryClient();
   const queryKey = useMemo(() => ['savedTodos', currentUser?.uid], [currentUser?.uid]);
   const hasMigratedFromStorage = useRef(false);
@@ -62,7 +68,10 @@ export function useSavedTodos() {
     }
   });
 
-  const savedItems = currentUser ? firestoreItems : localItems;
+  const savedItems = useMemo(() => {
+    const items = currentUser ? firestoreItems : localItems;
+    return [...items].sort((a, b) => compareTodoText(a, b, language));
+  }, [currentUser, firestoreItems, localItems, language]);
 
   // Migrate localStorage → Firestore when user logs in (one-time)
   useEffect(() => {

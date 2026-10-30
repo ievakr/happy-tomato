@@ -11,11 +11,18 @@ try {
     }
     const messaging = firebase.messaging();
     messaging.onBackgroundMessage((payload) => {
-      const title = payload.notification?.title || 'Happy Tomato';
+      const data = payload.data || {};
+      const title = payload.notification?.title || data.title || 'Happy Tomato';
+      const body = payload.notification?.body || data.body || '';
+      const kind = data.kind ? String(data.kind) : '';
+      const openDay = data.openDay ? String(data.openDay) : '';
+      const tag = (kind ? (openDay ? `${kind}:${openDay}` : kind) : 'happy-tomato').slice(0, 64);
       const options = {
-        body: payload.notification?.body || '',
+        body,
         icon: '/logo192.png',
-        data: payload.data || {},
+        tag,
+        renotify: false,
+        data,
       };
       return self.registration.showNotification(title, options);
     });

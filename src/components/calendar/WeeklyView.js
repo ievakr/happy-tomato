@@ -65,8 +65,10 @@ const WeeklyView = () => {
   const {
     eventToDelete,
     showDeleteConfirm,
+    seriesCount,
     cancelDelete,
     confirmDelete,
+    confirmDeleteSeries,
     handleQuickDelete,
     isDeleting,
   } = useEventDeleteConfirm();
@@ -94,7 +96,7 @@ const WeeklyView = () => {
 
   const getEventsForDay = (day) =>
     filterEventsForDay(filteredEvents, day, {
-      sortMobile: isMobile,
+      sortMobile: true,
       plantsById: plantsById || {},
     });
 
@@ -219,7 +221,9 @@ const WeeklyView = () => {
       <EventDeleteConfirmModal
         show={showDeleteConfirm}
         event={eventToDelete}
+        seriesCount={seriesCount}
         onConfirm={confirmDelete}
+        onDeleteSeries={seriesCount > 1 ? confirmDeleteSeries : undefined}
         onCancel={cancelDelete}
         isLoading={isDeleting}
       />

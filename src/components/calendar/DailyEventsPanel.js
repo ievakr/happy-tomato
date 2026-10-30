@@ -19,6 +19,7 @@ export default function DailyEventsPanel({
   supportsDayViewCompleteToggle,
   renderDayTodoCompleteButton,
   handleEventClick,
+  onMarkDone,
   onRequestDeleteConfirm,
   handleQuickDelete,
   isLoading,
@@ -31,10 +32,10 @@ export default function DailyEventsPanel({
 
   const dayEvents = useMemo(() => {
     return filterEventsForDay(filteredEvents, currentDay, {
-      sortMobile: isMobile,
+      sortMobile: true,
       plantsById: plantsById || {},
     });
-  }, [filteredEvents, currentDay, isMobile, plantsById]);
+  }, [filteredEvents, currentDay, plantsById]);
 
   const dayEventIds = useMemo(() => dayEvents.map((e) => e.id).filter(Boolean), [dayEvents]);
   const selectedOnDayCount = dayEventIds.filter((id) => bulkSelectedEventIds.includes(id)).length;
@@ -195,6 +196,7 @@ export default function DailyEventsPanel({
                     supportsDayViewCompleteToggle={supportsDayViewCompleteToggle}
                     renderDayTodoCompleteButton={renderDayTodoCompleteButton}
                     handleEventClick={handleEventClick}
+                    onMarkDone={onMarkDone}
                     onRequestDeleteConfirm={onRequestDeleteConfirm}
                     deleteDisabled={isLoading}
                   />

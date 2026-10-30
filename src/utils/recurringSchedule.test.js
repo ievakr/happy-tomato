@@ -1,8 +1,5 @@
 import dayjs from 'dayjs';
-import {
-  MAX_RECURRING_OCCURRENCES,
-  validateUserRecurringConfig,
-} from './recurringSchedule';
+import { validateUserRecurringConfig } from './recurringSchedule';
 
 describe('validateUserRecurringConfig', () => {
   const start = dayjs('2026-10-27').startOf('day');
@@ -34,7 +31,7 @@ describe('validateUserRecurringConfig', () => {
     expect(result.errorKey).toBe('forms.recurringEndBeforeStart');
   });
 
-  test('a daily series longer than a year is rejected', () => {
+  test('a daily series longer than a year is allowed', () => {
     const result = validateUserRecurringConfig(
       config({
         interval: 1,
@@ -43,9 +40,8 @@ describe('validateUserRecurringConfig', () => {
       }),
       start.toDate()
     );
-    expect(result.ok).toBe(false);
-    expect(result.errorKey).toBe('forms.recurringTooMany');
-    expect(result.count).toBeGreaterThan(MAX_RECURRING_OCCURRENCES);
+    expect(result.ok).toBe(true);
+    expect(result.count).toBeGreaterThan(50);
   });
 
   test('rejects an empty interval and zero', () => {
@@ -68,12 +64,19 @@ describe('validateUserRecurringConfig', () => {
     });
   });
 
-  test('rejects an interval of 366 and a count of 51', () => {
+  test('rejects an interval of 366 and a count below 1', () => {
     expect(validateUserRecurringConfig(config({ interval: 366 }), start.toDate()).errorKey).toBe(
       'forms.recurringInvalidInterval'
     );
-    expect(validateUserRecurringConfig(config({ maxOccurrences: 51 }), start.toDate()).errorKey).toBe(
+    expect(validateUserRecurringConfig(config({ maxOccurrences: 0 }), start.toDate()).errorKey).toBe(
       'forms.recurringInvalidCount'
     );
+  });
+
+  test('allows more than 50 occurrences', () => {
+    expect(validateUserRecurringConfig(config({ maxOccurrences: 51 }), start.toDate())).toEqual({
+      ok: true,
+      count: 51,
+    });
   });
 });

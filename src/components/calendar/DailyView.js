@@ -54,9 +54,11 @@ const DailyView = () => {
   const {
     eventToDelete,
     showDeleteConfirm,
+    seriesCount,
     requestDeleteConfirm,
     cancelDelete,
     confirmDelete,
+    confirmDeleteSeries,
     handleQuickDelete,
     isDeleting,
   } = useEventDeleteConfirm();
@@ -128,6 +130,14 @@ const DailyView = () => {
         supportsDayViewCompleteToggle={supportsDayViewCompleteToggle}
         renderDayTodoCompleteButton={renderDayTodoCompleteButton}
         handleEventClick={handleEventClick}
+        onMarkDone={async (evt) => {
+          if (!evt?.id || evt.completed) return;
+          try {
+            await completeTodo(evt);
+          } catch {
+            showError(t('calendar.couldNotMarkComplete'));
+          }
+        }}
         onRequestDeleteConfirm={requestDeleteConfirm}
         handleQuickDelete={handleQuickDelete}
         isLoading={isLoading}
@@ -139,7 +149,9 @@ const DailyView = () => {
       <EventDeleteConfirmModal
         show={showDeleteConfirm}
         event={eventToDelete}
+        seriesCount={seriesCount}
         onConfirm={confirmDelete}
+        onDeleteSeries={seriesCount > 1 ? confirmDeleteSeries : undefined}
         onCancel={cancelDelete}
         isLoading={isDeleting}
       />

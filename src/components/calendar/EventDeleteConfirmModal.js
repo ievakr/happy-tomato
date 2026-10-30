@@ -6,7 +6,12 @@ import { useTranslation } from '../../i18n/LanguageContext';
 export default function EventDeleteConfirmModal({
   show,
   event,
+  title,
+  message,
+  confirmLabel,
+  seriesCount = 0,
   onConfirm,
+  onDeleteSeries,
   onCancel,
   isLoading,
 }) {
@@ -21,7 +26,7 @@ export default function EventDeleteConfirmModal({
     return () => document.removeEventListener('keydown', onKey);
   }, [show, isLoading, onCancel]);
 
-  if (!show || !event) return null;
+  if (!show || (!event && title == null && message == null)) return null;
 
   return (
     <Modal className="delete-event-modal" size="sm" closeDisabled={isLoading}>
@@ -29,18 +34,47 @@ export default function EventDeleteConfirmModal({
         <div className="delete-event-icon" aria-hidden>
           <span className="material-icons-outlined">delete</span>
         </div>
-        <h2 className="delete-event-title">{t('calendar.deleteEventTitle')}</h2>
+        <h2 className="delete-event-title">
+          {title ?? (onDeleteSeries ? t('calendar.deleteRecurringTitle') : t('calendar.deleteEventTitle'))}
+        </h2>
         <p className="delete-event-message">
-          {t('calendar.deleteEventConfirm', { name: eventActionText(event) })}
+          {message ??
+            (onDeleteSeries
+              ? t('calendar.deleteRecurringConfirm', {
+                  name: eventActionText(event),
+                  count: seriesCount,
+                })
+              : t('calendar.deleteEventConfirm', { name: eventActionText(event) }))}
         </p>
-        <button
-          type="button"
-          className="delete-event-confirm"
-          onClick={onConfirm}
-          disabled={isLoading}
-        >
-          {isLoading ? t('common.loading') : t('common.delete')}
-        </button>
+        {onDeleteSeries ? (
+          <>
+            <button
+              type="button"
+              className="delete-event-confirm delete-event-confirm--series"
+              onClick={onDeleteSeries}
+              disabled={isLoading}
+            >
+              {isLoading ? t('common.loading') : t('calendar.deleteAllDates', { count: seriesCount })}
+            </button>
+            <button
+              type="button"
+              className="delete-event-confirm delete-event-this-date"
+              onClick={onConfirm}
+              disabled={isLoading}
+            >
+              {t('calendar.deleteThisDate')}
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="delete-event-confirm"
+            onClick={onConfirm}
+            disabled={isLoading}
+          >
+            {isLoading ? t('common.loading') : (confirmLabel ?? t('common.delete'))}
+          </button>
+        )}
         <button
           type="button"
           className="delete-event-cancel"

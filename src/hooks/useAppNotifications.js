@@ -12,6 +12,13 @@ function dispatchOpenDay(openDay, kind) {
   );
 }
 
+function notificationTag(data) {
+  const kind = data?.kind ? String(data.kind) : '';
+  const openDay = data?.openDay ? String(data.openDay) : '';
+  const tag = kind ? (openDay ? `${kind}:${openDay}` : kind) : 'happy-tomato';
+  return tag.slice(0, 64);
+}
+
 /**
  * Starts reminder delivery and routes notification taps back into the calendar.
  */
@@ -37,28 +44,35 @@ export default function useAppNotifications() {
     }
   }, [pushNotifications]);
 
-  // Foreground FCM: show a system notification when the tab is active
+  // Foreground FCM: show a system notification when the tab is active.
+  // Subscribe once. A late cleanup used to leave the first listener in place,
+  // so one push painted two notifications.
   useEffect(() => {
-    let unsubscribe;
+    let cancelled = false;
+    let unsubscribe = () => {};
     (async () => {
       const messaging = await getFirebaseMessaging();
-      if (!messaging) return;
+      if (!messaging || cancelled) return;
       const { onMessage } = await import('firebase/messaging');
+      if (cancelled) return;
       unsubscribe = onMessage(messaging, (payload) => {
+        const title = payload?.notification?.title || payload?.data?.title;
         if (
           typeof document !== 'undefined' &&
           document.visibilityState === 'visible' &&
-          payload?.notification?.title
+          title
         ) {
           try {
             const openDay = payload?.data?.openDay ? String(payload.data.openDay) : '';
             const kind = payload?.data?.kind ? String(payload.data.kind) : '';
+            const body = payload?.notification?.body || payload?.data?.body || '';
             const notificationData =
               openDay || kind ? { ...(openDay ? { openDay } : {}), ...(kind ? { kind } : {}) } : undefined;
             // eslint-disable-next-line no-new
-            const n = new Notification(payload.notification.title, {
-              body: payload.notification.body || '',
+            const n = new Notification(title, {
+              body,
               icon: '/logo192.png',
+              tag: notificationTag(payload?.data),
               data: notificationData,
             });
             n.onclick = () => {
@@ -73,9 +87,11 @@ export default function useAppNotifications() {
           }
         }
       });
+      if (cancelled) unsubscribe();
     })();
     return () => {
-      if (unsubscribe) unsubscribe();
+      cancelled = true;
+      unsubscribe();
     };
   }, []);
 
